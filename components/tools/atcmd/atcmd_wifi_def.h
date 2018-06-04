@@ -77,22 +77,13 @@
  * | return value  | <ssid>, <id>, <rssi>, <mac>, <encryption type> |
  * | example       | AT+SHOWALLAP |
  *
- * @subsection ATCMD_wifi_10 Show Connected AP 
+ * @subsection ATCMD_wifi_10 Show Connected AP
  *
  * | command     | AT+SHOWCONNECTAP |
  * |---------------|-------------------|
  * | param         | none         |
  * | return value  | <ssid>, <id>, <rssi>, <mac>, <encryption type> |
  * | example       | AT+SHOWCONNECTAP |
- *
- *
- * @subsection ATCMD_wifi_11 Direct to connect specified ap without do scan first 
- *
- * | command     | AT+ACTIVECONNECT=ssid,key |
- * |---------------|-------------------|
- * | param         | <ssid>: ap ssid<br><key>: ap password        |
- * | return value  | +OK               |
- * | example       | AT+ACTIVECONNECT=P880,12345678<br>AT+ACTIVECONNECT=open_ap, |
  *
  *
  */

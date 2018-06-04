@@ -8,9 +8,9 @@
 /**
  * Initializes I2C registers with initial values provided from the customizer.
  * 
- * @param   frequency       The number of data bits in each character. 
+ * @param   frequency       I2C Clock (100 - 1000 KHz)
  *
- * @return  -1              Index error!! only support index 0:I2C1, 1:I2C2 
+ * @return  -1              I2C error!!
  * @return   0              The operation completed successfully.
  */
 int8_t drv_i2c_mst_init(uint16_t frequency);
@@ -20,7 +20,7 @@ int8_t drv_i2c_mst_init(uint16_t frequency);
 /**
  * Deinitialize I2C registers.
  *
- * @return  -1              Index error!! only support index 0:I2C1, 1:I2C2 
+ * @return  -1              I2C error!!
  * @return   0              The operation completed successfully.
  */
 int8_t drv_i2c_mst_deinit(void);

@@ -339,7 +339,7 @@ SECTIONS
 #define MINIMAL_STACK_SIZE            (128)
 #endif
     PROVIDE (_stack = ORIGIN(REGION_DATA_FAST)+LENGTH(REGION_DATA_FAST));
-    __OS_Exception_Stack = _stack;
+	__OS_Exception_Stack = _stack;
     __OS_Int_Stack = __OS_Exception_Stack - (MINIMAL_STACK_SIZE * 2);
     __fence__ = __OS_Int_Stack - (MINIMAL_STACK_SIZE * 6);
     dlm_remain = __fence__ - _end;

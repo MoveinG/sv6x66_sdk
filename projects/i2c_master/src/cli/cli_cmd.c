@@ -2,9 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 #include "soc_types.h"
+#include "soc_defs.h"
 #include "cli.h"
 
 #include "drv/i2cmst/drv_i2cmst.h"
+#include "drv/pinmux/drv_pinmux.h"
+#include "drv/pinmux/hal_pinmux.h"
+
 
 typedef enum
 {
@@ -32,6 +36,36 @@ typedef enum
 #define I2C_SLAVE_ADDR          (0x50)
 #define I2C_SLAVE_ADDR_WAC      (0x10)
 
+void At_WriteReg (s32 argc, char *argv[])
+{
+    uint32_t address = strtoul(argv[1], NULL, 16);
+    uint32_t data = strtoul(argv[2], NULL, 16);
+
+	printf("reg : write 0x%lx  0x%lx \n", address, data);
+
+	REG32(address)  = data;
+}
+/*---------------------------------------------------------------------------*/
+void At_ReadReg (s32 argc, char *argv[])
+{
+	char *pkey = 0;
+    char *pnum = 0;
+    int num = atoi(pnum);
+    int i = 0;
+    
+    uint32_t address = strtoul(argv[1], NULL, 16);
+    
+    printf("\n");
+
+    if(num == 0) {
+        printf("reg : read 0x%x  0x%x \n", address, REG32(address));
+    }
+    else {
+        for(i=0;i<num;i++) {
+            printf("0x%08X = 0x%08x\n", (address+i*0x04), REG32(address+i*0x04));
+        }
+    }
+}
 
 void Cmd_i2c_master_rw_wac(s32 argc, char *argv[])
 {
@@ -41,14 +75,28 @@ void Cmd_i2c_master_rw_wac(s32 argc, char *argv[])
     uint8_t read_buf[I2C_SLAVE_RW_SIZE]  ={0};
     uint8_t read_addr[1] ;
 
-    uint16_t i2cmaster_clk = 0x0;
+    uint16_t i2cmaster_clk = 0;
+    uint16_t i2cmaster_id = 0;
 
-    i2cmaster_clk = strtoul(argv[1], NULL, 10);
-    
-    if ((argc != 2) || (i2cmaster_clk < 1) || (i2cmaster_clk > 1000)) {
-        printf("Usage           : i2c_master_rw <clk_KHz>\n");
+    i2cmaster_id = strtoul(argv[1], NULL, 10);
+    i2cmaster_clk = strtoul(argv[2], NULL, 10);
+
+    if ((argc != 3) || (i2cmaster_id < 1) || (i2cmaster_id > 2) || (i2cmaster_clk < 1) || (i2cmaster_clk > 1000)) {
+        printf("Usage           : i2c_master_rw_wac <id> <clk_KHz>\n");
+        printf("<id>            : i2c master id. 1:I2C_01 ; 2:I2C_02\n");
         printf("<clk_Hz>        : clk speed(1K-1000K)\n");
         return;
+    }
+
+    if(1 == i2cmaster_id) {
+        // GPIO_10 : I2C_M_SDA, GPIO_12 : I2C_M_SCL
+        drv_pinmux_manual_function_select_disable(SEL_I2C_MST_II);
+        drv_pinmux_manual_function_select_enable(SEL_I2C_MST_I);
+    }
+    else {
+        // GPIO_21 : I2C_M_SCL, GPIO_22 : I2C_M_SDA
+        drv_pinmux_manual_function_select_disable(SEL_I2C_MST_I);
+        drv_pinmux_manual_function_select_enable(SEL_I2C_MST_II);
     }
 
     if(0 != drv_i2c_mst_init(i2cmaster_clk)){
@@ -157,14 +205,28 @@ void Cmd_i2c_master_rw(s32 argc, char *argv[])
 
     write_buf[0] = data_start_addr ;
 
-    uint16_t i2cmaster_clk = 0x0;
+    uint16_t i2cmaster_clk = 0;
+    uint16_t i2cmaster_id = 0;
 
-    i2cmaster_clk = strtoul(argv[1], NULL, 10);
+    i2cmaster_id = strtoul(argv[1], NULL, 10);
+    i2cmaster_clk = strtoul(argv[2], NULL, 10);
 
-    if ((argc != 2) || (i2cmaster_clk < 1) || (i2cmaster_clk > 1000)) {
-        printf("Usage           : i2c_master_rw <clk_KHz>\n");
+    if ((argc != 3) || (i2cmaster_id < 1) || (i2cmaster_id > 2) || (i2cmaster_clk < 1) || (i2cmaster_clk > 1000)) {
+        printf("Usage           : i2c_master_rw <id> <clk_KHz>\n");
+        printf("<id>            : i2c master id. 1:I2C_01 ; 2:I2C_02\n");
         printf("<clk_Hz>        : clk speed(1K-1000K)\n");
         return;
+    }
+
+    if(1 == i2cmaster_id) {
+        // GPIO_10 : I2C_M_SDA, GPIO_12 : I2C_M_SCL
+        drv_pinmux_manual_function_select_disable(SEL_I2C_MST_II);
+        drv_pinmux_manual_function_select_enable(SEL_I2C_MST_I);
+    }
+    else {
+        // GPIO_21 : I2C_M_SCL, GPIO_22 : I2C_M_SDA
+        drv_pinmux_manual_function_select_disable(SEL_I2C_MST_I);
+        drv_pinmux_manual_function_select_enable(SEL_I2C_MST_II);
     }
     
     printf("set clk => %d\n" , i2cmaster_clk);
@@ -221,13 +283,14 @@ static void Cmd_help (int32_t argc, char *argv[])
     
     printf ("\n*************************************************************************\n");
     printf ("Usage: \n");
-    printf ("       i2c_master_rw  <clk_Hz>\n");
+    printf ("       i2c_master_rw <i2c_id> <clk_Hz>\n");
     printf ("Brief:\n");
     printf ("       This function can test the I2C master to write & read EEPROM data.\n");
     printf ("Note:\n");
     printf ("       None\n");
     printf ("Options:\n");
-    printf ("<clk_Hz>                       The I2C master clk speed(1-1000)kHz.\n");
+    printf ("<i2c_id>               The I2C master id. 1:I2C_01 ; 2:I2C_02\n");
+    printf ("<clk_Hz>               The I2C master clk speed(1-1000)kHz.\n");
     /*
     printf ("\n*************************************************************************\n");
     printf ("Usage: \n");
@@ -245,7 +308,9 @@ static void Cmd_help (int32_t argc, char *argv[])
 const CLICmds gCliCmdTable[] =
 {
     { "help",               Cmd_help,                   "i2C Master test help"          },
-    { "i2c_master_rw",      Cmd_i2c_master_rw,          "i2c_master_rw <clk_Hz>"},
+    { "i2c_master_rw",      Cmd_i2c_master_rw,          "i2c_master_rw <clk_Hz>"        },
+    //{ "regr",               At_ReadReg,                 "At_WriteReg"                   },
+    //{ "regw",               At_WriteReg,                "At_ReadReg"                    },
     //{ "i2c_master_rw_wac",  Cmd_i2c_master_rw_wac,      "i2c_master_rw_wac <clk_Hz>"},
     /*lint -save -e611 */
     { (const char *)NULL, (CliCmdFunc)NULL,   (const char *)NULL },
