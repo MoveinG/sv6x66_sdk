@@ -65,7 +65,7 @@
 # include <openssl/cms.h>
 #endif
 #include <openssl/asn1t.h>
-#include "asn1_locl.h"
+#include "asn1/asn1_locl.h"
 #include "ec_lcl.h"
 
 #ifndef OPENSSL_NO_CMS

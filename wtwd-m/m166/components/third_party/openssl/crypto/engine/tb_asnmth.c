@@ -53,7 +53,7 @@
  */
 
 #include "eng_int.h"
-#include "asn1_locl.h"
+#include "asn1/asn1_locl.h"
 #include <openssl/evp.h>
 
 /*

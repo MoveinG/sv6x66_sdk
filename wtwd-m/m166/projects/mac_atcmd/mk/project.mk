@@ -240,6 +240,7 @@ PING_EN     	  := 1
 TFTP_EN     	  := 1
 OTA_EN     	      := 1
 NOPOLL_EN         := 1
+OPENSSL_EN        := 1
 JD_CLOUD_EN       := 0
 else
 WAC_EN            ?= 0
@@ -259,6 +260,10 @@ endif
 
 ifeq ($(strip $(NOPOLL_EN)), 1)
 IMPORT_DIR 		+=  components/third_party/nopoll
+endif
+
+ifeq ($(strip $(OPENSSL_EN)), 1)
+IMPORT_DIR 		+=  components/third_party/openssl
 endif
 
 ifeq ($(strip $(OTA_EN)), 1)

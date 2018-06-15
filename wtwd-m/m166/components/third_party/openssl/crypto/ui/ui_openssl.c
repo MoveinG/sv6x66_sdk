@@ -219,7 +219,7 @@
 #endif
 
 #ifdef TERMIOS
-# include <termios.h>
+//# include <termios.h>
 # define TTY_STRUCT             struct termios
 # define TTY_FLAGS              c_lflag
 # define TTY_get(tty,data)      tcgetattr(tty,data)
@@ -243,7 +243,7 @@
 #endif
 
 #if !defined(_LIBC) && !defined(OPENSSL_SYS_MSDOS) && !defined(OPENSSL_SYS_VMS) && !defined(OPENSSL_SYS_MACINTOSH_CLASSIC) && !defined(OPENSSL_SYS_SUNOS)
-# include <sys/ioctl.h>
+//# include <sys/ioctl.h>
 #endif
 
 #ifdef OPENSSL_SYS_MSDOS

@@ -64,7 +64,7 @@
 #include "ec_lcl.h"
 #include <openssl/ecdsa.h>
 #include <openssl/evp.h>
-#include "evp_locl.h"
+#include "evp/evp_locl.h"
 
 /* EC pkey context structure */
 

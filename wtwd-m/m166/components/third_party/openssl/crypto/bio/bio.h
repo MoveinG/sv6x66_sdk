@@ -58,7 +58,7 @@
 
 #ifndef HEADER_BIO_H
 # define HEADER_BIO_H
-
+#if 0
 # include <openssl/e_os2.h>
 
 # ifndef OPENSSL_NO_FP_API
@@ -75,7 +75,7 @@
 #   include <inttypes.h>
 #  endif
 # endif
-
+#endif
 #ifdef  __cplusplus
 extern "C" {
 #endif

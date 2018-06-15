@@ -75,7 +75,7 @@
 #  if defined(OPENSSL_SYS_VXWORKS)
 #   include <sys/times.h>
 #  else
-//#   include <sys/time.h>
+#   include <sockets.h>
 #  endif
 # endif
 

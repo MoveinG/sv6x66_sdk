@@ -56,8 +56,8 @@
 # include <string.h>
 # include <assert.h>
 # include <openssl/aes.h>
-# include "evp_locl.h"
-# include "modes_lcl.h"
+# include "evp/evp_locl.h"
+# include "modes/modes_lcl.h"
 # include <openssl/rand.h>
 
 # undef EVP_CIPH_FLAG_FIPS

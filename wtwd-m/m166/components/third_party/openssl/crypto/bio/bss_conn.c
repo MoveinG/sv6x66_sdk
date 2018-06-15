@@ -57,7 +57,7 @@
  */
 
 #include <stdio.h>
-#include <errno.h>
+//#include <errno.h>
 #define USE_SOCKETS
 #include "cryptlib.h"
 #include <openssl/bio.h>

@@ -212,10 +212,10 @@ extern "C" {
 # else
 #  define get_last_socket_error() errno
 #  define clear_socket_error()    errno=0
-#  define ioctlsocket(a,b,c)      ioctl(a,b,c)
-#  define closesocket(s)          close(s)
-#  define readsocket(s,b,n)       read((s),(b),(n))
-#  define writesocket(s,b,n)      write((s),(b),(n))
+//#  define ioctlsocket(a,b,c)      ioctl(a,b,c)
+//#  define closesocket(s)          close(s)
+#  define readsocket(s,b,n)       lwip_read((s),(b),(n))
+#  define writesocket(s,b,n)      lwip_write((s),(b),(n))
 # endif
 
 # ifdef WIN16                   /* never the case */
@@ -587,7 +587,7 @@ struct servent *PASCAL getservbyname(const char *, const char *);
 #   ifdef OPENSSL_SYS_VXWORKS
 #    include <time.h>
 #   elif !defined(OPENSSL_SYS_MPE)
-#    include <sys/time.h>       /* Needed under linux for FD_XXX */
+//#    include <sys/time.h>       /* Needed under linux for FD_XXX */
 #   endif
 
 #   include <netdb.h>
@@ -596,14 +596,14 @@ struct servent *PASCAL getservbyname(const char *, const char *);
 #    include <in.h>
 #    include <inet.h>
 #   else
-#    include <sys/socket.h>
+#    include <sockets.h>
 #    ifdef FILIO_H
 #     include <sys/filio.h>     /* Added for FIONBIO under unixware */
 #    endif
-#    include <netinet/in.h>
-#    if !defined(OPENSSL_SYS_BEOS_R5)
-#     include <arpa/inet.h>
-#    endif
+//#    include <netinet/in.h>
+//#    if !defined(OPENSSL_SYS_BEOS_R5)
+//#     include <arpa/inet.h>
+//#    endif
 #   endif
 
 #   if defined(NeXT) || defined(_NEXT_SOURCE)
@@ -623,7 +623,7 @@ struct servent *PASCAL getservbyname(const char *, const char *);
 #    include <sys/filio.h>
 #   else
 #    ifndef VMS
-#     include <sys/ioctl.h>
+//#     include <sys/ioctl.h>
 #    else
          /* ioctl is only in VMS > 7.0 and when socketshr is not used */
 #     if !defined(TCPIP_TYPE_SOCKETSHR) && defined(__VMS_VER) && (__VMS_VER > 70000000)

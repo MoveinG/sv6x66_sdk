@@ -89,7 +89,7 @@ void *_malloc32(__size_t);
 #elif defined(OPENSSL_SYS_NETWARE)
 # define NO_SYSLOG
 #elif (!defined(MSDOS) || defined(WATT32)) && !defined(OPENSSL_SYS_VXWORKS) && !defined(NO_SYSLOG)
-# include <syslog.h>
+//# include <syslog.h>
 #endif
 
 #include <openssl/buffer.h>

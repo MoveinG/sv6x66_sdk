@@ -60,8 +60,8 @@
 # include <string.h>
 # include <assert.h>
 # include <openssl/camellia.h>
-# include "evp_locl.h"
-# include "modes_lcl.h"
+# include "evp/evp_locl.h"
+# include "modes/modes_lcl.h"
 
 static int camellia_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                              const unsigned char *iv, int enc);

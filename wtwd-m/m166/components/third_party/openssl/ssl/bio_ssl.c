@@ -59,7 +59,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
+//#include <errno.h>
 #include <openssl/crypto.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>

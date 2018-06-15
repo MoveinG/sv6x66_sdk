@@ -59,7 +59,7 @@
 #include "cryptlib.h"
 
 #ifndef NO_WINDOWS_BRAINDEATH
-# include "buildinf.h"
+//# include "buildinf.h"
 #endif
 
 const char *SSLeay_version(int t)

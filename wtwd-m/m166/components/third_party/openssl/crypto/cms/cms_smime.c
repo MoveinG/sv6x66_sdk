@@ -59,7 +59,7 @@
 #include <openssl/err.h>
 #include <openssl/cms.h>
 #include "cms_lcl.h"
-#include "asn1_locl.h"
+#include "asn1/asn1_locl.h"
 
 static int cms_copy_content(BIO *out, BIO *in, unsigned int flags)
 {

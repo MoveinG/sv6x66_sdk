@@ -145,7 +145,7 @@
 # include <stdlib.h>
 # include <time.h>
 # include <string.h>
-# include <errno.h>
+//# include <errno.h>
 
 # include "e_os.h"
 
