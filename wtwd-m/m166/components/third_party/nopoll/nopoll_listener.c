@@ -37,6 +37,7 @@
  */
 #include <nopoll_listener.h>
 #include <nopoll_private.h>
+#include <porting.h>
 
 /** 
  * \defgroup nopoll_listener noPoll Listener: functions required to create WebSocket listener connections.

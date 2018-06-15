@@ -49,10 +49,10 @@
 #include <nopoll_private.h>
 
 #if defined(NOPOLL_OS_UNIX)
-# include <netinet/tcp.h>
+# include <tcp.h>
 #endif
 
-
+#undef send //fixed compiler error(refer components/net/tcpip/lwip-1.4.0/src/include/lwip/sockets.h:448)
 /** 
  * @brief Allows to enable/disable non-blocking/blocking behavior on
  * the provided socket.

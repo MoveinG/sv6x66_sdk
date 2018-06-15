@@ -48,19 +48,19 @@
  * by Nopoll library but could be used by applications built on top of
  * Nopoll to change its configuration based on the platform information.
  */
-#define NOPOLL_OS_UNIX (1)
+#define NOPOLL_OS_UNIX (0)
 
 /**
  * @internal Allows to now if the platform support vasprintf
  * function. Do not use this macro as it is supposed to be for
  * internal use.
  */
-#define NOPOLL_HAVE_VASPRINTF (1)
+//#define NOPOLL_HAVE_VASPRINTF (1)
 
 /**
  * @brief Indicates that this platform have support for 64bits.
  */
-#define NOPOLL_64BIT_PLATFORM (1)
+//#define NOPOLL_64BIT_PLATFORM (1)
 
 /**
  * @brief Indicates where we have support for SSL v.3 support.

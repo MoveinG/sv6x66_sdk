@@ -210,17 +210,17 @@
 #endif /* end defined(NOPOLL_OS_WINDOWS) */
 
 #if defined(NOPOLL_OS_UNIX)
-#include <sys/types.h>
-#include <fcntl.h>
+//#include <sys/types.h>
+//#include <fcntl.h>
 #include <netdb.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <time.h>
-#include <unistd.h>
+#include <sockets.h>
+//#include <netinet/in.h>
+//#include <arpa/inet.h>
+//#include <sys/select.h>
+//#include <sys/time.h>
+//#include <sys/resource.h>
+//#include <time.h>
+//#include <unistd.h>
 #endif
 
 /* additional headers for poll support */
