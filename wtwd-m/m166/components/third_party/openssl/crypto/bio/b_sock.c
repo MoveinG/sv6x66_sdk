@@ -191,7 +191,7 @@ int BIO_get_port(const char *str, unsigned short *port_ptr)
         s = getservbyname(str, "tcp");
 # endif
         if (s != NULL)
-            *port_ptr = ntohs((unsigned short)s->s_port);
+        ;//    *port_ptr = ntohs((unsigned short)s->s_port);
         CRYPTO_w_unlock(CRYPTO_LOCK_GETSERVBYNAME);
         if (s == NULL) {
             if (strcmp(str, "http") == 0)

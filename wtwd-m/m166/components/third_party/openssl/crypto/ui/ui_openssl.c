@@ -218,6 +218,7 @@
 
 #endif
 
+#undef TERMIOS
 #ifdef TERMIOS
 //# include <termios.h>
 # define TTY_STRUCT             struct termios
@@ -295,7 +296,7 @@ static long tty_orig[3], tty_new[3]; /* XXX Is there any guarantee that this
 static long status;
 static unsigned short channel = 0;
 #else
-# if !defined(OPENSSL_SYS_MSDOS) || defined(__DJGPP__)
+# if 0//!defined(OPENSSL_SYS_MSDOS) || defined(__DJGPP__)
 static TTY_STRUCT tty_orig, tty_new;
 # endif
 #endif

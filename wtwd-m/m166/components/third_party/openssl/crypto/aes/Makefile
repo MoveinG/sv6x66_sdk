@@ -1,6 +1,7 @@
 #LIB_SRC += crypto/aes/aesni-mb-x86_64.c
 #LIB_SRC += crypto/aes/aes-x86_64.c
 LIB_SRC += crypto/aes/aes_ofb.c
+LIB_SRC += crypto/aes/aes_ecb.c
 LIB_SRC += crypto/aes/aes_ige.c
 #LIB_SRC += crypto/aes/aesni-x86_64.c
 #LIB_SRC += crypto/aes/vpaes-x86_64.c
@@ -9,6 +10,7 @@ LIB_SRC += crypto/aes/aes_ctr.c
 LIB_SRC += crypto/aes/aes_wrap.c
 LIB_SRC += crypto/aes/aes_misc.c
 #LIB_SRC += crypto/aes/aesni-sha256-x86_64.c
+LIB_SRC += crypto/aes/aes_core.c
 LIB_SRC += crypto/aes/aes_ecb.c
 #LIB_SRC += crypto/aes/bsaes-x86_64.c
 LIB_SRC += crypto/aes/aes_cfb.c

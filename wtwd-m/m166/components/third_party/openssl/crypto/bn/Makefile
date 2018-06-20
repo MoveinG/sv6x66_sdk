@@ -1,7 +1,8 @@
 LIB_SRC += crypto/bn/bn_mod.c
 LIB_SRC += crypto/bn/bn_recp.c
+LIB_SRC += crypto/bn/bn_asm.c
 LIB_SRC += crypto/bn/bn_ctx.c
-LIB_SRC += crypto/bn/rsaz_exp.c
+##LIB_SRC += crypto/bn/rsaz_exp.c
 LIB_SRC += crypto/bn/bn_mont.c
 #LIB_SRC += crypto/bn/rsaz-x86_64.c
 LIB_SRC += crypto/bn/bn_print.c

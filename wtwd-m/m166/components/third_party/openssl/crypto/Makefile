@@ -11,5 +11,6 @@ LIB_SRC += crypto/o_time.c
 LIB_SRC += crypto/o_str.c
 LIB_SRC += crypto/o_dir.c
 LIB_SRC += crypto/o_fips.c
+LIB_SRC += crypto/mem_clr.c
 LIB_SRC += crypto/o_init.c
 LIB_SRC += crypto/fips_ers.c

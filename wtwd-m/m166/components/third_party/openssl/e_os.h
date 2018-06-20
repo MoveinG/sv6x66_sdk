@@ -652,7 +652,7 @@ struct servent *PASCAL getservbyname(const char *, const char *);
  * Some IPv6 implementations are broken, disable them in known bad versions.
  */
 #  if !defined(OPENSSL_USE_IPV6)
-#   if defined(AF_INET6) && !defined(OPENSSL_SYS_BEOS_BONE) && !defined(NETWARE_CLIB)
+#   if /*defined*/(AF_INET6) && !defined(OPENSSL_SYS_BEOS_BONE) && !defined(NETWARE_CLIB)
 #    define OPENSSL_USE_IPV6 1
 #   else
 #    define OPENSSL_USE_IPV6 0
@@ -774,6 +774,8 @@ struct servent *getservbyname(const char *name, const char *proto);
 #   define inline
 #  endif
 # endif
+
+#define NO_SYSLOG
 
 #ifdef  __cplusplus
 }
