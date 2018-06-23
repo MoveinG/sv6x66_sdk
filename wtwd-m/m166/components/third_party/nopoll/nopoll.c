@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -37,6 +38,7 @@
  */
 #include <nopoll.h>
 #include <nopoll_private.h>
+#include "freertos/FreeRTOS.h"
 
 /** 
  * \defgroup nopoll_support noPoll Support: core support functions used by the library
@@ -196,7 +198,8 @@ int nopoll_vprintf_len (const char * format, va_list args)
  * IMPLEMENTATION NOTE: This function may have a fundamental bug due
  * to the design of va_list arguments under amd64 platforms. In short,
  * a function receiving a va_list argument can't use it twice. In you
- * are running amd64, check your nopoll_config.h did find NOPOLL_HAVE_VASPRINTF.
+ * are running amd64, check your nopoll_config.h did find
+ * NOPOLL_HAVE_VASPRINTF.
  */
 char  * nopoll_strdup_printfv    (const char * chunk, va_list args)
 {
@@ -360,7 +363,8 @@ void        nopoll_trim  (char * chunk, int * trimmed)
 void        nopoll_sleep (long microseconds)
 {
 #if defined(NOPOLL_OS_UNIX)
-	usleep (microseconds);
+//	usleep (microseconds);
+	vTaskDelay(microseconds / portTICK_RATE_MS);
 	return;
 #elif defined(NOPOLL_OS_WIN32)
 	Sleep (microseconds / 1000);
@@ -382,7 +386,7 @@ noPollMutexUnlock   __nopoll_mutex_unlock  = NULL;
  */
 noPollPtr   nopoll_mutex_create (void)
 {
-	if (! __nopoll_mutex_create) 
+	if (! __nopoll_mutex_create)
 		return NULL;
 
 	/* call defined handler */
@@ -470,14 +474,21 @@ void        nopoll_mutex_destroy (noPollPtr mutex)
  *
  * @param mutex_unlock The handler used to unlock a particular mutex.
  *
- * The function must receive all handlers defined. In the case NULL
- * values are provided, they will be uninstalled.
+ * The function must receive all handlers defined, otherwise no
+ * configuration will be done.
  */
 void        nopoll_thread_handlers (noPollMutexCreate  mutex_create,
 				    noPollMutexDestroy mutex_destroy,
 				    noPollMutexLock    mutex_lock,
 				    noPollMutexUnlock  mutex_unlock)
 {
+	/* check handlers before configuring anything */
+	if (! mutex_create ||
+	    ! mutex_destroy ||
+	    ! mutex_lock ||
+	    ! mutex_unlock)
+		return;
+
 	/* configured received handlers */
 	__nopoll_mutex_create  = mutex_create;
 	__nopoll_mutex_destroy = mutex_destroy;
@@ -509,6 +520,10 @@ nopoll_bool nopoll_base64_encode (const char  * content,
 				  char        * output, 
 				  int         * output_size)
 {
+    base64_encode(output, *output_size, (int*)output_size, (char *)content,length);
+    return nopoll_true;
+
+#if 0 
 	BIO     * b64;
 	BIO     * bmem;
 	BUF_MEM * bptr;
@@ -550,6 +565,7 @@ nopoll_bool nopoll_base64_encode (const char  * content,
 	BIO_free_all (b64);
 
 	return nopoll_true;
+#endif
 }
 
 /** 
@@ -574,6 +590,12 @@ nopoll_bool nopoll_base64_decode (const char * content,
 				  char       * output, 
 				  int        * output_size)
 {
+    int ret;
+    ret = base64_decode(content,length,output,output_size);
+    
+    return ret;
+
+#if 0
 	BIO     * b64;
 	BIO     * bmem;
 
@@ -594,6 +616,7 @@ nopoll_bool nopoll_base64_decode (const char * content,
 	BIO_free_all (bmem);
 
 	return nopoll_true;
+#endif
 }
 
 /** 
@@ -683,7 +706,7 @@ nopoll_bool nopoll_nonce (char * buffer, int nonce_size)
 		gettimeofday (&tv, NULL);
 #endif
 
-		srand (time(0) * tv.tv_usec);
+//		srand (time(0) * tv.tv_usec);
 		__nopoll_nonce_init = nopoll_true;
 	} /* end if */
 
@@ -694,7 +717,7 @@ nopoll_bool nopoll_nonce (char * buffer, int nonce_size)
 #if defined(NOPOLL_OS_WIN32)
 		random_value = rand ();
 #else
-		random_value = random ();
+		random_value = os_random();
 #endif
 
 		/* copy into the buffer */
@@ -973,7 +996,7 @@ void nopoll_cleanup_library (void)
  * itself. 
  *
  * After having that library installed in your system (check your OS
- * documentation), download lastest tar.gz noPoll library from: http://www.aspl.es/nopoll/downloads
+ * documentation), download lastest tar.gz noPoll library from: http://code.google.com/p/no-poll
  *
  * Then, to compile the library follow the standard autoconf voodoo:
  *
@@ -996,17 +1019,6 @@ void nopoll_cleanup_library (void)
  * \code
  * >> cd test/
  * >> ./nopoll-regression-client
- * \endcode
- *
- * <b>Notes about preparing sources if you use SVN/GIT from https://github.com/asples/nopoll</b>
- *
- * In the case you want to work directly using SVN latest sources,
- * just download them from githubt as usual from: https://github.com/asples/nopoll
- *
- * After that, run the following command to prepare all compilation files:
- *
- * \code
- * >> ./autogen.sh
  * \endcode
  *
  * If everything looks fine, you can install nopoll into your system with the standard:
@@ -1106,7 +1118,7 @@ void nopoll_cleanup_library (void)
  * that handler:
  *
  * \code
- * void listener_on_message (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr  user_data) {
+ * void listener_on_message (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr * user_data) {
  *         // print the message (for debugging purposes) and reply
  *         printf ("Listener received (size: %d, ctx refs: %d): (first %d bytes, fragment: %d) '%s'\n", 
  *                 nopoll_msg_get_payload_size (msg),
@@ -1559,13 +1571,13 @@ void nopoll_cleanup_library (void)
  * "install" folder that inside includes the following structure:
  * 
  * \code
- * install/<android-platform>/lib/&lt;arch>/{libfiles}.so
+ * install/<android-platform>/lib/<arch>/{libfiles}.so
  * \endcode
  * 
  * That way, if you need ready to use compiled libraries for android-21, arch mips64, the look at:
  * 
  * \code
- * install/android-21/&lt;arch>/lib/mips64/{libfiles}.so files.
+ * install/android-21/<arch>/lib/mips64/{libfiles}.so files.
  * \endcode
  * 
  * You might wonder why don't use a <android-platform>/<arch>/lib
@@ -1701,8 +1713,9 @@ void nopoll_cleanup_library (void)
  * \code
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         C/ Antonio Suarez Nº 10, 
+ *         Edificio Alius A, Despacho 102
+ *         AlcalÃ¡ de Henares 28802 (Madrid)
  *         Spain
  *
  *      Email address:

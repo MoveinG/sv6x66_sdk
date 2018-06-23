@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -47,59 +48,8 @@
  * @{
  */
 
-/** 
- * @brief Set a default I/O wait limit from the default, which is 64
- * sockets to 4096. Note that this affects \ref nopoll_loop_wait (when
- * using select() API). If you change this value, you'll have to
- * recompile noPoll so internal structures will be updated. See the
- * following document:
- *
- *   - https://tangentsoft.net/wskfaq/advanced.html
- *   (What are the "64 sockets" limitations?)
- *
- * For Windows platforms, there are two 64-socket limitations:
- * 
- * The Windows event mechanism (e.g. WaitForMultipleObjects()) can
- * only wait on 64 event objects at a time. Winsock 2 provides the
- * WSAEventSelect() function which lets you use Windows’ event
- * mechanism to wait for events on sockets. Because it uses Windows’
- * event mechanism, you can only wait for events on 64 sockets at a
- * time. If you want to wait on more than 64 Winsock event objects at
- * a time, you need to use multiple threads, each waiting on no more
- * than 64 of the sockets.
- * 
- * The select() function is also limited in certain situations to
- * waiting on 64 sockets at a time. The FD_SETSIZE constant defined in
- * the Winsock header determines the size of the fd_set structures you
- * pass to select(). The default value is 64, but if you define this
- * constant to a different value before including the Winsock header,
- * it accepts that value instead:
- *
- * \code
- *   // define in your code new limit
- *   #define FD_SETSIZE 8192
- *   // then include nopoll.h  (you need to recompile noPoll)
- *   #include <nopoll.n>
- * \endcode
- *
- * The problem is that modern network stacks are complex, with many
- * parts coming from various sources, including third parties via
- * things like Layered Service Providers. When you change this
- * constant, you’re depending on all these components to play by the
- * new rules. They’re supposed to, but not all do. The typical symptom
- * is that they ignore sockets beyond the 64th in larger fd_set
- * structures. You can get around this limitation with threads, just
- * as in the event object case.
- */
-#ifndef FD_SETSIZE
-#define FD_SETSIZE 4096
-#endif
-
 /* include platform specific configuration */
 #include <nopoll_config.h>
-
-/* max buffer size to process incoming handshake */
-#define NOPOLL_HANDSHAKE_BUFFER_SIZE 8192
 
 /* include this at this place to load GNU extensions */
 #if defined(__GNUC__)
@@ -131,10 +81,12 @@
 # include <unistd.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <ctype.h>
+//#include <sys/types.h>
+//#include <sys/stat.h>
+//#include <fcntl.h>
+//#include <ctype.h>
+#include "lwip/netdb.h"
+#include "lwip/sockets.h"
 
 /* Direct portable mapping definitions */
 #if defined(NOPOLL_OS_UNIX)
@@ -158,26 +110,16 @@
 
 #if defined(NOPOLL_OS_WIN32)
 
-/** let's have support for R_OK if it is not defined **/
-#  ifndef R_OK
-#   define R_OK        4
-#  endif
-
-
 /* additional includes for the windows platform */
 
 /* _WIN32_WINNT note: If the application including the header defines
- * the _WIN32_WINNT, it must include the bits defined by the value
- * 0x501. */
+ * the _WIN32_WINNT, it must include the bit defined by the value
+ * 0x400. */
 #ifndef _WIN32_WINNT
-#  define _WIN32_WINNT 0x501
-#elif _WIN32_WINNT < 0x501
-#  undef _WIN32_WINNT
-#  define _WIN32_WINNT 0x501
+#  define _WIN32_WINNT 0x400
 #endif
 #include <winsock2.h>
 #include <windows.h>
-#include <ws2tcpip.h>
 #include <fcntl.h>
 #include <io.h>
 #include <process.h>
@@ -207,19 +149,20 @@
 /* no link support windows */
 #define S_ISLNK(m) (0)
 
-#endif /* end defined(NOPOLL_OS_WINDOWS) */
+#endif /* end defined(AXL_OS_WINDOWS) */
 
 #if defined(NOPOLL_OS_UNIX)
 //#include <sys/types.h>
 //#include <fcntl.h>
-#include <netdb.h>
-#include <sockets.h>
+//#include "c_types.h"
+//#include <lwip/netdb.h>
+//#include <lwip/timers.h>
+//#include "lwip/sockets.h"
 //#include <netinet/in.h>
 //#include <arpa/inet.h>
 //#include <sys/select.h>
 //#include <sys/time.h>
 //#include <sys/resource.h>
-//#include <time.h>
 //#include <unistd.h>
 #endif
 
@@ -233,7 +176,7 @@
 #include <sys/epoll.h>
 #endif
 
-#include <errno.h>
+//#include <errno.h>
 
 #if defined(NOPOLL_OS_WIN32)
 /* errno redefinition for windows platform. this declaration must
@@ -476,8 +419,7 @@ typedef enum {
  * @brief SSL/TLS protocol type to use for the client or listener
  * connection. 
  */
-typedef enum {
-#if defined(NOPOLL_HAVE_SSLv23_ENABLED)	
+typedef enum { 
 	/** 
 	 * @brief Allows to define SSLv23 as SSL protocol used by the
 	 * client or server connection. A TLS/SSL connection
@@ -485,8 +427,6 @@ typedef enum {
 	 * TLSv1.1 and TLSv1.2 protocols (\ref NOPOLL_METHOD_SSLV3, \ref NOPOLL_METHOD_TLSV1, ...)
 	 */
 	NOPOLL_METHOD_SSLV23      = 2,
-#endif
-#if defined(NOPOLL_HAVE_SSLv3_ENABLED)	
 	/** 
 	 * @brief Allows to define SSLv3 as SSL protocol used by the
 	 * client or server connection. A connection/listener
@@ -494,8 +434,6 @@ typedef enum {
 	 * method.
 	 */
 	NOPOLL_METHOD_SSLV3       = 3,
-#endif
-#if defined(NOPOLL_HAVE_TLSv10_ENABLED)
 	/** 
 	 * @brief Allows to define TLSv1 as SSL protocol used by the
 	 * client or server connection. A connection/listener
@@ -503,8 +441,7 @@ typedef enum {
 	 * method.
 	 */
 	NOPOLL_METHOD_TLSV1       = 4,
-#endif	
-#if defined(NOPOLL_HAVE_TLSv11_ENABLED)
+//#if defined(TLSv1_1_client_method)
 	/** 
 	 * @brief Allows to define TLSv1.1 as SSL protocol used by the
 	 * client or server connection. A connection/listener
@@ -512,50 +449,12 @@ typedef enum {
 	 * method.
 	 */
 	NOPOLL_METHOD_TLSV1_1     = 5
-#endif
-#if defined(NOPOLL_HAVE_TLSv12_ENABLED)
-	,
-	/** 
-	 * @brief Allows to define TLSv1.2 as SSL protocol used by the
-	 * client or server connection. A connection/listener
-	 * established with this method will only understand this
-	 * method.
-	 */
-	NOPOLL_METHOD_TLSV1_2     = 6
-#endif
-#if defined(NOPOLL_HAVE_TLS_FLEXIBLE_ENABLED)
-	,
-	/** 
-	 * @brief Allows to define TLS flexible negotiation where the
-	 * highest version available will be negotiated by both
-	 * ends. If you want a particular TLS version, do not use this
-	 * method. 
-	 *
-	 * Security consideration: by using this method you are
-	 * accepting that the remote peer can downgrade to the lowest
-	 * version of the protocol. In the case you want to use a
-	 * particular version do not use this flexible method.
-	 */
-	NOPOLL_METHOD_TLS_FLEXIBLE     = 7
-#endif		
+//#endif
 } noPollSslProtocol ;
 
-/** 
- * @brief Transport indication to be used by various internal and
- * public APIs
- */
-typedef enum {
-	/** 
-	 * Use IPv4 transport
-	 */
-	NOPOLL_TRANSPORT_IPV4 = 1,
-	/** 
-	 * Use IPv6 transport
-	 */
-	NOPOLL_TRANSPORT_IPV6 = 2
-} noPollTransport;
-
 BEGIN_C_DECLS
+
+#include "esp_libc.h"
 
 noPollPtr  nopoll_calloc  (size_t count, size_t size);
 

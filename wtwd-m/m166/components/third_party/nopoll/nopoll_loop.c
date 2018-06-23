@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -55,21 +56,17 @@ nopoll_bool nopoll_loop_register (noPollCtx * ctx, noPollConn * conn, noPollPtr 
 {
 	/* do not add connections that aren't working */
 	if (! nopoll_conn_is_ok (conn)) {
-		
 		/* remove this connection from registry */
 		nopoll_ctx_unregister_conn (ctx, conn);
-
 		return nopoll_false; /* keep foreach, don't stop */
 	}
 
 	/* register the connection socket */
 	/* nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Adding socket id: %d", conn->session);*/
-	if (! ctx->io_engine->add_to (conn->session, ctx, conn, ctx->io_engine->io_object)) {
-
+	if (! ctx->io_engine->addto (conn->session, ctx, conn, ctx->io_engine->io_object)) {
 		/* remove this connection from registry */
 		nopoll_ctx_unregister_conn (ctx, conn);
 		nopoll_log (ctx, NOPOLL_LEVEL_WARNING, "Failed to add socket %d to the watching set", conn->session);
-
 	}
 
 	return nopoll_false; /* keep foreach, don't stop */
@@ -109,7 +106,7 @@ nopoll_bool nopoll_loop_process (noPollCtx * ctx, noPollConn * conn, noPollPtr u
 	int        * conn_changed = (int *) user_data;
 
 	/* check if the connection have something to notify */
-	if (ctx->io_engine->is_set (ctx, conn->session, ctx->io_engine->io_object)) {
+	if (ctx->io_engine->isset (ctx, conn->session, ctx->io_engine->io_object)) {
 
 		/* call to notify action according to role */
 		switch (conn->role) {
@@ -136,19 +133,9 @@ nopoll_bool nopoll_loop_process (noPollCtx * ctx, noPollConn * conn, noPollPtr u
 }
 
 /** 
- * @internal Function used to init internal io wait mechanism
- * associated to the provided context. If the io wait engine is
- * already initialized, the function does nothing.
+ * @internal Function used to init internal io wait mechanism...
  *
  * @param ctx The noPoll context to be initialized if it wasn't
- *
- * In general this function is only used internally by noPoll to
- * create io wait engine. In the case you are using \ref
- * nopoll_loop_wait, and it returns -4 (io wait engine failed) then
- * the I/O wait engine is released. In such condition, if you want to
- * recover, you can use this function to restart io wait engine and
- * call again nopoll_loop_wait.
- *
  */
 void nopoll_loop_init (noPollCtx * ctx) 
 {
@@ -196,34 +183,8 @@ void nopoll_loop_stop (noPollCtx * ctx)
  * until a call to \ref nopoll_loop_stop is done in the case timeout
  * passed is 0.
  *
- * @return The function returns 0 when finished without error or -2 in
- * the case ctx is NULL or timeout is negative. Function returns -3 if
- * timeout was reached. Function returns -4 in the case
- * ctx->io_engine->wait failed to implement wait or it reported error.
- *
- *
- * <b>Recovering from IO Wait failure (return code -4)</b>
- *
- * In the case I/O wait mechanism fails, this function will return
- * -4. In can catch that error code and recover (keep on waiting), log
- * the error or implement some other policy.
- *
- * Here is an example:
- *
- * \code
- * while (nopoll_true) {
- *     // wait for ever
- *     int error_code = nopoll_loop_wait (ctx, 0);
- *
- *     if (error_code == -4) {
- *          printf ("Log here you had an error cause by the io waiting mechanism, errno=%d\n", errno);
- *          // recover by just calling io wait engine
- *          // try to limit recoveries to avoid infinite loop
- *          continue;
- *     }
- * \endcode
- *
- * <b>
+ * @return The function returns 0 when finished or -2 in the case ctx
+ * is NULL or timeout is negative.
  */
 int nopoll_loop_wait (noPollCtx * ctx, long timeout)
 {
@@ -232,7 +193,6 @@ int nopoll_loop_wait (noPollCtx * ctx, long timeout)
 	struct timeval diff;
 	long           ellapsed;
 	int            wait_status;
-	int            result = 0;
 
 	nopoll_return_val_if_fail (ctx, ctx, -2);
 	nopoll_return_val_if_fail (ctx, timeout >= 0, -2);
@@ -273,7 +233,6 @@ int nopoll_loop_wait (noPollCtx * ctx, long timeout)
 		/* nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Waiting finished with result %d", wait_status);  */
 		if (wait_status == -1) {
 			nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Received error from wait operation, error code was: %d", errno);
-			result = -4; /* io wait failure */
 			break;
 		} /* end if */
 
@@ -293,10 +252,8 @@ int nopoll_loop_wait (noPollCtx * ctx, long timeout)
 #endif
 			nopoll_timeval_substract (&stop, &start, &diff);
 			ellapsed = (diff.tv_sec * 1000000) + diff.tv_usec;
-			if (ellapsed > timeout) {
-				result = -3; /* timeout reached */
+			if (ellapsed > timeout)
 				break;
-			}
 		} /* end if */
 	} /* end while */
 
@@ -304,8 +261,7 @@ int nopoll_loop_wait (noPollCtx * ctx, long timeout)
 	nopoll_io_release_engine (ctx->io_engine);
 	ctx->io_engine = NULL;
 
-	/* return result so far */
-	return result;
+	return 0;
 }
 
 /* @} */

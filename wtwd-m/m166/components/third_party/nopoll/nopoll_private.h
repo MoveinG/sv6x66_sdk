@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -38,14 +39,7 @@
 #ifndef __NOPOLL_PRIVATE_H__
 #define __NOPOLL_PRIVATE_H__
 
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509v3.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/opensslv.h>
-
+#include "openssl/ssl.h"
 #include <nopoll_handlers.h>
 
 typedef struct _noPollCertificate {
@@ -182,7 +176,7 @@ struct _noPollConn {
 	/** 
 	 * @internal Current connection receive function.
 	 */
-	noPollRead       send;
+	noPollRead       sends;
 
 	/** 
 	 * @internal The connection role.
@@ -204,7 +198,6 @@ struct _noPollConn {
 	 * @internal Host name requested on the connection.
 	 */
 	char           * host_name;
-
 	/** 
 	 * @internal Origin requested on the connection.
 	 */
@@ -293,10 +286,9 @@ struct _noPollConn {
 	noPollPtr             hook;
 
 	/** 
-	 * @internal Mutexes
+	 * @internal Mutex 
 	 */
 	noPollPtr             ref_mutex;
-	noPollPtr             handshake_mutex;
 
 	/** 
 	 * @internal Variable to track pending bytes from previous
@@ -309,8 +301,6 @@ struct _noPollConn {
 
 	char                * pending_write;
 	int                   pending_write_bytes;
-	int                   pending_write_desp;
-        int                   pending_write_added_header;
 
 	/** 
 	 * @internal Internal reference to the connection options.
@@ -322,17 +312,6 @@ struct _noPollConn {
 	 * connection that was created due to a listener running.
 	 */
 	noPollConn          * listener;
-
-	/** 
-	 * @internal Flag to track internal header pending 
-	 */
-	nopoll_bool           read_pending_header;
-
-	
-	/**** debug values ****/
-	/* force stop after header: do not use this, it is just for
-	   testing purposes */
-	nopoll_bool  __force_stop_after_header;
 };
 
 struct _noPollIoEngine {
@@ -342,8 +321,8 @@ struct _noPollIoEngine {
 	noPollIoMechDestroy    destroy;
 	noPollIoMechClear      clear;
 	noPollIoMechWait       wait;
-	noPollIoMechAddTo      add_to;
-	noPollIoMechIsSet      is_set;
+	noPollIoMechAddTo      addto;
+	noPollIoMechIsSet      isset;
 };
 
 struct _noPollMsg {
@@ -402,15 +381,6 @@ struct _noPollConnOpts {
 
 	/* cookie support */
 	char * cookie;
-
-	/* skip origin check flag */
-	nopoll_bool skip_origin_header_check;
-
-	/* network interface to bind to */
-	char * _interface;
-
-	/* extra HTTP headers to send during the connection */
-	char * extra_headers;
 };
 
 #endif

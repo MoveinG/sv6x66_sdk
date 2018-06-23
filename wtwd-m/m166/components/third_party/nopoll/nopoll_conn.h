@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -50,15 +51,6 @@ noPollConn * nopoll_conn_new (noPollCtx  * ctx,
 			      const char * protocols,
 			      const char * origin);
 
-noPollConn * nopoll_conn_new6 (noPollCtx  * ctx,
-			       const char * host_ip, 
-			       const char * host_port, 
-			       const char * host_name,
-			       const char * get_url, 
-			       const char * protocols,
-			       const char * origin);
-
-
 noPollConn * nopoll_conn_new_opts (noPollCtx       * ctx,
 				   noPollConnOpts  * opts,
 				   const char      * host_ip, 
@@ -68,41 +60,12 @@ noPollConn * nopoll_conn_new_opts (noPollCtx       * ctx,
 				   const char      * protocols,
 				   const char      * origin);
 
-noPollConn * nopoll_conn_new_with_socket (noPollCtx  * ctx,
-			      noPollConnOpts  * opts,
-			      int          socket,
-			      const char * host_ip,
-			      const char * host_port,
-			      const char * host_name,
-			      const char * get_url,
-			      const char * protocols,
-			      const char * origin);
-
 noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx,
 				  noPollConnOpts * options,
 				  const char * host_ip, 
 				  const char * host_port, 
 				  const char * host_name,
 				  const char * get_url, 
-				  const char * protocols,
-				  const char * origin);
-
-noPollConn * nopoll_conn_tls_new6 (noPollCtx  * ctx,
-				   noPollConnOpts * options,
-				   const char * host_ip, 
-				   const char * host_port, 
-				   const char * host_name,
-				   const char * get_url, 
-				   const char * protocols,
-				   const char * origin);
-
-noPollConn * nopoll_conn_tls_new_with_socket (noPollCtx  * ctx,
-				  noPollConnOpts * options,
-				  int          socket,
-				  const char * host_ip,
-				  const char * host_port,
-				  const char * host_name,
-				  const char * get_url,
 				  const char * protocols,
 				  const char * origin);
 
@@ -133,8 +96,6 @@ NOPOLL_SOCKET nopoll_conn_socket (noPollConn * conn);
 void           nopoll_conn_set_socket (noPollConn * conn, NOPOLL_SOCKET _socket);
 
 int           nopoll_conn_get_id (noPollConn * conn);
-
-const char * nopoll_conn_get_requested_url (noPollConn * conn);
 
 noPollCtx   * nopoll_conn_ctx    (noPollConn * conn);
 
@@ -191,13 +152,11 @@ int           nopoll_conn_flush_writes           (noPollConn * conn, long timeou
 
 int           nopoll_conn_read (noPollConn * conn, char * buffer, int bytes, nopoll_bool block, long int timeout);
 
-int           nopoll_conn_read_pending (noPollConn * conn);
-
 noPollConn  * nopoll_conn_get_listener (noPollConn * conn);
 
 nopoll_bool      nopoll_conn_send_ping (noPollConn * conn);
 
-nopoll_bool      nopoll_conn_send_pong (noPollConn * conn, long length, noPollPtr content);
+nopoll_bool      nopoll_conn_send_pong (noPollConn * conn);
 
 void          nopoll_conn_set_on_msg (noPollConn              * conn,
 				      noPollOnMessageHandler    on_msg,
@@ -224,11 +183,6 @@ int           __nopoll_conn_send_common (noPollConn * conn,
 
 nopoll_bool      nopoll_conn_wait_until_connection_ready (noPollConn * conn,
 							  int          timeout);
-
-void               nopoll_conn_connect_timeout (noPollCtx * ctx,
-						long        microseconds_to_wait);
-
-long               nopoll_conn_get_connect_timeout (noPollCtx * ctx);
 
 /** internal api **/
 void nopoll_conn_complete_handshake (noPollConn * conn);

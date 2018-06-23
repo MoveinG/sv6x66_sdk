@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -37,7 +38,7 @@
  */
 #include <nopoll_ctx.h>
 #include <nopoll_private.h>
-#include <signal.h>
+//#include <signal.h>
 
 /** 
  * \defgroup nopoll_ctx noPoll Context: context handling functions used by the library
@@ -56,7 +57,7 @@ void __nopoll_ctx_sigpipe_do_nothing (int _signal)
 	/* the following line is to ensure ancient glibc version that
 	 * restores to the default handler once the signal handling is
 	 * executed. */
-	signal (SIGPIPE, __nopoll_ctx_sigpipe_do_nothing);
+//	signal (SIGPIPE, __nopoll_ctx_sigpipe_do_nothing);
 #endif
 	return;
 }
@@ -66,17 +67,13 @@ void __nopoll_ctx_sigpipe_do_nothing (int _signal)
  * @brief Creates an empty Nopoll context. 
  */
 noPollCtx * nopoll_ctx_new (void) {
-	noPollCtx * result;
-
-	/* call to create context after checkign WinSock */
-	result = nopoll_new (noPollCtx, 1);
+	noPollCtx * result = nopoll_new (noPollCtx, 1);
 	if (result == NULL)
 		return NULL;
 
 #if defined(NOPOLL_OS_WIN32)
-	if (! nopoll_win32_init (result)) {
+	if (! nopoll_win32_init (result))
 		return NULL;
-	} /* end if */
 #endif
 
 	/* set initial reference */
@@ -101,16 +98,16 @@ noPollCtx * nopoll_ctx_new (void) {
 	/* current list length */
 	result->conn_length = 0;
 
+#if !defined(NOPOLL_OS_WIN32)
+	/* install sigpipe handler */
+//	signal (SIGPIPE, __nopoll_ctx_sigpipe_do_nothing);
+#endif
+
 	/* setup default protocol version */
 	result->protocol_version = 13;
 
 	/* create mutexes */
 	result->ref_mutex = nopoll_mutex_create ();
-
-#if !defined(NOPOLL_OS_WIN32)
-	/* install sigpipe handler */
-	signal (SIGPIPE, __nopoll_ctx_sigpipe_do_nothing);
-#endif
 
 	return result;
 }
@@ -338,7 +335,7 @@ void           nopoll_ctx_unregister_conn (noPollCtx  * ctx,
 			/* acquire a reference to the conection */
 			nopoll_conn_unref (conn);
 
-			return; 
+			break;
 		} /* end if */
 		
 		iterator++;
@@ -750,21 +747,18 @@ noPollConn   * nopoll_ctx_foreach_conn (noPollCtx          * ctx,
 
 		/* check the connection reference */
 		if (ctx->conn_list[iterator]) {
-
-			result = ctx->conn_list[iterator];
-			
-			nopoll_mutex_unlock (ctx->ref_mutex);
-			
 			/* call to notify connection */
-			if (foreach (ctx, result, user_data)) {
-				
+			if (foreach (ctx, ctx->conn_list[iterator], user_data)) {
+				/* get a reference to avoid races
+				 * after releasing the mutex */
+				result = ctx->conn_list[iterator];
+
+				/* release */
+				nopoll_mutex_unlock (ctx->ref_mutex);
+
 				/* release here the mutex to protect connection list */
 				return result;
 			} /* end if */
-
-			/* realloc again */
-			nopoll_mutex_lock (ctx->ref_mutex);
-
 		} /* end if */
 		
 		iterator++;

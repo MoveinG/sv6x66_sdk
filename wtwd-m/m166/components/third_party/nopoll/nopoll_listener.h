@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -50,37 +51,19 @@ noPollConn      * nopoll_listener_new (noPollCtx  * ctx,
 				       const char * host,
 				       const char * port);
 
-noPollConn      * nopoll_listener_new6 (noPollCtx  * ctx,
-					const char * host,
-					const char * port);
-
 noPollConn      * nopoll_listener_new_opts (noPollCtx      * ctx,
 					    noPollConnOpts * opts,
 					    const char     * host,
 					    const char     * port);
 
-noPollConn      * nopoll_listener_new_opts6 (noPollCtx      * ctx,
-					     noPollConnOpts * opts,
-					     const char     * host,
-					     const char     * port);
-
 noPollConn      * nopoll_listener_tls_new (noPollCtx  * ctx,
 					   const char * host,
 					   const char * port);
-
-noPollConn      * nopoll_listener_tls_new6 (noPollCtx  * ctx,
-					    const char * host,
-					    const char * port);
 
 noPollConn      * nopoll_listener_tls_new_opts (noPollCtx      * ctx,
 						noPollConnOpts * opts,
 						const char     * host,
 						const char     * port);
-
-noPollConn      * nopoll_listener_tls_new_opts6 (noPollCtx      * ctx,
-						 noPollConnOpts * opts,
-						 const char     * host,
-						 const char     * port);
 
 nopoll_bool       nopoll_listener_set_certificate (noPollConn * listener,
 						   const char * certificate,

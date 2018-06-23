@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -190,11 +191,11 @@ void __nopoll_log (noPollCtx * ctx, const char * function_name, const char * fil
 	if (! nopoll_log_is_enabled (ctx))
 		return;
 
-	/* printout the process pid */
-	if (nopoll_log_color_is_enabled (ctx)) 
-		printf ("\e[1;36m(proc %d)\e[0m: ", getpid ());
-	else
-		printf ("(proc %d): ", getpid ());
+//	/* printout the process pid */
+//	if (nopoll_log_color_is_enabled (ctx))
+//		printf ("\e[1;36m(proc %d)\e[0m: ", getpid ());
+//	else
+//		printf ("(proc %d): ", getpid ());
 
 	/* drop a log according to the level */
 	if (nopoll_log_color_is_enabled (ctx)) {
@@ -228,13 +229,13 @@ void __nopoll_log (noPollCtx * ctx, const char * function_name, const char * fil
 
 	/* print the message */
 	va_start (args, message);
-	vprintf (message, args);
+//	vprintf (message, args);
 	va_end (args);
 
 	printf ("\n");
 
 	/* ensure that the log is droped to the console */
-	fflush (stdout);
+//	fflush (stdout);
 #endif
 
 	/* return */

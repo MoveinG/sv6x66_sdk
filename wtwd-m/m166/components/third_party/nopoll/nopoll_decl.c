@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,14 +28,19 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
  *         info@aspl.es - http://www.aspl.es/nopoll
  */
 #include <nopoll_decl.h>
+
+#ifdef MEMLEAK_DEBUG
+static const char mem_debug_file[] ICACHE_RODATA_ATTR STORE_ATTR = __FILE__;
+#endif
 
 /** 
  * \addtogroup nopoll_decl_module
@@ -53,7 +58,7 @@
  */
 noPollPtr nopoll_calloc(size_t count, size_t size)
 {
-   return calloc (count, size);
+   return (void *)os_calloc (count, size);
 }
 
 /** 
@@ -67,7 +72,7 @@ noPollPtr nopoll_calloc(size_t count, size_t size)
  */
 noPollPtr nopoll_realloc(noPollPtr ref, size_t size)
 {
-   return realloc (ref, size);
+   return (void *)os_realloc (ref, size);
 }
 
 /** 
@@ -78,7 +83,7 @@ noPollPtr nopoll_realloc(noPollPtr ref, size_t size)
  */
 void nopoll_free (noPollPtr ref)
 {
-	free (ref);
+	os_free (ref);
 	return;
 }
 

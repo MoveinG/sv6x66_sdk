@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -62,15 +63,7 @@ noPollConnOpts * nopoll_conn_opts_new (void)
 		return NULL;
 
 	result->reuse        = nopoll_false; /* this is not needed, just to clearly state defaults */
-#if defined(NOPOLL_HAVE_TLS_FLEXIBLE_ENABLED)
-	result->ssl_protocol = NOPOLL_METHOD_TLS_FLEXIBLE;
-#elif defined(NOPOLL_HAVE_TLSv12_ENABLED)
-	result->ssl_protocol = NOPOLL_METHOD_TLSV1_2;
-#elif defined(NOPOLL_HAVE_TLSv11_ENABLED)
-	result->ssl_protocol = NOPOLL_METHOD_TLSV1_1;
-#elif defined(NOPOLL_HAVE_TLSv10_ENABLED)
 	result->ssl_protocol = NOPOLL_METHOD_TLSV1;
-#endif	  
 
 	result->mutex        = nopoll_mutex_create ();
 	result->refs         = 1;
@@ -129,21 +122,9 @@ nopoll_bool        nopoll_conn_opts_set_ssl_certs    (noPollConnOpts * opts,
 	
 	/* store certificate settings */
 	opts->certificate        = nopoll_strdup (certificate);
-	if (opts->certificate)
-		if (access (opts->certificate, R_OK) != 0)
-			return nopoll_false;
 	opts->private_key        = nopoll_strdup (private_key);
-	if (opts->private_key)
-		if (access (opts->private_key, R_OK) != 0)
-			return nopoll_false;
 	opts->chain_certificate  = nopoll_strdup (chain_certificate);
-	if (opts->chain_certificate)
-		if (access (opts->chain_certificate, R_OK) != 0)
-			return nopoll_false;
 	opts->ca_certificate     = nopoll_strdup (ca_certificate);
-	if (opts->ca_certificate)
-		if (access (opts->ca_certificate, R_OK) != 0)
-			return nopoll_false;
 
 	return nopoll_true;
 }
@@ -198,60 +179,6 @@ void        nopoll_conn_opts_set_cookie (noPollConnOpts * opts, const char * coo
 		nopoll_free (opts->cookie);
 		opts->cookie = NULL;
 	} /* end if */
-
-	return;
-}
-
-/** 
- * @brief Allows to set arbitrary HTTP headers and content to be sent during
- * the connection handshake.
- *
- * @note String must match the format: "\r\nheader:value\r\nheader2:value2" with
- * no trailing \r\n.
- *
- * @param opts The connection option to configure.
- *
- * @param header_string Content for the headers. If you pass NULL the
- * extra headers are unset.
- */
-void        nopoll_conn_opts_set_extra_headers (noPollConnOpts * opts, const char * header_string)
-{
-	if (opts == NULL)
-		return;
-
-	if (header_string) {
-		/* configure extra_header content to be sent */
-		opts->extra_headers = nopoll_strdup (header_string);
-	} else {
-		nopoll_free (opts->extra_headers);
-		opts->extra_headers = NULL;
-	} /* end if */
-
-	return;
-}
-
-
-/** 
- * @brief Allows to skip origin check for an incoming connection.
- *
- * This option is highly not recommended because the Origin header
- * must be provided by all WebSocket clients so the the server side
- * can check it.
- *
- * In most environments not doing so will make the connection to not succeed.
- *
- * Use this option just in development environment.
- *
- * @param opts The connection options to configure.
- *
- * @param skip_check nopoll_bool Skip header check 
- *
- */
-void        nopoll_conn_opts_skip_origin_check (noPollConnOpts * opts, nopoll_bool skip_check)
-{
-	/* configure skip origin header check */
-	if (opts) 
-		opts->skip_origin_header_check = skip_check;
 
 	return;
 }
@@ -323,31 +250,6 @@ void nopoll_conn_opts_set_reuse        (noPollConnOpts * opts, nopoll_bool reuse
 	return;
 }
 
-
-/** 
- * @brief Allows the user to configure the interface to bind the connection to.
- *
- * @param opts The connection options object. 
- *
- * @param _interface The interface to bind to, or NULL for system default.
- *
- */
-void nopoll_conn_opts_set_interface    (noPollConnOpts * opts, const char * _interface)
-{
-	if (opts == NULL)
-		return;
-
-	if (_interface) {
-		/* configure interface */
-		opts->_interface = nopoll_strdup (_interface);
-	} else {
-		nopoll_free (opts->_interface);
-		opts->_interface = NULL;
-	} /* end if */
-
-	return;
-}
-
 void __nopoll_conn_opts_free_common  (noPollConnOpts * opts)
 {
 	if (opts == NULL)
@@ -372,12 +274,6 @@ void __nopoll_conn_opts_free_common  (noPollConnOpts * opts)
 
 	/* cookie */
 	nopoll_free (opts->cookie);
-
-	/* interface */
-	nopoll_free (opts->_interface);
-
-	if (opts->extra_headers)
-		nopoll_free (opts->extra_headers);
 
 	/* release mutex */
 	nopoll_mutex_destroy (opts->mutex);

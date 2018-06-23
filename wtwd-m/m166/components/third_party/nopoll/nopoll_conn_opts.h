@@ -1,6 +1,6 @@
 /*
  *  LibNoPoll: A websocket library
- *  Copyright (C) 2017 Advanced Software Production Line, S.L.
+ *  Copyright (C) 2013 Advanced Software Production Line, S.L.
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -28,8 +28,9 @@
  *          
  *      Postal address:
  *         Advanced Software Production Line, S.L.
- *         Av. Juan Carlos I, Nº13, 2ºC
- *         Alcalá de Henares 28806 Madrid
+ *         Edificio Alius A, Oficina 102,
+ *         C/ Antonio Suarez Nº 10,
+ *         Alcalá de Henares 28802 Madrid
  *         Spain
  *
  *      Email address:
@@ -56,17 +57,11 @@ void        nopoll_conn_opts_ssl_peer_verify (noPollConnOpts * opts, nopoll_bool
 
 void        nopoll_conn_opts_set_cookie (noPollConnOpts * opts, const char * cookie_content);
 
-void        nopoll_conn_opts_skip_origin_check (noPollConnOpts * opts, nopoll_bool skip_check);
-
 nopoll_bool nopoll_conn_opts_ref (noPollConnOpts * opts);
 
 void        nopoll_conn_opts_unref (noPollConnOpts * opts);
 
 void nopoll_conn_opts_set_reuse        (noPollConnOpts * opts, nopoll_bool reuse);
-
-void nopoll_conn_opts_set_interface    (noPollConnOpts * opts, const char * _interface);
-
-void nopoll_conn_opts_set_extra_headers (noPollConnOpts * opts, const char * extra_headers);
 
 void nopoll_conn_opts_free (noPollConnOpts * opts);
 

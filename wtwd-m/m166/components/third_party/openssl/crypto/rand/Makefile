@@ -1,9 +1,0 @@
-LIB_SRC += crypto/rand/rand_lib.c
-LIB_SRC += crypto/rand/randfile.c
-LIB_SRC += crypto/rand/rand_unix.c
-LIB_SRC += crypto/rand/rand_win.c
-LIB_SRC += crypto/rand/rand_nw.c
-LIB_SRC += crypto/rand/rand_egd.c
-LIB_SRC += crypto/rand/rand_err.c
-LIB_SRC += crypto/rand/rand_os2.c
-LIB_SRC += crypto/rand/md_rand.c

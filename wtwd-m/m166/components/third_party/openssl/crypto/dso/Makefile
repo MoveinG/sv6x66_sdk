@@ -1,9 +1,0 @@
-LIB_SRC += crypto/dso/dso_vms.c
-LIB_SRC += crypto/dso/dso_dlfcn.c
-LIB_SRC += crypto/dso/dso_dl.c
-LIB_SRC += crypto/dso/dso_lib.c
-LIB_SRC += crypto/dso/dso_null.c
-LIB_SRC += crypto/dso/dso_openssl.c
-LIB_SRC += crypto/dso/dso_beos.c
-LIB_SRC += crypto/dso/dso_win32.c
-LIB_SRC += crypto/dso/dso_err.c

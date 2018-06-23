@@ -1,9 +1,0 @@
-LIB_SRC += crypto/ocsp/ocsp_ht.c
-LIB_SRC += crypto/ocsp/ocsp_lib.c
-LIB_SRC += crypto/ocsp/ocsp_srv.c
-LIB_SRC += crypto/ocsp/ocsp_ext.c
-LIB_SRC += crypto/ocsp/ocsp_prn.c
-LIB_SRC += crypto/ocsp/ocsp_asn.c
-LIB_SRC += crypto/ocsp/ocsp_err.c
-LIB_SRC += crypto/ocsp/ocsp_cl.c
-LIB_SRC += crypto/ocsp/ocsp_vfy.c

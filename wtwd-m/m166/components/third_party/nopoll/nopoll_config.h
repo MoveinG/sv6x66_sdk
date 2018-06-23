@@ -60,34 +60,7 @@
 /**
  * @brief Indicates that this platform have support for 64bits.
  */
-//#define NOPOLL_64BIT_PLATFORM (1)
-
-/**
- * @brief Indicates where we have support for SSL v.3 support.
- */
-#define NOPOLL_HAVE_SSLv23_ENABLED (1)
-
-/**
- * @brief Indicates where we have support for SSL v3.0 support. The SSLv3 protocol is deprecated and should not be used.
- */
-#define NOPOLL_HAVE_SSLv3_ENABLED (1)
-
-/**
- * @brief Indicates where we have support for TLSv1.0 support.
- */
-#define NOPOLL_HAVE_TLSv10_ENABLED (1)
-
-/**
- * @brief Indicates where we have support for TLSv1.1 support.
- */
-#define NOPOLL_HAVE_TLSv11_ENABLED (1)
-
-/**
- * @brief Indicates where we have support for TLSv1.2 support.
- */
-#define NOPOLL_HAVE_TLSv12_ENABLED (1)
-
-
+//#define NOPOLL_64BIT_PLATFORM (0)
 
 /* @} */
 
