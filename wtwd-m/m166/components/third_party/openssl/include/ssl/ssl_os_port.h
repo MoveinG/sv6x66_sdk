@@ -41,8 +41,8 @@
 extern "C" {
 #endif
 
-#include "esp_common.h"
-#include "lwip/apps/time.h"
+//#include "esp_common.h"
+//#include "lwip/apps/time.h"
 
 #if 0
 #define ssl_printf(fmt, args...) os_printf(fmt,## args)
@@ -53,6 +53,8 @@ extern "C" {
 #define STDCALL
 #define EXP_FUNC
 
+#define uint32	uint32_t
+#define uint64	uint64_t
 //struct timeval {
 //  long    tv_sec;         /* seconds */
 //  long    tv_usec;        /* and microseconds */

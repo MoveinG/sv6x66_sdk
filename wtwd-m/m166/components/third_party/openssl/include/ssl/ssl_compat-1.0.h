@@ -58,7 +58,7 @@
 #define ERR_error_string_n(a,b,c)				esp_ERR_error_string_n(a,b,c)
 #define ERR_error_string(a,b)					esp_ERR_error_string(a,b)
 #define ERR_free_strings(a)						esp_ERR_free_strings(a)
-#define strerror(a)								esp_ERR_strerror(a)
+//#define strerror(a)								esp_ERR_strerror(a)
 
 #define CRYPTO_cleanup_all_ex_data(a)			esp_CRYPTO_cleanup_all_ex_data(a)
 

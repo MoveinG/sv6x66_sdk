@@ -43,6 +43,10 @@
 typedef int MD5_CTX;
 typedef int X509_CTX;
 
+typedef unsigned char   		uint8;
+typedef unsigned short int		uint16;
+typedef unsigned int			uint32;
+
 /*
 Sets up digest context ctx to use a digest type from ENGINE impl.
 Type will typically be supplied by a function such as EVP_sha1().
@@ -91,6 +95,15 @@ char* EVP_cleanup(void)
     return NULL;
 }
 
+void *pvPortZalloc(size_t xSize)
+{
+	void *p;
+	p = pvPortMalloc(xSize, __builtin_return_address(0));
+	if(p) memset(p, 0, xSize);
+	return p;
+}
+
+#if 0
 static const unsigned char base64_enc_map[64] = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
     'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
@@ -177,6 +190,7 @@ int base64_encode(uint8* dst, size_t dlen, size_t* olen,
         return 0;
     }
 }
+#endif
 
 /*
 Return server SSLv23 method.

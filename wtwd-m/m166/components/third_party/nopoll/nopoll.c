@@ -38,7 +38,7 @@
  */
 #include <nopoll.h>
 #include <nopoll_private.h>
-#include "freertos/FreeRTOS.h"
+#include "FreeRTOS.h"
 
 /** 
  * \defgroup nopoll_support noPoll Support: core support functions used by the library
@@ -520,9 +520,9 @@ nopoll_bool nopoll_base64_encode (const char  * content,
 				  char        * output, 
 				  int         * output_size)
 {
-    base64_encode(output, *output_size, (int*)output_size, (char *)content,length);
+	if(mbedtls_base64_encode(output, *output_size, output_size, content, length) != 0)
+		return nopoll_false;
     return nopoll_true;
-
 #if 0 
 	BIO     * b64;
 	BIO     * bmem;
@@ -717,7 +717,7 @@ nopoll_bool nopoll_nonce (char * buffer, int nonce_size)
 #if defined(NOPOLL_OS_WIN32)
 		random_value = rand ();
 #else
-		random_value = os_random();
+		random_value = OS_Random();
 #endif
 
 		/* copy into the buffer */

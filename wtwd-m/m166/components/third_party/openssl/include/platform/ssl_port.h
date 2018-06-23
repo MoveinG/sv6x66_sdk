@@ -19,8 +19,8 @@
  extern "C" {
 #endif
 
-#include "c_types.h"
-#include "esp_system.h"
+//#include "c_types.h"
+//#include "esp_system.h"
 #include "string.h"
 
 #ifdef MEMLEAK_DEBUG
@@ -50,12 +50,12 @@ do{\
 
 #else
 
-extern void *pvPortMalloc( size_t xWantedSize );
-extern void *pvPortZalloc( size_t xWantedSize );
-extern void vPortFree(void *pv);
+//extern void *pvPortMalloc( size_t xWantedSize );
+//extern void *pvPortZalloc( size_t xWantedSize );
+//extern void vPortFree(void *pv);
 
 #define ssl_mem_zalloc(s) pvPortZalloc(s)
-#define ssl_mem_malloc(s) pvPortMalloc(s)
+#define ssl_mem_malloc(s) pvPortMalloc(s, __builtin_return_address(0))
 #define ssl_mem_free(p) vPortFree(p)
 
 #endif
@@ -63,8 +63,8 @@ extern void vPortFree(void *pv);
 #define ssl_memcpy memcpy
 #define ssl_strlen strlen
 
-#define ssl_speed_up_enter() system_update_cpu_freq(SYS_CPU_160MHZ)
-#define ssl_speed_up_exit()  system_update_cpu_freq(SYS_CPU_80MHZ)
+#define ssl_speed_up_enter() //system_update_cpu_freq(SYS_CPU_160MHZ)
+#define ssl_speed_up_exit()  //system_update_cpu_freq(SYS_CPU_80MHZ)
 
 #ifndef os_printf
 #define os_printf(fmt, ...) do {    \

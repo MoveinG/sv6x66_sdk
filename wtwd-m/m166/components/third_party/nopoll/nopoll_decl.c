@@ -58,7 +58,7 @@ static const char mem_debug_file[] ICACHE_RODATA_ATTR STORE_ATTR = __FILE__;
  */
 noPollPtr nopoll_calloc(size_t count, size_t size)
 {
-   return (void *)os_calloc (count, size);
+   return (void *)calloc (count, size);
 }
 
 /** 
@@ -72,7 +72,7 @@ noPollPtr nopoll_calloc(size_t count, size_t size)
  */
 noPollPtr nopoll_realloc(noPollPtr ref, size_t size)
 {
-   return (void *)os_realloc (ref, size);
+   return (void *)realloc (ref, size);
 }
 
 /** 
@@ -83,7 +83,7 @@ noPollPtr nopoll_realloc(noPollPtr ref, size_t size)
  */
 void nopoll_free (noPollPtr ref)
 {
-	os_free (ref);
+	free (ref);
 	return;
 }
 

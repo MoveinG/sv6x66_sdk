@@ -36,12 +36,13 @@
  *      Email address:
  *         info@aspl.es - http://www.aspl.es/nopoll
  */
-#include <nopoll/nopoll.h>
+#include <nopoll.h>
 #include "ssl/ssl_compat-1.0.h"
-#include "esp_common.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
+//#include "esp_common.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+
 #if defined(__NOPOLL_PTHREAD_SUPPORT__)
 #include <pthread.h>
 noPollPtr __nopoll_regtest_mutex_create (void) {
@@ -97,6 +98,7 @@ void __nopoll_regtest_mutex_unlock (noPollPtr _mutex) {
 nopoll_bool debug = nopoll_false;
 nopoll_bool show_critical_only = nopoll_false;
 
+#define LOCAL
 #define local_host_name		"iot.espressif.cn"
 #define local_host_url		"v1/datastreams/tem_hum/datapoint"
 #define local_host_port		"9000"
@@ -243,7 +245,7 @@ nopoll_bool test_01_masking (void) {
 #if defined(NOPOLL_OS_WIN32)
 	mask_value = rand ();
 #else
-	mask_value = os_random ();
+	mask_value = OS_Random ();
 #endif
 	printf ("Test-01 masking: using masking value %d\n", mask_value);
 	nopoll_set_32bit (mask_value, mask);
@@ -3063,7 +3065,7 @@ void websocket_start(void *optarg)
 }
 
 /*stop the websocket task*/
-sint8 websocket_stop(void)
+char websocket_stop(void)
 {
 	bool ValueToSend = true;
 	portBASE_TYPE xStatus;

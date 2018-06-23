@@ -3635,7 +3635,7 @@ int nopoll_conn_send_frame (noPollConn * conn, nopoll_bool fin, nopoll_bool mask
 #if defined(NOPOLL_OS_WIN32)
 		mask_value = (unsigned int) rand ();
 #else
-		mask_value = (unsigned int) os_random ();
+		mask_value = (unsigned int) OS_Random ();
 #endif
 		memset (mask, 0, 4);
 		nopoll_set_32bit (mask_value, mask);

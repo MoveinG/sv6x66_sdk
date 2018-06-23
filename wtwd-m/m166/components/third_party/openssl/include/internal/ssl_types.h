@@ -31,6 +31,8 @@ typedef void RSA;
 typedef void STACK;
 typedef void BIO;
 
+#define ICACHE_RODATA_ATTR
+#define STORE_ATTR          __attribute__((aligned(4)))
 #define ossl_inline inline
 
 #define SSL_METHOD_CALL(f, s, ...)        s->method->func->ssl_##f(s, ##__VA_ARGS__)
