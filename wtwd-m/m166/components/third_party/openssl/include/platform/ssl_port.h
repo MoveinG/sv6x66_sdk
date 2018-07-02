@@ -54,9 +54,9 @@ do{\
 //extern void *pvPortZalloc( size_t xWantedSize );
 //extern void vPortFree(void *pv);
 
-#define ssl_mem_zalloc(s) pvPortZalloc(s)
-#define ssl_mem_malloc(s) pvPortMalloc(s, __builtin_return_address(0))
-#define ssl_mem_free(p) vPortFree(p)
+#define ssl_mem_zalloc(s) OS_MemZalloc(s)
+#define ssl_mem_malloc(s) OS_MemAlloc(s)
+#define ssl_mem_free(p) OS_MemFree(p)
 
 #endif
 

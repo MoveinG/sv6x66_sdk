@@ -9,7 +9,7 @@ LIB_SRC += nopoll_ctx.c
 LIB_SRC += nopoll_listener.c
 LIB_SRC += nopoll_loop.c
 #LIB_SRC += nopoll_win32.c
-LIB_SRC += nopoll-regression-client.c
+#LIB_SRC += nopoll-regression-client.c
 
 LIB_ASRC :=
 LIBRARY_NAME := nopoll

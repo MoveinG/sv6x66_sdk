@@ -95,14 +95,6 @@ char* EVP_cleanup(void)
     return NULL;
 }
 
-void *pvPortZalloc(size_t xSize)
-{
-	void *p;
-	p = pvPortMalloc(xSize, __builtin_return_address(0));
-	if(p) memset(p, 0, xSize);
-	return p;
-}
-
 #if 0
 static const unsigned char base64_enc_map[64] = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
