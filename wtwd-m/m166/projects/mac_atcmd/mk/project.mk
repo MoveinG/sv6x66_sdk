@@ -231,7 +231,7 @@ WAC_EN            ?= 0
 HTTPD_EN          := 1
 CJSON_EN          := 1
 HTTPC_EN          := 1
-MQTT_EN           := 1
+MQTT_EN           := 0
 SSL_EN            := 1
 MBED_EN           := 1
 IPERF3_EN         := 1
@@ -241,7 +241,7 @@ TFTP_EN     	  := 1
 OTA_EN     	      := 1
 #NOPOLL_EN         := 1
 #OPENSSL_EN        := 1
-JD_CLOUD_EN       := 0
+WT_CLOUD_EN       := 1
 else
 WAC_EN            ?= 0
 HTTPD_EN          := 0
@@ -256,6 +256,10 @@ PING_EN     	  := 0
 TFTP_EN     	  := 0
 OTA_EN     	      := 0
 JD_CLOUD_EN       := 0
+endif
+
+ifeq ($(strip $(WT_CLOUD_EN)), 1)
+IMPORT_DIR		+=	components/third_party/xlink
 endif
 
 ifeq ($(strip $(NOPOLL_EN)), 1)
@@ -568,6 +572,10 @@ endif
 ifeq ($(strip $(JD_CLOUD_EN)), 1)
 CFLAGS 		+= -DJD_CLOUD_EN
 AFLAGS 		+= -DJD_CLOUD_EN
+endif
+
+ifeq ($(strip $(WT_CLOUD_EN)), 1)
+CFLAGS 		+= -DWT_CLOUD_EN
 endif
 
 ifeq ($(strip $(PING_EN)), 1)

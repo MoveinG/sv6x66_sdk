@@ -474,7 +474,7 @@ void temperature_compensation_task(void *pdata)
     OS_TaskDelete(NULL);
 }
 
-//extern int websocket_main (char *argv);
+extern int wtwd_clone_main (void);
 extern void drv_uart_init(void);
 void APP_Init(void)
 {
@@ -496,13 +496,8 @@ void APP_Init(void)
 	{
 		FS_remove_prevota(fs_handle);
 	}
-	//OS_TaskCreate(websocket_main, "websocket", 1024, NULL, TaskWav_TASK_PRIORITY, NULL); //this is a test for link
-#if 1	
-	OS_TaskCreate(TaskWav, "TaskWav", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
-#endif
-
-#if 1
-	OS_TaskCreate(TaskBmp, "TaskBmp", 2048, NULL, TaskBmp_TASK_PRIORITY, NULL);
+#if defined(WT_CLOUD_EN)
+	wtwd_clone_main();
 #endif
 
 #if 1
@@ -510,7 +505,7 @@ void APP_Init(void)
 #endif
 
 #if defined(FEATURE_FFS) && (FEATURE_FFS == 1)
-        init_global_conf();
+	init_global_conf();
 	OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
