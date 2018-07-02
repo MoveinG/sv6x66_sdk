@@ -171,6 +171,7 @@
 #define ATCMD_RADIO_RF_GAIN			"AT+RF_GAIN"
 #define ATCMD_RADIO_RF_RATEGAIN		"AT+RF_RATE_GAIN"
 #define ATCMD_RADIO_RF_DUMP			"AT+RF_DUMP"
+#define ATCMD_RADIO_RF_SINGLE_TONE     "AT+RF_TONE_GEN"
 #define ATCMD_RF             			       "rf"
 
 //rf tune
@@ -203,5 +204,16 @@
 #define ATCMD_RF_TABLE_GRATE_GAIN			"AT+RF_TABLE_GRATE_GAIN"
 #define ATCMD_RF_TABLE_20NRATE_GAIN			"AT+RF_TABLE_20NRATE_GAIN"
 #define ATCMD_RF_TABLE_40NRATE_GAIN			"AT+RF_TABLE_40NRATE_GAIN"
+
+#define ATCMD_RF_5G_BB_SCALE 	                            "AT+RF_5G_BB_SCALE"
+#define ATCMD_RF_5G_BIAS1                            	"AT+RF_5G_BIAS1"
+#define ATCMD_RF_5G_BIAS2                             	"AT+RF_5G_BIAS2"
+
+#define ATCMD_RF_5GTABLE_HT 	                            "AT+RF_5GTABLE_HT"
+#define ATCMD_RF_5GTABLE_RT                             	"AT+RF_5GTABLE_RT"
+#define ATCMD_RF_5GTABLE_LT                             	"AT+RF_5GTABLE_LT"
+#define ATCMD_RF_5GTABLE_BIAS1                             	"AT+RF_5GTABLE_BIAS1"
+#define ATCMD_RF_5GTABLE_BIAS2                             	"AT+RF_5GTABLE_BIAS2"
+#define ATCMD_RF_5GTABLE_BAND_THRESHOLD 	"AT+RF_5GTABLE_BAND_THRESHOLD"
 
 #endif

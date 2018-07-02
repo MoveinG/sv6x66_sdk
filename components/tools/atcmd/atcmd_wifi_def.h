@@ -124,10 +124,14 @@
 #define ATCMD_SOFTAP_STATUS         "softap"
 #define ATCMD_WIFISTATUS            "wifi"
 
+#define ATCMD_SET_COUNTRY_CODE "AT+SET_COUNTRY_CODE"
+
 //Not implement
 #define ATCMD_RECONNECT             "AT+WIFIRECONNECT"
 #define ATCMD_NETSCAN_CUSTOM        "AT+SCAN_CUSTOM"
 #define ATCMD_SEND                  "AT+SEND"
 #define ATCMD_CLEAN_LISTS           "AT+CLEAN_LISTS"
 
+#define ATCMD_FIXRATE               "AT+FR"
+#define ATCMD_MAC_DBG               "AT+MACDBG"
 #endif

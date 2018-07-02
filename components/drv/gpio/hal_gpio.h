@@ -87,20 +87,20 @@ typedef enum
     GPIO_04             = 4,
     GPIO_05             = 5,
     GPIO_06             = 6,
-    GPIO_07             = 7,
+    SIO_07              = 7,
     GPIO_08             = 8,
     GPIO_09             = 9,
     GPIO_10             = 10,
     GPIO_11             = 11,
     GPIO_12             = 12,
     GPIO_13             = 13,
-    GPIO_14             = 14,
-    GPIO_15             = 15,
+    SIO_14              = 14,
+    SIO_15              = 15,
     GPIO_16             = 16,
     GPIO_17             = 17,
     GPIO_18             = 18,
     GPIO_19             = 19,
-    GPIO_20             = 20,
+    SIO_20              = 20,
     GPIO_21             = 21,
     GPIO_22             = 22
 } gpio_pin_t;
@@ -153,7 +153,9 @@ typedef enum
 
 int8_t hal_gpio_set_mode(gpio_pin_t pin, pin_mode_t mode);
 int8_t hal_gpio_set_dir(gpio_pin_t pin, gpio_dir_t dir);
+gpio_dir_t hal_gpio_get_dir(gpio_pin_t pin);
 int8_t hal_gpio_set_pull(gpio_pin_t pin, gpio_pull_t pull);
+gpio_pull_t hal_gpio_get_pull(gpio_pin_t pin);
 int8_t hal_gpio_set_logic(gpio_pin_t pin, gpio_logic_t logic);
 int8_t hal_gpio_set_driving_strengh(gpio_pin_t pin, gpio_driving_strengh_t driving_streght);
 int8_t hal_gpio_set_interrupt(gpio_pin_t pin);

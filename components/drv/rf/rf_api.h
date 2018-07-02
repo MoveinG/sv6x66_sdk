@@ -29,6 +29,18 @@ struct st_rate_gain
     uint8_t rate4;
 };
 
+#if 1
+struct st_tempe_5g_table 
+{
+    uint8_t bbscale_band0;   //Band0 in 0xccb0ada8(31-24)
+    uint8_t bbscale_band1;   //Band1 in 0xccb0ada8(23-16)
+    uint8_t bbscale_band2;   //Band2 in 0xccb0ada8(15- 8)
+    uint8_t bbscale_band3;   //Band3 in 0xccb0ada8( 7- 0)
+    uint32_t bias1;                  // Band0 in 0xccb0a62c(15-0), Band1 in 0xccb0a62c(31-16)
+    uint32_t bias2;                  // Band2 in 0xccb0a630(15-0), Band3 in 0xccb0a630(31-16)   
+};
+#endif
+
 struct st_rf_table 
 {
     struct st_tempe_table rt_config;
@@ -45,6 +57,16 @@ struct st_rf_table
     struct st_rate_gain rate_config_40n;
     int8_t low_boundary;
     int8_t high_boundary;
+#if 1
+    uint8_t reserv1;
+    uint8_t reserv2;
+    struct st_tempe_5g_table rt_5g_config;
+    struct st_tempe_5g_table ht_5g_config;
+    struct st_tempe_5g_table lt_5g_config;
+    uint16_t band_f0_threshold;  
+    uint16_t band_f1_threshold;
+    uint16_t band_f2_threshold; 
+#endif
 };
 int load_phy_table();
 int dump_rf_value();
@@ -73,6 +95,7 @@ int write_reg_rate_gain_b(uint8_t gain_b);
 int write_reg_rate_gain_g(struct st_rate_gain rate_g, uint8_t wrk_flag);
 int write_reg_rate_gain_20n(struct st_rate_gain rate_20n, uint8_t wrk_flag);
 int write_reg_rate_gain_40n(struct st_rate_gain rate_40n, uint8_t wrk_flag);
+int write_reg_rf_table_ex(struct st_rf_table *p_table);
 int write_reg_rf_table();
 int set_temper_value(uint8_t low, uint8_t high);
 
@@ -86,6 +109,18 @@ int rf_gmode_count(uint32_t *total_count, uint32_t *err_count);
 int rf_freqoffset_readxo(uint32_t *xo_value);
 int rf_freqoffset_readxi(uint32_t *xi_value);
 int rf_manu_padpd_cali();
-int rf_debug_message(int level);
+
+#if 1
+int write_reg_5g_bbscale_5100(uint8_t scale);
+int write_reg_5g_bbscale_5500(uint8_t scale);
+int write_reg_5g_bbscale_5700(uint8_t scale);
+int write_reg_5g_bbscale_5900(uint8_t scale);
+int write_reg_5g_bias1(uint32_t reg_value);
+int write_reg_5g_bias2(uint32_t reg_value);
+int write_reg_5g_band_threshold(uint16_t thr_f0, uint16_t thr_f1, uint16_t thr_f2);
+int write_reg_tempe_5g_table(struct st_tempe_5g_table config);
+#endif
+
+int rf_tone_gen(uint8_t bStart);
 
 #endif

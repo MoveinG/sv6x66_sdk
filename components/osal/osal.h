@@ -35,6 +35,8 @@
 
 	#define	OS_MAX_WAITTIME	RHINO_WAIT_FOREVER
 
+    typedef uint64_t OS_TICKTYPE;
+
 	extern void soc_asserted(const char *func, int line);
 	#define configASSERT( x ) \
 		do { \
@@ -43,6 +45,8 @@
 		} while (0)
 #else
 	#define	OS_MAX_WAITTIME	portMAX_DELAY
+
+    typedef uint32_t OS_TICKTYPE;
 #endif
 typedef void *                       OsTaskHandle;
 typedef void *                       OsMutex;
@@ -53,7 +57,6 @@ typedef void *						 OsBufQ;
 typedef void *                       OsTimer;
 typedef void (*OsTimerHandler)(OsTimer);
 typedef void (*OsTask)(void *);
-typedef uint32_t OS_TICKTYPE;
 
 // task priority
 #ifdef CONFIG_OS_RHINO
@@ -143,7 +146,7 @@ unsigned long OS_Random(void);
  *
  * @retval current system tick count
  */
-u32 OS_GetSysTick(void);
+OS_TICKTYPE OS_GetSysTick(void);
 
 /* Monitor: */
 void OS_SysInfo(void);
@@ -159,7 +162,8 @@ void OS_SysInfo(void);
 #else
 	typedef struct table_entry
 	{
-		OsTaskHandle handle;
+		OsTaskHandle task_handle;
+		u32 task_stack_size;
 		u32 min_ever_remain_stack_size;
 		u32 curr_runtime_in_sec;
 		u32 prev_runtime_in_sec;
@@ -293,7 +297,7 @@ OS_STATUS OS_SemInit( OsSemaphore* Sem , u32 maxcnt , u32 cnt);
  * @retval  OS_SUCCESS                  get a message success
  * @retval  OS_TIMEOUT                  get a message timeout
  */
-OS_STATUS OS_SemWait( OsSemaphore Sem , u32 timeout);
+OS_STATUS OS_SemWait( OsSemaphore Sem , OS_TICKTYPE timeout);
 /**
  * get count from semaphore
  *
@@ -322,7 +326,7 @@ OS_STATUS OS_SemDelete(OsSemaphore Sem);
 
 /* Event */
 OS_STATUS OS_EventCreate(OsEvent* event);
-OS_STATUS OS_EventWait(OsEvent event, u32 ticks_to_wait);
+OS_STATUS OS_EventWait(OsEvent event, OS_TICKTYPE ticks_to_wait);
 OS_STATUS OS_EventSet(OsEvent event);
 u32	OS_EventGetStatus(OsEvent event);
 OS_STATUS OS_EventDelete(OsEvent event);
@@ -348,7 +352,7 @@ void OS_UsDelay(u32 us);
  * @param   ticks                    	tick count
  * 
  */
-void OS_TickDelay(u32 ticks);
+void OS_TickDelay(OS_TICKTYPE ticks);
 
 /* Timer: */
 /**
@@ -440,16 +444,16 @@ OS_STATUS OS_MsgQEnqueue( OsMsgQ MsgQ, OsMsgQEntry *MsgItem );
  * @retval  OS_SUCCESS                  get a message success
  * @retval  OS_TIMEOUT                  get a message timeout
  */
-OS_STATUS OS_MsgQDequeue( OsMsgQ MsgQ, OsMsgQEntry *MsgItem, u32 TickToWait );
+OS_STATUS OS_MsgQDequeue( OsMsgQ MsgQ, OsMsgQEntry *MsgItem, OS_TICKTYPE TickToWait );
 u32 OS_MsgQWaitingSize( OsMsgQ MsgQ );
 
 /* Buffer Queue: */
 OS_STATUS OS_BufQCreate(OsBufQ *bufq, u32 qlen, u32 item_size);
 void OS_BufQDelete(OsBufQ bufq);
 OS_STATUS OS_BufQPush( OsBufQ bufq, void* item);
-OS_STATUS OS_BufQPushEx( OsBufQ bufq, void* item, u32 tick_to_wait);
+OS_STATUS OS_BufQPushEx( OsBufQ bufq, void* item, OS_TICKTYPE tick_to_wait);
 OS_STATUS OS_BufQPushFront( OsBufQ bufq, void* item);
-OS_STATUS OS_BufQPop( OsBufQ bufq, void* item, u32 tick_to_wait);
+OS_STATUS OS_BufQPop( OsBufQ bufq, void* item, OS_TICKTYPE tick_to_wait);
 u32 OS_BufQWaitingSize( OsBufQ bufq );
 
 /* Memory: */

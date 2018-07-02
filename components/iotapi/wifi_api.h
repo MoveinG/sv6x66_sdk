@@ -216,6 +216,40 @@ int get_wifi_status_2(u8 staid);
  */
 u8 get_wifi_status(void);
 
+/*
+ * @set the fix rate 
+ * @wsid
+    If device is in STA mode, the value is always 0
+    If device is in TWO-STA mode, the value is always 0 or 1    
+    If device is in AP/CONCURRENT mode, the value is 1 ~ 4, user can get the value by wifi_softap_get_sta_idx_by_mac
+ * @drate_idx   
+    drate_idx=0xFF, it means disable the fix rate
+*/
+int wifi_set_fix_drate(u8 wsid, EN_DATA_RATE_IDX drate_idx);
+
+/*
+ * @get the current rate
+ * @wsid
+    If device is in STA mode, the value is always 0
+    If device is in TWO-STA mode, the value is always 0 or 1    
+    If device is in AP/CONCURRENT mode, the value is 1 ~ 4, user can get the value by wifi_softap_get_sta_idx_by_mac
+*/
+u8 wifi_get_current_drate(u8 wsid);
+
+/*
+ * @In AP mode, user can get the STA index by MAC
+ * @mac. input parameter
+ * @return -1: fail.
+*/
+int wifi_softap_get_sta_idx_by_mac(u8 *mac);
+
+/**
+ * @brief register the callback function and it will be execute when STA connect or disconnect to softap.
+ * @param callbackfn   [IN] callback function.
+ * @return the result. 0 : Successful, -1 : Failed(Only can operation when softap is not working).
+ */
+int wifi_register_softap_cb(void (*callbackfn)(STAINFO*));
+
 int get_connectap_info(u8 staid, u8 *pssid, u8 *pssidlen, u8 *pmac, u8 maclen, u8 *prssi, u8 *pch);
 /**
  * @brief Configures the settings of sniffer mode. 
@@ -233,5 +267,27 @@ int get_local_mac(u8 staid, u8 *pmac, u8 len);
 u8 get_operation_mode();
 int wifi_set_channel(u32 ch, u32 type);
 int set_country_code(COUNTRY_CODE code);
+
+
+int wifi_debug_enable(bool en);
+int wifi_register_mac_send_cb(void (*mac_send_debug_cb)(void *data));
+int wifi_unregister_mac_send_cb(void (*mac_send_debug_cb)(void *data));
+int wifi_register_radio_send_cb(void (*radio_send_debug_cb)(void *data));
+int wifi_unregister_radio_send_cb(void (*radio_send_debug_cb)(void *data));
+
+
+/**
+ *@ configure the amout of ap list. This function should be called before DUT_START
+*/
+int wifi_set_ap_list_amount(u32 amount);
+
+/**
+ *@ send null data to AP, this function only works when a STA interface is working
+ *@ pwmode=0: STA is active, pwmode=1: STA is in sleeping.
+ *@ id: interface id, id=0, it means IF0, id=1, it means IF1
+    id=0 or 1, if DUT works on DUT_TWOSTA
+    id=0, if DUT works on DUT_STA, DUT_CONCURRENT    
+*/
+int wifi_send_null_data(int pwmode, u8 id);
 
 #endif

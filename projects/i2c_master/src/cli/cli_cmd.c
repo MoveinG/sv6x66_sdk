@@ -236,14 +236,14 @@ void Cmd_i2c_master_rw(s32 argc, char *argv[])
         return ;
     }
     
-    if(0 != drv_i2c_mst_write(I2C_SLAVE_ADDR, write_buf, I2C_SLAVE_RW_SIZE, 1, 0)){
+    if(0 != drv_i2c_mst_write(I2C_SLAVE_ADDR, write_buf, I2C_SLAVE_RW_SIZE, 1, 1)){
         printf("write fail!\n");
         return ;
     }
 
     printf("data read from addr[%d]\n", data_start_addr);
     
-    if(0 != drv_i2c_mst_write(I2C_SLAVE_ADDR, &data_start_addr, 1, 1, 0)){
+    if(0 != drv_i2c_mst_write(I2C_SLAVE_ADDR, &data_start_addr, 1, 1, 1)){
         printf("write fail!\n");
         return ;
     }
@@ -307,10 +307,10 @@ static void Cmd_help (int32_t argc, char *argv[])
 /* ---------------------- Registered CMDs to CMD Table ---------------------- */
 const CLICmds gCliCmdTable[] =
 {
-    { "help",               Cmd_help,                   "i2C Master test help"          },
-    { "i2c_master_rw",      Cmd_i2c_master_rw,          "i2c_master_rw <clk_Hz>"        },
-    //{ "regr",               At_ReadReg,                 "At_WriteReg"                   },
-    //{ "regw",               At_WriteReg,                "At_ReadReg"                    },
+    { "help",               Cmd_help,                   "i2C Master test help"          	},
+    { "i2c_master_rw",      Cmd_i2c_master_rw,          "i2c_master_rw <i2c_id> <clk_Hz>"   },
+    //{ "regr",               At_ReadReg,                 "At_WriteReg"                   	},
+    //{ "regw",               At_WriteReg,                "At_ReadReg"                    	},
     //{ "i2c_master_rw_wac",  Cmd_i2c_master_rw_wac,      "i2c_master_rw_wac <clk_Hz>"},
     /*lint -save -e611 */
     { (const char *)NULL, (CliCmdFunc)NULL,   (const char *)NULL },
