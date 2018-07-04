@@ -495,7 +495,8 @@ struct st_rf_table customer_rf_table ={ { {10, 10, 10, 10, 10, 10, 10} , 0x81, 0
     OS_TaskDelete(NULL);
 }
 
-extern int wtwd_clone_main (void);
+extern int wtwd_clone_main(void);
+extern void TaskKeyLed(void *pdata);
 extern void drv_uart_init(void);
 void APP_Init(void)
 {
@@ -517,23 +518,28 @@ void APP_Init(void)
 	{
 		FS_remove_prevota(fs_handle);
 	}
-#if defined(WT_CLOUD_EN)
-	wtwd_clone_main();
+#if 1	
+	OS_TaskCreate(TaskKeyLed, "TaskKeyLed", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
+#endif
+
+#if 1
+	OS_TaskCreate(TaskBmp, "TaskBmp", 2048, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
 #if 1
 	OS_TaskCreate(Cli_Task, "cli", 1024, NULL, 1, NULL);
 #endif
 
-
-        init_global_conf();
-        OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
-
+	init_global_conf();
+	OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
 
 #if 1
 	OS_TaskCreate(temperature_compensation_task, "rf temperature compensation", 256, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
+#if 0//defined(WT_CLOUD_EN)
+	wtwd_clone_main();
+#endif
     printf("[%s][%d] string\n", __func__, __LINE__);
 
     OS_StartScheduler();
