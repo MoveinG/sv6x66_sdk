@@ -518,9 +518,8 @@ void APP_Init(void)
 	{
 		FS_remove_prevota(fs_handle);
 	}
-#if 1	
+
 	OS_TaskCreate(TaskKeyLed, "TaskKeyLed", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
-#endif
 
 #if 1
 	OS_TaskCreate(TaskBmp, "TaskBmp", 2048, NULL, TaskBmp_TASK_PRIORITY, NULL);
@@ -537,12 +536,9 @@ void APP_Init(void)
 	OS_TaskCreate(temperature_compensation_task, "rf temperature compensation", 256, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
-#if 0//defined(WT_CLOUD_EN)
-	wtwd_clone_main();
-#endif
-    printf("[%s][%d] string\n", __func__, __LINE__);
+	printf("[%s][%d] string\n", __func__, __LINE__);
 
-    OS_StartScheduler();
+	OS_StartScheduler();
 }
 
 void vAssertCalled( const char *func, int line )

@@ -4,6 +4,7 @@
 #include <stdio.h>
 //#include <memory.h>
 #include "fsal.h"
+#include "xlink_debug.h"
 
 #include "linux_flash.h"
 
@@ -21,6 +22,7 @@ int Xlink_Flash_Init(void)
 {
     memset(flash_data, 0, sizeof(flash_data));
     SSV_FILE fd = FS_open(fs_handle, XLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
+    xlink_debug_sdk("fd=%d\n", fd);
 	if(fd >= 0)
 	{
 	    FS_read(fs_handle, fd, flash_data, sizeof(flash_data));
@@ -113,6 +115,7 @@ int Xlink_Flash_Write(unsigned char *data,int datalen)
 	if(data == 0 || datalen > sizeof(flash_data))
 		return -1;
     SSV_FILE fd = FS_open(fs_handle, XLINKFILE_NAME, SPIFFS_RDWR, 0);
+    xlink_debug_sdk("fd=%d\n", fd);
 	if(fd >= 0)
 	{
 		memcpy(flash_data, data, datalen);

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define  XLink_PAGE_NUM_MAX  2
+#define  XLink_PAGE_NUM_MAX  1
 #define  XLink_PAGE_SIZE  1024
 #define  XLink_FILE_NAME_MAXLENGTH  256
 

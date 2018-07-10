@@ -274,11 +274,11 @@ XLINK_FUNTION void xlink_event_cb(struct xlink_sdk_instance_t **sdk_instance, co
 }
 
 XLINK_FUNTION xlink_uint32 xlink_get_ticktime_ms_cb(struct xlink_sdk_instance_t **sdk_instance) {
-    xlink_uint32 t = 0;
-    struct timeval tv;
-    /*iperf_*/gettimeofday(&tv, NULL);
-    t = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-    return t;
+    //xlink_uint32 t = 0;
+    //struct timeval tv;
+    ///*iperf_*/gettimeofday(&tv, NULL);
+    //t = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    return OS_GetSysTick();
 }
 
 
@@ -344,6 +344,7 @@ int xlink_udp_send_data(char *data, int datalength, const xlink_addr_t **addr_t)
 
 void xlink_sdk_tcp_thread(void *var) {
     xlink_uint8 ret = -1;
+
     while ((g_app_run) && ( server_reject == 0 )) {
         //没连接上服务器
         if ((gsocket < 0) && g_sdk_instance_t.cloud_enable) {
@@ -351,7 +352,7 @@ void xlink_sdk_tcp_thread(void *var) {
             OS_MsDelay(2000);
             close(gsocket);
             //连接tcp服务器
-            gsocket = ConnectTCPSever("mqtt.xlink.cn", 1883);
+            gsocket = ConnectTCPSever("cm.iotapk.com", 1883);
             if (gsocket >= 0) {
                 xlink_sdk_init((struct xlink_sdk_instance_t **) &g_sdk_instance_p);
                 xlink_sdk_connect_cloud((struct xlink_sdk_instance_t **) &g_sdk_instance_p);
@@ -390,6 +391,7 @@ void xlink_sdk_tcp_thread(void *var) {
         }//test location
         OS_MsDelay(10);
     }
+    OS_TaskDelete(NULL);
 }
 
 void xlink_sdk_thread(void *var) {
@@ -505,6 +507,7 @@ void xlink_sdk_thread(void *var) {
         xlink_demo_loop();        
         OS_MsDelay(10);
     }
+    OS_TaskDelete(NULL);
 }
 
 /**
@@ -525,25 +528,25 @@ int wtwd_clone_main(void) {
 
 	Node node;    
     node.i = 0x12345678;  
-    if(node.c == 78){
+    if(node.c == 0x78){
     	printf("little ending device %x\n", node.c);
 	}else{
     	printf("big ending device %x\n", node.c);
 	}
 
-    ret = OS_TaskCreate(xlink_sdk_thread, "xlink_sdk", 2048, NULL, 2, NULL);
+    ret = OS_TaskCreate(xlink_sdk_thread, "xlink_sdk", 2048, NULL, 1, NULL);
 	if (ret == 0) {
         printf("Create xlink_sdk_thread error!");
         return -1;
     }
-	ret = OS_TaskCreate(xlink_sdk_tcp_thread, "xlink_sdk_tcp", 2048, NULL, 2, NULL);
+	ret = OS_TaskCreate(xlink_sdk_tcp_thread, "xlink_sdk_tcp", 2048, NULL, 1, NULL);
     if (ret == 0) {
         printf("Create xlink_sdk_tcp_thread error!");
         return -1;
     }
-    while (g_app_run) {
-        OS_MsDelay(1000);
-    }
+    //while (g_app_run) {
+    //    OS_MsDelay(1000);
+    //}
 
     return 0;
 }
@@ -610,7 +613,7 @@ int CreatUDPSever() {
 }
 
 
-int 			g_dayOfMonth[12] =
+int g_dayOfMonth[12] =
 {
 	31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 };
