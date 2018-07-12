@@ -13,7 +13,6 @@
 
 
 
-
 //static char test_read_tcp[1024];
 //static int fd;
 static bool esptouch_flag = false;
@@ -226,7 +225,7 @@ static void colinkProcessTask(void* pData)
     int ret = 0;
     ColinkDev *dev_data = NULL;
     ColinkEvent ev;
-    char domain[32];
+    //char domain[32];
     
     os_printf("colinkProcessTask\r\n");
     
@@ -246,8 +245,8 @@ static void colinkProcessTask(void* pData)
     strcpy(dev_data->apikey, APIKEY);
     strcpy(dev_data->model, MODEL);
     strcpy(dev_data->version, VERDION);
-    //system_param_load(DEVICE_CONFIG_START_SEC, 0, domain, 32);
-    strcpy(dev_data->distor_domain, domain);
+    //system_param_load(/*DEVICE_CONFIG_START_SEC, 0, */dev_data->distor_domain, sizeof(dev_data->distor_domain));
+    strcpy(dev_data->distor_domain, "testapi.coolkit.cc");
     os_printf("distor_domain=[%s]\r\n", dev_data->distor_domain);
     dev_data->ssl_enable = true;
     colinkInit(dev_data, &ev);

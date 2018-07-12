@@ -1,11 +1,16 @@
 //#include "esp_common.h"
 //#include "freertos/task.h"
+#include "fsal.h"
 #include "lwip/sockets.h"
 #include "cJSON.h"
 #include "colink_define.h"
 #include "colink_setting.h"
 #include "colink_network.h"
 
+#define COLINKFILE_NAME "colink.conf"
+extern spiffs* fs_handle;
+
+/////////////////////////////////////////////////
 static int sigSettingSendIDToAPP(int sock_fd)
 {
     char temp[20];
@@ -176,7 +181,7 @@ void colinkSettingTask(void* pData)
                     cJSON_Delete(cjson_root);
 
                     os_printf("domain=[%s]\r\n", domain);
-                    //system_param_save_with_protect(DEVICE_CONFIG_START_SEC, domain, sizeof(domain));
+                    system_param_save_with_protect(/*DEVICE_CONFIG_START_SEC, */domain, sizeof(domain));
 
                     os_free(content);
                 }
@@ -196,5 +201,32 @@ void colinkSettingTask(void* pData)
 void colinkSettingStart(void)
 {
     xTaskCreate(colinkSettingTask, "colinkSettingTask", 512, NULL, 3, NULL);
+}
+
+//////////////////////////////////////////////
+int system_param_save_with_protect(char *domain, int size)
+{
+    SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
+    printf("fd=%d\n", __func__, fd);
+	if(fd >= 0)
+	{
+	    FS_write(fs_handle, fd, domain, size);
+		FS_close(fs_handle, fd);
+		return 0;
+	}
+	return -1;
+}
+
+int system_param_load(char *domain, int size)
+{
+    SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_RDWR, 0);
+    printf("fd=%d\n", __func__, fd);
+	if(fd >= 0)
+	{
+	    FS_read(fs_handle, fd, domain, size);
+		FS_close(fs_handle, fd);
+		return 0;
+	}
+	return -1;
 }
 

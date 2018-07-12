@@ -43,6 +43,8 @@
 
 #define KEYLED_MSGLEN	10
 
+extern void update_to_clode(void);
+
 static OsTimer led_flash_timer;
 static u32 keydown_time;
 static int led_status, pwr_status;
@@ -145,8 +147,6 @@ static void irq_key1_gpio_ipc(uint32_t irq_num)
 
 static void show_wifi_status(int connect)
 {
-	OS_TimerStop(led_flash_timer);
-
 	OS_EnterCritical();
 	if(connect) led_status = LED_LIGHT_ON;
 	else led_status = LED_LIGHT_OFF;
@@ -238,14 +238,15 @@ void wifi_status_cb(int connect)
 
 void TaskKeyLed(void *pdata)
 {
-    OsMsgQEntry msg_evt;
+	OsMsgQEntry msg_evt;
+	bool smarting=0;
 	uint8_t ssidlen=32, keylen=64;
 
 	//key_value = 0;
 	pwr_status = SWITCH_PWROFF;
 	led_flash_timer = NULL;
 
-    get_wifi_config(cur_ssid, &ssidlen, cur_key, &keylen, cur_mac, 6);
+	get_wifi_config(cur_ssid, &ssidlen, cur_key, &keylen, cur_mac, 6);
 
 	if(get_wifi_status() == 1) led_status = LED_LIGHT_ON;
 	led_status = LED_LIGHT_OFF;
@@ -268,25 +269,41 @@ void TaskKeyLed(void *pdata)
 		{
 			switch(msg_evt.MsgCmd) {
 			case EVENT_DEV_KEY:
-				if(msg_evt.MsgData == KEY_1LONG) SmartConfig_Start();
-				if(msg_evt.MsgData == KEY_KEY1) Shift_Switch();
+				if(msg_evt.MsgData == KEY_1LONG)
+				{
+					smarting = 1;
+					SmartConfig_Start();
+				}
+				if(msg_evt.MsgData == KEY_KEY1) 
+				{
+					Shift_Switch();
+					update_to_clode();
+				}
 				//if(msg_evt.MsgData == KEY_KEY2) Shift_Switch2();
 				break;
 
 			case EVENT_CONNECT:
 				if(msg_evt.MsgData == CONNECT_CON)
 				{
+					if(smarting)
+					{
+						OS_TimerStop(led_flash_timer);
+						smarting = 0;
+					}
 					show_wifi_status(1);
 					//check_set_wifi_config();
 					#if defined(WT_CLOUD_EN)
 					wtwd_clone_main();
 					#endif
 					#if defined(CK_CLOUD_EN)
-					colinkSettingStart();
-					colinkProcessStart();
+					/*if(system_param_load(&ssidlen, 1) != 0) colinkSettingStart();
+					else */colinkProcessStart();
 					#endif
 				}
-				//if(msg_evt.MsgData == CONNECT_DIS) show_wifi_status(0);
+				if(msg_evt.MsgData == CONNECT_DIS)
+				{
+					if(smarting == 0) show_wifi_status(0);
+				}
 				break;
 
 			case EVENT_SWITCH:

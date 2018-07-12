@@ -54,8 +54,10 @@ struct location_msg_wait_t{
 struct location_msg_wait_t location_msg_wait;
 static int g_app_run = 1;
 
-xlink_uint32 app_data_number_of_crowd = 0;//数据端点数据
+extern int get_Switch_status(void);
+extern void Ctrl_Switch_cb(int open);
 
+xlink_uint8 app_data_number_of_crowd;//数据端点数据
 
 int xlink_tcp_send_data(char *data, int datalength);
 
@@ -120,14 +122,14 @@ xlink_get_datapoint_cb(struct xlink_sdk_instance_t **sdk_instance, xlink_uint8 *
 	memset(temp_xink_data_point,0,sizeof(temp_xink_data_point));
 	ii=0;
 
-	temp_xink_data_point[ii++] = 1;
-	temp_xink_data_point[ii++] = DP_UINT32;
-	temp_xink_data_point[ii++] = 0x04;
-	temp_xink_data_point[ii++] = BREAK_UINT32(app_data_number_of_crowd, 3);
-	temp_xink_data_point[ii++] = BREAK_UINT32(app_data_number_of_crowd, 2);
-	temp_xink_data_point[ii++] = BREAK_UINT32(app_data_number_of_crowd, 1);
-	temp_xink_data_point[ii++] = BREAK_UINT32(app_data_number_of_crowd, 0);	
-	
+	temp_xink_data_point[ii++] = 0;
+	temp_xink_data_point[ii++] = DP_BYTE;
+	temp_xink_data_point[ii++] = 0x01;
+	//temp_xink_data_point[ii++] = BREAK_UINT32(app_data_number_of_crowd, 3);
+	//temp_xink_data_point[ii++] = BREAK_UINT32(app_data_number_of_crowd, 2);
+	//temp_xink_data_point[ii++] = BREAK_UINT32(app_data_number_of_crowd, 1);
+	temp_xink_data_point[ii++] = app_data_number_of_crowd;
+
     buffer_p = *buffer;
     memcpy(buffer_p, temp_xink_data_point, ii);
 	if(XLINK_DEBUG_SDK_ON){
@@ -145,11 +147,15 @@ xlink_set_datapoint_cb(struct xlink_sdk_instance_t **sdk_instance, const xlink_u
 		if(XLINK_DEBUG_SDK_ON){
 			print_array_debug(buffer_p,datalength);
 		}
-		if(buffer_p[0] == 1 && buffer_p[1] == DP_UINT32 && buffer_p[2] == 0x04)
+		if(buffer_p[0] == 0 && buffer_p[1] == DP_BYTE && buffer_p[2] == 0x01)
 	    {
-	    	app_data_number_of_crowd = BUILD_UINT32(buffer_p[6], buffer_p[5], buffer_p[4], buffer_p[3]);
+	    	//app_data_number_of_crowd = BUILD_UINT32(buffer_p[6], buffer_p[5], buffer_p[4], buffer_p[3]);
+			app_data_number_of_crowd = buffer_p[3];
+			Ctrl_Switch_cb(app_data_number_of_crowd);
 			xlink_debug_sdk("app_data_number_of_crowd=%u.\r\n", app_data_number_of_crowd);
+			OS_EnterCritical();
 			updata_number_of_crowd_flag = 1;
+			OS_ExitCritical();
 		}        
     }
     return datalength;
@@ -292,19 +298,20 @@ int xlink_tcp_send_data(char *data, int datalength) {
 }
 
 
-void number_of_crowd_XlinkDataPointUpdata(xlink_uint32 AppData)
+void number_of_crowd_XlinkDataPointUpdata(xlink_uint8 AppData)
 {
 	int i=0,Len_Tmp=0;
 	unsigned char app_xink_data_point[20];
 
 	memset(app_xink_data_point,0,sizeof(app_xink_data_point));
 	app_xink_data_point[i++] = 1;
-	app_xink_data_point[i++] = DP_UINT32;
-	app_xink_data_point[i++] = 0x04;
-	app_xink_data_point[i++] = BREAK_UINT32(AppData, 3);
-	app_xink_data_point[i++] = BREAK_UINT32(AppData, 2);
-	app_xink_data_point[i++] = BREAK_UINT32(AppData, 1);
-	app_xink_data_point[i++] = BREAK_UINT32(AppData, 0); 
+	app_xink_data_point[i++] = DP_BYTE;
+	app_xink_data_point[i++] = 0x01;
+	//app_xink_data_point[i++] = BREAK_UINT32(AppData, 3);
+	//app_xink_data_point[i++] = BREAK_UINT32(AppData, 2);
+	//app_xink_data_point[i++] = BREAK_UINT32(AppData, 1);
+	app_xink_data_point[i++] = AppData;
+
 	Len_Tmp = i;
 	if(Len_Tmp<=0)	{
 		xlink_debug_sdk("No data input.\r\n");
@@ -394,6 +401,13 @@ void xlink_sdk_tcp_thread(void *var) {
     OS_TaskDelete(NULL);
 }
 
+void update_to_clode(void)
+{
+	OS_EnterCritical();
+	updata_number_of_crowd_flag = 1;
+	OS_ExitCritical();
+}
+
 void xlink_sdk_thread(void *var) {
     int ret = 0, i = 0;
     //unsigned char recbuf[1024];
@@ -441,9 +455,13 @@ void xlink_sdk_thread(void *var) {
     } else {
         xlink_debug_sdk("Create udp server successful!\r\n");
     }
+
     while (( g_app_run ) && ( server_reject == 0 )) {
 		if(updata_number_of_crowd_flag == 1){
+			OS_EnterCritical();
 			updata_number_of_crowd_flag = 0;
+			OS_ExitCritical();
+			app_data_number_of_crowd = get_Switch_status();
 			number_of_crowd_XlinkDataPointUpdata(app_data_number_of_crowd);
 		}
         //连接上服务器tcp
@@ -516,23 +534,23 @@ void xlink_sdk_thread(void *var) {
   * @retval:int,always 0
   */
 
-typedef union NODE  
+/*typedef union NODE  
 {  
     int i;  
     char c;  
-}Node;  
+}Node;*/
   
 int wtwd_clone_main(void) {
     int ret;
     //pthread_t workid, workid1;
 
-	Node node;    
+	/*Node node;    
     node.i = 0x12345678;  
     if(node.c == 0x78){
     	printf("little ending device %x\n", node.c);
 	}else{
     	printf("big ending device %x\n", node.c);
-	}
+	}*/
 
     ret = OS_TaskCreate(xlink_sdk_thread, "xlink_sdk", 2048, NULL, 1, NULL);
 	if (ret == 0) {

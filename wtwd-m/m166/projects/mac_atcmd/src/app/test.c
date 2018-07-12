@@ -530,6 +530,7 @@ void APP_Init(void)
 #endif
 
 	init_global_conf();
+	set_auto_connect_flag(1);
 	OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
 
 #if 1

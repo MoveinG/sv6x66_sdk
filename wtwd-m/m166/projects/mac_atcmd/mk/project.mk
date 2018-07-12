@@ -242,8 +242,8 @@ TFTP_EN     	  := 1
 OTA_EN     	      := 1
 #NOPOLL_EN         := 1
 #OPENSSL_EN        := 1
-WT_CLOUD_EN       := 0
-CK_CLOUD_EN       := 1
+WT_CLOUD_EN       := 1
+CK_CLOUD_EN       := 0
 else
 WAC_EN            ?= 0
 HTTPD_EN          := 0

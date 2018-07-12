@@ -4,6 +4,8 @@
 #define os_printf	printf
 #define os_malloc	OS_MemAlloc
 #define os_free		OS_MemFree
+#define vTaskDelay	OS_MsDelay
+#define vTaskDelete	OS_TaskDelete
 
 typedef enum
 {
@@ -21,10 +23,9 @@ typedef enum
 #define DEVICE_CONFIG_START_SEC (0x7C)
 
 
-#define DEVICEID "666666"
-#define APIKEY "666666"
-#define MODEL "ITA-GZ1-GL"
+#define DEVICEID "100037ed0e"
+#define APIKEY "8333ef42-4031-464e-8dd5-972874746b29"
+#define MODEL "PSF-BU1-GL"
 #define VERDION "1.0.0"
-
 
 #endif /* #ifndef __COLINK_DEFINE_H__ */
