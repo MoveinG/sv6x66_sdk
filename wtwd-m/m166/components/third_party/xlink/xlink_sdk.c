@@ -33,8 +33,8 @@ unsigned char g_recbuf[1024];
 #define XLINK_PKEY	"1602bc73fb7c80a7396485409a036a4f"
 //xlink_uint8 xlink_mac[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
 
-volatile  struct xlink_sdk_instance_t g_sdk_instance_t;
-volatile  struct xlink_sdk_instance_t *g_sdk_instance_p;
+volatile struct xlink_sdk_instance_t g_sdk_instance_t;
+volatile struct xlink_sdk_instance_t *g_sdk_instance_p=NULL;
 
 volatile static struct xlink_location_t g_location_t;
 volatile static struct xlink_location_t *g_location_p;
@@ -44,6 +44,8 @@ int gudpsocket = -1;
 unsigned char g_cloud_rec_buffer[2048];
 
 
+static OsTaskHandle xlink_sdk_task=NULL;
+static OsTaskHandle xlink_tcp_task=NULL;
 //XLINK_FLASH_T flsh_t;
 
 struct location_msg_wait_t{
@@ -304,7 +306,7 @@ void number_of_crowd_XlinkDataPointUpdata(xlink_uint8 AppData)
 	unsigned char app_xink_data_point[20];
 
 	memset(app_xink_data_point,0,sizeof(app_xink_data_point));
-	app_xink_data_point[i++] = 1;
+	app_xink_data_point[i++] = 0;
 	app_xink_data_point[i++] = DP_BYTE;
 	app_xink_data_point[i++] = 0x01;
 	//app_xink_data_point[i++] = BREAK_UINT32(AppData, 3);
@@ -352,6 +354,8 @@ int xlink_udp_send_data(char *data, int datalength, const xlink_addr_t **addr_t)
 void xlink_sdk_tcp_thread(void *var) {
     xlink_uint8 ret = -1;
 
+	if(gsocket >= 0) close(gsocket);
+	gsocket = -1;
     while ((g_app_run) && ( server_reject == 0 )) {
         //没连接上服务器
         if ((gsocket < 0) && g_sdk_instance_t.cloud_enable) {
@@ -401,11 +405,28 @@ void xlink_sdk_tcp_thread(void *var) {
     OS_TaskDelete(NULL);
 }
 
-void update_to_clode(void)
+void update_xlink_status(void)
 {
 	OS_EnterCritical();
 	updata_number_of_crowd_flag = 1;
 	OS_ExitCritical();
+}
+
+void xlinkProcessEnd(void)
+{
+	if(g_sdk_instance_p)
+	{
+		xlink_sdk_reset((struct xlink_sdk_instance_t **) &g_sdk_instance_p);
+		xlink_sdk_uninit((struct xlink_sdk_instance_t **) &g_sdk_instance_p);
+		g_sdk_instance_p = NULL;
+		OS_MsDelay(5);
+	}
+
+	if(xlink_sdk_task) OS_TaskDelete(xlink_sdk_task);
+	if(xlink_tcp_task) OS_TaskDelete(xlink_tcp_task);
+
+	xlink_sdk_task = NULL;
+	xlink_tcp_task = NULL;
 }
 
 void xlink_sdk_thread(void *var) {
@@ -419,6 +440,8 @@ void xlink_sdk_thread(void *var) {
     xlink_addr_t addr_t;
     xlink_addr_t *addr_p;
 
+	if(gudpsocket >= 0) close(gudpsocket);
+	gudpsocket = -1;
     xlink_debug_sdk("xlink_sdk_thread start.\r\n");
 
     //flash init
@@ -540,7 +563,7 @@ void xlink_sdk_thread(void *var) {
     char c;  
 }Node;*/
   
-int wtwd_clone_main(void) {
+int xlinkProcessStart(void) {
     int ret;
     //pthread_t workid, workid1;
 
@@ -552,12 +575,12 @@ int wtwd_clone_main(void) {
     	printf("big ending device %x\n", node.c);
 	}*/
 
-    ret = OS_TaskCreate(xlink_sdk_thread, "xlink_sdk", 2048, NULL, 1, NULL);
+    ret = OS_TaskCreate(xlink_sdk_thread, "xlink_sdk", 2048, NULL, 1, &xlink_sdk_task);
 	if (ret == 0) {
         printf("Create xlink_sdk_thread error!");
         return -1;
     }
-	ret = OS_TaskCreate(xlink_sdk_tcp_thread, "xlink_sdk_tcp", 2048, NULL, 1, NULL);
+	ret = OS_TaskCreate(xlink_sdk_tcp_thread, "xlink_sdk_tcp", 2048, NULL, 1, &xlink_tcp_task);
     if (ret == 0) {
         printf("Create xlink_sdk_tcp_thread error!");
         return -1;

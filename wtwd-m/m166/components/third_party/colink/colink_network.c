@@ -248,7 +248,7 @@ static void colinkProcessTask(void* pData)
     //system_param_load(/*DEVICE_CONFIG_START_SEC, 0, */dev_data->distor_domain, sizeof(dev_data->distor_domain));
     strcpy(dev_data->distor_domain, "testapi.coolkit.cc");
     os_printf("distor_domain=[%s]\r\n", dev_data->distor_domain);
-    dev_data->ssl_enable = true;
+    dev_data->ssl_enable = false;
     colinkInit(dev_data, &ev);
 
     os_free(dev_data);

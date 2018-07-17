@@ -13,7 +13,7 @@
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
 
-#define COLINK_SSL
+//#define COLINK_SSL
 
 ColinkTcpErrorCode colinkGethostbyname(char* hostname, char ip_list[][20], int num)
 {
@@ -131,9 +131,9 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
     servaddr.sin_port = htons(port);
 
     if (connect(server_fd.fd, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) == 0) {
-        os_printf("ssl dst %s errno %d\n", dst, errno);
+        os_printf("ssl dst %s port %d errno %d\n", dst, port, errno);
     } else {
-        os_printf("ssl dst %s errno %d\n", dst, errno);
+        os_printf("ssl dst %s port %d errno %d\n", dst, port, errno);
 
         if (errno == EINPROGRESS) {
             os_printf("tcp conncet noblock\n");
@@ -488,10 +488,10 @@ int32_t colinkTcpConnect(const char* dst, uint16_t port)
     servaddr.sin_port = htons(port);
 
     if (connect(fd, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) == 0) {
-        os_printf("dst %s errno %d\n", dst, errno);
+        os_printf("dst %s port %d errno %d\n", dst, port, errno);
         return fd;
     } else {
-        os_printf("dst %s errno %d\n", dst, errno);
+        os_printf("dst %s port %d errno %d\n", dst, port, errno);
 
         if (errno == EINPROGRESS) {
             os_printf("tcp conncet noblock\n");

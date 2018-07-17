@@ -43,8 +43,6 @@
 
 #define KEYLED_MSGLEN	10
 
-extern void update_to_clode(void);
-
 static OsTimer led_flash_timer;
 static u32 keydown_time;
 static int led_status, pwr_status;
@@ -53,7 +51,14 @@ static int led_status, pwr_status;
 static OsMsgQ keyled_msgq;
 
 //for power_on auto_reconnect
-static uint8_t cur_ssid[32+1], cur_key[64+1], cur_mac[6];
+//static uint8_t cur_ssid[32+1], cur_key[64+1], cur_mac[6];
+
+extern void update_xlink_status(void);
+extern void xlinkProcessStart(void);
+extern void xlinkProcessEnd(void);
+
+extern void colinkSettingStart(void);
+extern void colinkProcessStart(void);
 
 ///////////////////////////////////////////
 static void led_flash_handler(void)
@@ -239,14 +244,14 @@ void wifi_status_cb(int connect)
 void TaskKeyLed(void *pdata)
 {
 	OsMsgQEntry msg_evt;
-	bool smarting=0;
+	bool smarting=false, cloud_task=false;
 	uint8_t ssidlen=32, keylen=64;
 
 	//key_value = 0;
 	pwr_status = SWITCH_PWROFF;
 	led_flash_timer = NULL;
 
-	get_wifi_config(cur_ssid, &ssidlen, cur_key, &keylen, cur_mac, 6);
+	//get_wifi_config(cur_ssid, &ssidlen, cur_key, &keylen, cur_mac, 6);
 
 	if(get_wifi_status() == 1) led_status = LED_LIGHT_ON;
 	led_status = LED_LIGHT_OFF;
@@ -271,13 +276,19 @@ void TaskKeyLed(void *pdata)
 			case EVENT_DEV_KEY:
 				if(msg_evt.MsgData == KEY_1LONG)
 				{
-					smarting = 1;
+					smarting = true;
 					SmartConfig_Start();
+					#if defined(WT_CLOUD_EN)
+					if(cloud_task) xlinkProcessEnd();
+					cloud_task = false;
+					#endif
 				}
 				if(msg_evt.MsgData == KEY_KEY1) 
 				{
 					Shift_Switch();
-					update_to_clode();
+					#if defined(WT_CLOUD_EN)
+					if(cloud_task) update_xlink_status();
+					#endif
 				}
 				//if(msg_evt.MsgData == KEY_KEY2) Shift_Switch2();
 				break;
@@ -288,12 +299,13 @@ void TaskKeyLed(void *pdata)
 					if(smarting)
 					{
 						OS_TimerStop(led_flash_timer);
-						smarting = 0;
+						smarting = false;
 					}
 					show_wifi_status(1);
 					//check_set_wifi_config();
 					#if defined(WT_CLOUD_EN)
-					wtwd_clone_main();
+					if(!cloud_task) xlinkProcessStart();
+					cloud_task = true;
 					#endif
 					#if defined(CK_CLOUD_EN)
 					/*if(system_param_load(&ssidlen, 1) != 0) colinkSettingStart();
@@ -302,7 +314,7 @@ void TaskKeyLed(void *pdata)
 				}
 				if(msg_evt.MsgData == CONNECT_DIS)
 				{
-					if(smarting == 0) show_wifi_status(0);
+					if(smarting == false) show_wifi_status(0);
 				}
 				break;
 
