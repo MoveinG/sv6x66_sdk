@@ -242,8 +242,9 @@ TFTP_EN     	  := 1
 OTA_EN     	      := 1
 #NOPOLL_EN         := 1
 #OPENSSL_EN        := 1
-WT_CLOUD_EN       := 1
+WT_CLOUD_EN       := 0
 CK_CLOUD_EN       := 0
+TY_CLOUD_EN       := 1
 else
 WAC_EN            ?= 0
 HTTPD_EN          := 0
@@ -266,6 +267,10 @@ endif
 
 ifeq ($(strip $(CK_CLOUD_EN)), 1)
 IMPORT_DIR		+=	components/third_party/colink
+endif
+
+ifeq ($(strip $(TY_CLOUD_EN)), 1)
+IMPORT_DIR		+=	components/third_party/tylink
 endif
 
 ifeq ($(strip $(NOPOLL_EN)), 1)
@@ -586,6 +591,10 @@ endif
 
 ifeq ($(strip $(CK_CLOUD_EN)), 1)
 CFLAGS 		+= -DCK_CLOUD_EN
+endif
+
+ifeq ($(strip $(TY_CLOUD_EN)), 1)
+CFLAGS 		+= -DTY_CLOUD_EN
 endif
 
 ifeq ($(strip $(PING_EN)), 1)
