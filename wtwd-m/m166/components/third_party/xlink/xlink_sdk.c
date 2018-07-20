@@ -286,7 +286,7 @@ XLINK_FUNTION xlink_uint32 xlink_get_ticktime_ms_cb(struct xlink_sdk_instance_t 
     //struct timeval tv;
     ///*iperf_*/gettimeofday(&tv, NULL);
     //t = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-    return OS_GetSysTick();
+    return os_tick2ms(OS_GetSysTick());
 }
 
 

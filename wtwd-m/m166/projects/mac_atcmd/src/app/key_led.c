@@ -23,7 +23,7 @@
 #define SWITCH_PWROFF	0
 
 #define KEY_DEBOUND		10
-#define KEY_LONG_TIME	1000
+#define KEY_LONG_TIME	2000
 //#define KEY_LONG_VAL	1
 //#define KEY_NORMAL_VAL	2
 
@@ -127,14 +127,14 @@ static void irq_key1_gpio_ipc(uint32_t irq_num)
 
 	if(level == 0)
 	{
-		keydown_time = OS_GetSysTick();
+		keydown_time = os_tick2ms(OS_GetSysTick());
 		drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_RISING_EDGE);
 
 		printf("keydown_time=%d\n", keydown_time);
 	}
 	else
 	{
-		key_time = OS_GetSysTick() - keydown_time;
+		key_time = os_tick2ms(OS_GetSysTick()) - keydown_time;
 		drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_FALLING_EDGE);
 
 		if(key_time > KEY_DEBOUND)

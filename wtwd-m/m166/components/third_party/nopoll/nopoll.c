@@ -703,7 +703,7 @@ nopoll_bool nopoll_nonce (char * buffer, int nonce_size)
 #if defined(NOPOLL_OS_WIN32)
 		nopoll_win32_gettimeofday (&tv, NULL);
 #else
-		gettimeofday (&tv, NULL);
+		iperf_gettimeofday (&tv, NULL);
 #endif
 
 //		srand (time(0) * tv.tv_usec);

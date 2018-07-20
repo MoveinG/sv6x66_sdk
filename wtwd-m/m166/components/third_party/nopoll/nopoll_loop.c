@@ -205,7 +205,7 @@ int nopoll_loop_wait (noPollCtx * ctx, long timeout)
 #if defined(NOPOLL_OS_WIN32)
 		nopoll_win32_gettimeofday (&start, NULL);
 #else
-		gettimeofday (&start, NULL);
+		iperf_gettimeofday (&start, NULL);
 #endif
 	
 	/* set to keep looping everything this function is called */
@@ -248,7 +248,7 @@ int nopoll_loop_wait (noPollCtx * ctx, long timeout)
 #if defined(NOPOLL_OS_WIN32)
 			nopoll_win32_gettimeofday (&stop, NULL);
 #else
-			gettimeofday (&stop, NULL);
+			iperf_gettimeofday (&stop, NULL);
 #endif
 			nopoll_timeval_substract (&stop, &start, &diff);
 			ellapsed = (diff.tv_sec * 1000000) + diff.tv_usec;

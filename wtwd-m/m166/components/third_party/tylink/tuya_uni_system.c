@@ -33,7 +33,7 @@ STATIC CHAR_T serial_no[SERIAL_NUM_LEN+1] = {0};
 ***********************************************************/
 UINT_T tuya_GetSystemTickCount(VOID)
 {
-    return (UINT)OS_GetSysTick();
+    return (UINT)os_tick2ms(OS_GetSysTick());
 }
 
 /***********************************************************

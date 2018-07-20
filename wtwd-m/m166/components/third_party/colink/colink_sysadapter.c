@@ -9,7 +9,7 @@ static char printf_buffer[PRINTF_BUFFER_SIZE];
 
 int colinkGettime(uint32_t* ms)
 {
-    *ms = OS_GetSysTick();
+    *ms = os_tick2ms(OS_GetSysTick());
     return 0;
 }
 

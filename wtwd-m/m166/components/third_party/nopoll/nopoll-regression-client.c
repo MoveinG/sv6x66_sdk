@@ -1194,7 +1194,7 @@ nopoll_bool test_12 (void) {
 #if defined(NOPOLL_OS_WIN32)
 	nopoll_win32_gettimeofday (&start, NULL);
 #else
-	gettimeofday (&start, NULL);
+	iperf_gettimeofday (&start, NULL);
 #endif	
 
 	printf ("Test 12: creating 1000 connections...\n");
@@ -1219,7 +1219,7 @@ nopoll_bool test_12 (void) {
 
 	/* stop */
 #if defined(NOPOLL_OS_UNIX)
-	gettimeofday (&stop, NULL);
+	iperf_gettimeofday (&stop, NULL);
 #else
 	nopoll_win32_gettimeofday (&stop, NULL);
 #endif

@@ -3188,7 +3188,7 @@ int           nopoll_conn_read (noPollConn * conn, char * buffer, int bytes, nop
 #if defined(NOPOLL_OS_WIN32)
 		nopoll_win32_gettimeofday (&start, NULL);
 #else
-		gettimeofday (&start, NULL);
+		iperf_gettimeofday (&start, NULL);
 #endif
 
 	/* clear the buffer */
@@ -3307,7 +3307,7 @@ int           nopoll_conn_read (noPollConn * conn, char * buffer, int bytes, nop
 #if defined(NOPOLL_OS_WIN32)
 			nopoll_win32_gettimeofday (&stop, NULL);
 #else
-			gettimeofday (&stop, NULL);
+			iperf_gettimeofday (&stop, NULL);
 #endif
 			nopoll_timeval_substract (&stop, &start, &diff);
 			

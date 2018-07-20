@@ -289,7 +289,7 @@ unsigned long mbedtls_timing_get_timer( struct mbedtls_timing_hr_time *val, int 
     struct timeval offset;
     struct _hr_time *t = (struct _hr_time *) val;
 
-    gettimeofday( &offset, NULL );
+    iperf_gettimeofday( &offset, NULL );
 
     if( reset )
     {
