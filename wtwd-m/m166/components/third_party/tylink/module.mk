@@ -1,25 +1,25 @@
 LIB_SRC := 
-LIB_SRC += tuya_uni_storge.c
-LIB_SRC += tuya_uni_network.c
-LIB_SRC += tuya_uni_semaphore.c
-LIB_SRC += tuya_uni_system.c
-LIB_SRC += tuya_uni_mutex.c
-LIB_SRC += tuya_uni_output.c
-LIB_SRC += tuya_uni_thread.c
-LIB_SRC += wifi_hwl.c
+LIB_SRC += adapter_src/tuya_uni_storge.c
+LIB_SRC += adapter_src/tuya_uni_network.c
+LIB_SRC += adapter_src/tuya_uni_semaphore.c
+LIB_SRC += adapter_src/tuya_uni_system.c
+LIB_SRC += adapter_src/tuya_uni_mutex.c
+LIB_SRC += adapter_src/tuya_uni_output.c
+LIB_SRC += adapter_src/tuya_uni_thread.c
+LIB_SRC += adapter_src/wifi_hwl.c
 
 LIB_SRC += tuya_main.c
 LIB_SRC += tuya_device.c
 
 STATIC_LIB += $(MYDIR)/libtylink.a
-STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/tuya_uni_storge.o
-STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/tuya_uni_network.o
-STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/tuya_uni_semaphore.o
-STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/tuya_uni_system.o
-STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/tuya_uni_mutex.o
-STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/tuya_uni_output.o
-STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/tuya_uni_thread.o
-STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/wifi_hwl.o
+STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_storge.o
+STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_network.o
+STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_semaphore.o
+STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_system.o
+STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_mutex.o
+STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_output.o
+STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_thread.o
+STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/wifi_hwl.o
 
 LIB_ASRC :=
 LIBRARY_NAME := tylink
