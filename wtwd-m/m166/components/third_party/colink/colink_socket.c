@@ -13,7 +13,38 @@
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
 
-//#define COLINK_SSL
+#include "colink_network.h"
+
+#ifdef SSLUSERENABLE
+	#define COLINK_SSL
+#endif
+
+#define COLINK_VERIFY
+
+#if defined(COLINK_VERIFY)
+
+const char colink_test_cli_key_rsa[] =
+"-----BEGIN CERTIFICATE-----\r\n"
+"MIICxDCCAi2gAwIBAgIJAKZOAGaffv/UMA0GCSqGSIb3DQEBBQUAMHoxCzAJBgNV\r\n"
+"BAYTAmNiMQswCQYDVQQIDAJnZDELMAkGA1UEBwwCc3oxEDAOBgNVBAoMB2Nvb2xr\r\n"
+"aXQxDDAKBgNVBAsMA2RldjETMBEGA1UEAwwKY29vbGtpdC5jbjEcMBoGCSqGSIb3\r\n"
+"DQEJARYNMjIwMzM1QHFxLmNvbTAgFw0xNzA3MTEwOTUzNTFaGA8yMTE3MDYxNzA5\r\n"
+"NTM1MVowejELMAkGA1UEBhMCY2IxCzAJBgNVBAgMAmdkMQswCQYDVQQHDAJzejEQ\r\n"
+"MA4GA1UECgwHY29vbGtpdDEMMAoGA1UECwwDZGV2MRMwEQYDVQQDDApjb29sa2l0\r\n"
+"LmNuMRwwGgYJKoZIhvcNAQkBFg0yMjAzMzVAcXEuY29tMIGfMA0GCSqGSIb3DQEB\r\n"
+"AQUAA4GNADCBiQKBgQDNib2yd5iOrhUahGb9YPxVXJU16uBIFMgbTlfJu0JzxdOk\r\n"
+"Ejt0i3+6Ijz6ISmNY+0/ojOLlXO7qPmBDl/DQtn0faigzVOtJFJZdNaiAnUkGVvp\r\n"
+"/4RCIhdmHVXj3fL2Ojcuh9ua6k2MaFUIroHiyD6c0Bict8jke1hIEpP8On2anQID\r\n"
+"AQABo1AwTjAdBgNVHQ4EFgQUwFM57JgjWg7fzO/tEPjZYdYDz74wHwYDVR0jBBgw\r\n"
+"FoAUwFM57JgjWg7fzO/tEPjZYdYDz74wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0B\r\n"
+"AQUFAAOBgQC62kzGjskLHLuPY0Em+xl26SQmnx0mJOLgzLx13lpc5xf0vWWSsiI+\r\n"
+"IGCA+ybWXavTUZAbJ2waLA5eQJCGgEosnO5Nce3OR3kxfHCdW7k+fVvQqlmU0mQR\r\n"
+"K8U0/gOdogOGK7McH+UK4QYjeECcFZp1WD/uinsXg4u2hiuGBw7Dwg==\r\n"
+"-----END CERTIFICATE-----\r\n";
+
+const int32_t colink_test_cas_pem_len = sizeof(colink_test_cli_key_rsa);
+
+#endif
 
 ColinkTcpErrorCode colinkGethostbyname(char* hostname, char ip_list[][20], int num)
 {
@@ -57,6 +88,11 @@ mbedtls_entropy_context entropy;
 mbedtls_ctr_drbg_context ctr_drbg;
 mbedtls_net_context server_fd;
 
+#if defined(COLINK_VERIFY)
+mbedtls_x509_crt cacert;
+#endif
+
+
 int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
 {
     int ret, len;
@@ -67,18 +103,31 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
     {
         return COLINK_TCP_ARG_INVALID;
     }
-    
+
     mbedtls_net_init(&server_fd);
     mbedtls_ssl_init(&ssl);
+
+#if defined(COLINK_VERIFY)
+    mbedtls_x509_crt_init( &cacert );
+#endif
+
     mbedtls_ctr_drbg_init(&ctr_drbg);
     mbedtls_ssl_config_init(&conf);
     mbedtls_entropy_init(&entropy);
 
     if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
                                      NULL, 0)) != 0) {
-        printf("mbedtls_ctr_drbg_seed returned %d\n", ret);
         return COLINK_TCP_CREATE_CONNECT_ERR;
     }
+
+#if defined(COLINK_VERIFY)
+     ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *)colink_test_cli_key_rsa,
+                                   colink_test_cas_pem_len );
+ 
+     if (ret < 0){
+             printf("\r\n mbedtls_x509_crt_parse returned -0x%x\n\n", -ret);
+     }
+#endif
 
     if ((ret = mbedtls_ssl_config_defaults(&conf,
                                            MBEDTLS_SSL_IS_CLIENT,
@@ -88,7 +137,15 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
         return COLINK_TCP_CREATE_CONNECT_ERR;
     }
 
+#if defined(COLINK_VERIFY)
+    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED/*MBEDTLS_SSL_VERIFY_OPTIONAL*/);
+    mbedtls_ssl_conf_ca_chain( &conf, &cacert, NULL );
+#else
+
     mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_NONE);
+
+#endif
+
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_ssl_conf_read_timeout(&conf, 10);
     mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
@@ -145,7 +202,6 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
 
     mbedtls_ssl_set_bio(&ssl, &server_fd, mbedtls_net_send, mbedtls_net_recv, mbedtls_net_recv_timeout);
 
-
     return (int32_t)&ssl;
 }
 
@@ -175,7 +231,7 @@ ColinkTcpErrorCode colinkTcpSslState(int32_t fd)
     timeout.tv_sec = 2;
     timeout.tv_usec = 0;
 
-    /*Ê¹ÓÃselect»úÖÆÅÐ¶ÏtcpÁ¬½Ó×´Ì¬*/
+    /*Ê¹ï¿½ï¿½selectï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½tcpï¿½ï¿½ï¿½ï¿½×´Ì¬*/
     ready_n = select(tcp_fd + 1, &rset, &wset, NULL, &timeout);
 
     if (0 == ready_n)
@@ -237,16 +293,22 @@ void colinkTcpSslDisconnect(int32_t fd)
 
     if (NULL == pssl)
     {
-        os_printf("colinkTcpSslDisconnect ²ÎÊý´íÎó\r\n");
+        os_printf("colinkTcpSslDisconnect ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\r\n");
     }
 
     mbedtls_ssl_close_notify(pssl);  
     mbedtls_net_free((mbedtls_net_context*)(pssl->p_bio));
+
+#if defined(COLINK_VERIFY)
+        mbedtls_x509_crt_free( &cacert );
+#endif
+
     mbedtls_ssl_free( pssl);
     mbedtls_ssl_config_free( &conf );
     mbedtls_ctr_drbg_free( &ctr_drbg );
     mbedtls_entropy_free( &entropy );
     
+    printf("colinkTcpSslDisconnect\r\n");
 }
 
 int32_t colinkTcpSslSend(int32_t fd, const uint8_t* buf, uint16_t len)
@@ -256,7 +318,6 @@ int32_t colinkTcpSslSend(int32_t fd, const uint8_t* buf, uint16_t len)
 
     if (NULL == buf || NULL == pssl)
     {
-        os_printf("colinkTcpSslSend ²ÎÊý´íÎó\r\n");
         return COLINK_TCP_ARG_INVALID;
     }
     
@@ -287,7 +348,6 @@ int32_t colinkTcpSslRead(int32_t fd, uint8_t* buf, uint16_t len)
 
     if (NULL == buf || NULL == pssl)
     {
-        os_printf("colinkTcpSslRead ²ÎÊý´íÎó\r\n");
         return COLINK_TCP_ARG_INVALID;
     }
 
@@ -322,7 +382,7 @@ int32_t colinkTcpRead(int32_t fd, uint8_t* buf, uint16_t len)
         return COLINK_ARG_INVALID;
     }
 
-    /*TCP¶ÁÈ¡Êý¾ÝÐèÒªÅÐ¶Ï´íÎóÂë*/
+    /*TCPï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ð¶Ï´ï¿½ï¿½ï¿½ï¿½ï¿½*/
     ret = (int)(recv(fd, buf, len, MSG_DONTWAIT));
 
     if (ret <= 0) {
@@ -333,6 +393,14 @@ int32_t colinkTcpRead(int32_t fd, uint8_t* buf, uint16_t len)
             return COLINK_TCP_READ_ERR;
         }
     }
+printf("colinkTcpRead fd=%d len=%d ret=%d\n", fd, len, ret);
+{
+    int i;
+	for (i = 0; i < len && len < 64; i++) {
+		printf ("%02X ", buf[i]);
+	}
+	printf ("\r\n");
+}
     return ret;
 
 #endif
@@ -350,7 +418,7 @@ int32_t colinkTcpSend(int32_t fd, const uint8_t* buf, uint16_t len)
         return COLINK_ARG_INVALID;
     }
 
-    /*TCP·¢ËÍÊý¾ÝÐèÒªÅÐ¶Ï´íÎóÂë*/
+    /*TCPï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ð¶Ï´ï¿½ï¿½ï¿½ï¿½ï¿½*/
     ret = (int)(send(fd, buf, len, MSG_DONTWAIT));
 
     if (ret < 0)
@@ -384,7 +452,7 @@ ColinkTcpErrorCode colinkTcpState(int32_t fd)
 #else
     int errcode = 0;
     int tcp_fd = fd;
-
+    
     if (tcp_fd < 0) {
         return COLINK_TCP_CONNECT_ERR;
     }
@@ -404,7 +472,7 @@ ColinkTcpErrorCode colinkTcpState(int32_t fd)
     timeout.tv_sec = 3;
     timeout.tv_usec = 0;
 
-    /*Ê¹ÓÃselect»úÖÆÅÐ¶ÏtcpÁ¬½Ó×´Ì¬*/
+    /*Ê¹ï¿½ï¿½selectï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½tcpï¿½ï¿½ï¿½ï¿½×´Ì¬*/
     ready_n = select(tcp_fd + 1, &rset, &wset, NULL, &timeout);
 
     if (0 == ready_n) {
@@ -434,8 +502,6 @@ ColinkTcpErrorCode colinkTcpState(int32_t fd)
     }
 
     return errcode;
-
-
 #endif
 }
 
@@ -450,10 +516,10 @@ int32_t colinkTcpConnect(const char* dst, uint16_t port)
     int flags;
     int reuse;
 
-    if (NULL == dst) {
-        return COLINK_ARG_INVALID;
+    if (NULL == dst)
+    {
+        return COLINK_TCP_ARG_INVALID;
     }
-
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -463,7 +529,7 @@ int32_t colinkTcpConnect(const char* dst, uint16_t port)
         return COLINK_TCP_CONNECT_ERR;
     }
 
-    /*ÉèÖÃ·Ç×èÈûÄ£Ê½*/
+    /*ï¿½ï¿½ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½*/
     flags = fcntl(fd, F_GETFL, 0);
 
     if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {

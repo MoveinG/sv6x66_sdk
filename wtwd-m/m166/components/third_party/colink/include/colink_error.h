@@ -1,4 +1,7 @@
-﻿#ifndef __COLINK_ERROR_H__
+﻿/** 
+ * @file     colink_error.h
+ */
+#ifndef __COLINK_ERROR_H__
 #define __COLINK_ERROR_H__
 
 typedef enum
@@ -14,6 +17,7 @@ typedef enum
     COLINK_JSON_INVALID                 = -3,       /**< 无效的JSON格式 */
     COLINK_JSON_CREATE_ERR              = -4,       /**< 创建JSON对象错误 */
     COLINK_DATA_SEND_ERROR              = -5,       /**< 发送数据出错 */
+    COLINK_DEV_TYPE_ERROR               = -6,       /**< 设备类型错误 */
 }ColinkErrorCode;
 
 typedef enum
@@ -45,5 +49,30 @@ typedef enum
     COLINK_OTA_MODEL_ERROR         = 406,       /**< 设备型号不正确 */
     COLINK_OTA_DIGEST_ERROR        = 409,       /**< 固件校验失败 */
 }ColinkOtaResCode;
+
+typedef enum
+{
+    COLINK_LINK_NO_ERROR            = 0,         /**< 无错误 */
+    COLINK_LINK_ARG_INVALID         = -2,        /**< 无效的参数 */
+    COLINK_LINK_OPERATION_ERROR     = -50,       /**< 流程操作不对 */
+}ColinkLinkErrorCode;
+
+typedef enum
+{
+    COLINK_GATEWAT_NO_ERROR         = 0,         /**< 无错误 */
+    COLINK_GATEWAT_ARG_INVALID      = -2,        /**< 无效的参数 */
+    COLINK_GATEWAT_NET_ERROR        = -100,      /**< 网络异常 */
+    COLINK_GATEWAT_DEV_TYPE_ERROR   = -101,      /**< 设备不属于网关类型 */
+}ColinkGatewayErrorCode;
+
+typedef enum
+{
+    COLINK_SUB_DEV_NO_ERROR         = 0,         /**< 操作成功 */
+    COLINK_SUB_DEV_BAD_REQUEST      = 400,       /**< 参数错误 */
+    COLINK_SUB_DEV_AUTH_ERROR       = 401,       /**< 认证不通过 */
+    COLINK_SUB_DEV_NO_PERMISSION    = 403,       /**< 无权限 */
+    COLINK_SUB_DEV_NUMBER_ERROR     = 414,       /**< 子设备数量超过限制 */
+    COLINK_SUB_DEV_SERVER_ERROR     = 500,       /**< 服务器内部错误 */
+}ColinkSubDevResultCode;
 
 #endif /* #ifndef __COLINK_ERROR_H__ */

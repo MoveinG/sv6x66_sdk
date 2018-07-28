@@ -6,98 +6,19 @@
 #include "colink_define.h"
 #include "colink_setting.h"
 #include "colink_network.h"
+#include "colink_type.h"
+//#include "colink_global.h"
+#include "colink_link.h"
 
 #define COLINKFILE_NAME "colink.conf"
 extern spiffs* fs_handle;
 
 /////////////////////////////////////////////////
-static int sigSettingSendIDToAPP(int sock_fd)
-{
-    char temp[20];
-    char *http_buffer = NULL;
-    cJSON *root = NULL;
-    char *out = NULL;
-    int ret = 0;
-
-    http_buffer = (char *)os_malloc(512);
-
-    if(NULL == http_buffer)
-    {
-        os_printf("os_malloc err\r\n");
-        return -1;
-    }
-    memset(http_buffer, '\0', 512);
-
-    root = cJSON_CreateObject();
-
-    cJSON_AddStringToObject(root, "deviceid", DEVICEID);
-    cJSON_AddStringToObject(root, "apikey", APIKEY);
-    cJSON_AddStringToObject(root, "accept", "post");
-
-    out = cJSON_PrintUnformatted(root);
-    cJSON_Delete(root);
-
-    sprintf(temp, "%d", strlen(out));
-
-    strcpy(http_buffer, "HTTP/1.1 200 OK\r\n");
-    strcat(http_buffer, "Content-Type: application/json\r\n");
-    strcat(http_buffer, "Connection: keep-alive\r\n");
-    strcat(http_buffer, "Content-Length: ");
-    strcat(http_buffer, temp);
-    strcat(http_buffer, "\r\n\r\n");
-    strcat(http_buffer, out);
-    os_free(out);
-
-    os_printf("send data=[%d][%s]\r\n", strlen(http_buffer), http_buffer);
-    ret = write(sock_fd, http_buffer, strlen(http_buffer));
-
-    if(ret < 0)
-    {
-        os_printf("tcp send err\r\n");
-    }
-
-    os_free(http_buffer);
-
-    return ret;
-}
-
-static int sigSettingSendRespToAPP(int sock_fd)
-{
-    char temp[20] = "";
-    int ret = 0;
-    char *http_buffer = NULL;
-    char *str_error0 = "{\"error\":0}";
-
-    http_buffer = (char *)os_malloc(512);
-    if(NULL == http_buffer)
-    {
-        os_printf("os_malloc error");
-        return -1;
-    }
-    
-    sprintf(temp, "%d", strlen(str_error0));
-    strcpy(http_buffer, "HTTP/1.1 200 OK\r\n");
-    strcat(http_buffer, "Content-Type: application/json\r\n");
-    strcat(http_buffer, "Connection: keep-alive\r\n");
-    strcat(http_buffer, "Content-Length: ");
-    strcat(http_buffer, temp);
-    strcat(http_buffer, "\r\n\r\n");
-    strcat(http_buffer, str_error0);
-
-    os_printf("send data=[%d][%s]\r\n", strlen(http_buffer), http_buffer);
-    
-    ret = write(sock_fd, http_buffer, strlen(http_buffer));
-
-    os_free(http_buffer);
-    if(ret < 0)
-    {
-        os_printf("tcp send err\r\n");
-    }
-    return ret;
-}
-
 void colinkSettingTask(void* pData)
 {
+    char *outBuff = NULL;
+    uint16_t outLen = 0;
+    ColinkLinkInfo colinkInfo;
     int sockfd, newconn, size, ret;
     struct sockaddr_in address, remotehost;
     char *recv_buffer = NULL;
@@ -111,7 +32,11 @@ void colinkSettingTask(void* pData)
 
     os_printf("colinkSettingTask\r\n");
 
+    colinkLinkInit(DEVICEID, APIKEY);
+    colinkLinkReset();
+
     recv_buffer = (char *)os_malloc(512);
+    outBuff = (char *)os_malloc(512);
 
     if(NULL == recv_buffer)
     {
@@ -145,55 +70,71 @@ void colinkSettingTask(void* pData)
     listen(sockfd, 1); 
     size = sizeof(remotehost);
 
-    while (1) 
+    while (1)
     {
         newconn = accept(sockfd, (struct sockaddr *)&remotehost, (socklen_t *)&size);
 
         if (newconn >= 0)
         {
+            vTaskDelay(1000 / portTICK_RATE_MS);
             ret = read(newconn, recv_buffer, 512); 
-            os_printf("recv_buffer=[%d][%s]\r\n", ret, recv_buffer);
 
-            if(NULL != strstr(recv_buffer, "GET /device HTTP/1.1"))
+            ret = colinkLinkParse(recv_buffer, ret, outBuff, 1024, &outLen);
+            os_printf("outBuff %d = %s\r\n", outLen, outBuff);
+            os_printf("ret = %d\r\n", ret);
+
+            if(COLINK_LINK_RES_DEV_INFO_OK == ret)
             {
-                ret = sigSettingSendIDToAPP(newconn);
+                ret = write(newconn, outBuff, outLen);
+                os_printf("write result:%d\r\n", ret);
             }
-            else if(NULL != strstr(recv_buffer, "POST /ap HTTP/1.1"))
+            else if(COLINK_LINK_GET_INFO_OK == ret)
             {
-                t1 = strstr(recv_buffer, "Content-Length: ");
-                t1 += strlen("Content-Length: ");
-                Length = atoi(t1);
-                os_printf("Length=%d\r\n", Length);
+                ret = write(newconn, outBuff, outLen);
+                os_printf("write result:%d\r\n", ret);
 
-                t2 = strstr(recv_buffer, "\r\n\r\n");
-                t2 += 4;
-                content = (char *)os_malloc(512);
-                if(content)
+                ret = colinkLinkGetInfo(&colinkInfo);
+                if(!ret)
                 {
-                    memset(content, 0, 512);
-                    memcpy(content, t2, Length);
+                    os_printf("net info :\r\n");
+                    os_printf("ssid:%s\r\n", colinkInfo.ssid);
+                    os_printf("password:%s\r\n", colinkInfo.password);
+                    os_printf("distor_domain:%s\r\n", colinkInfo.distor_domain);
+                    os_printf("distor_port:%d\r\n", colinkInfo.distor_port);
+                    
+                    strcpy(colinkInfoSetting.ssid, colinkInfo.ssid);
+                    strcpy(colinkInfoSetting.password, colinkInfo.password);
+                    strcpy(colinkInfoSetting.distor_domain, colinkInfo.distor_domain);
+                    colinkInfoSetting.distor_port =  colinkInfo.distor_port;
+                    
+                    system_param_save_with_protect(/*DEVICE_CONFIG_START_SEC,*/ &colinkInfoSetting, 
+                                                    sizeof(colinkInfoSetting));
 
-                    os_printf("content=[%s]\r\n", content);
-
-                    cjson_root = cJSON_Parse(content);
-                    cjson_server_name = cJSON_GetObjectItem(cjson_root, "serverName");
-                    strcpy(domain, cjson_server_name->valuestring);
-                    cJSON_Delete(cjson_root);
-
-                    os_printf("domain=[%s]\r\n", domain);
-                    system_param_save_with_protect(/*DEVICE_CONFIG_START_SEC, */domain, sizeof(domain));
-
-                    os_free(content);
+                    if(DEVICE_MODE_SETTING_SELFAP == coLinkGetDeviceMode())
+                    {
+                        //strcpy(colink_flash_param.sta_config.ssid, colinkInfo.ssid);
+                        //strcpy(colink_flash_param.sta_config.password, colinkInfo.password);
+                    }
+                    break;
                 }
-                ret = sigSettingSendRespToAPP(newconn);
-                break;
+                else
+                {
+                    colinkPrintf("error %d\r\n", ret);
+                }
             }
             close(newconn);
         }
     }
 
+    os_free(outBuff);
     os_free(recv_buffer);
     os_printf("exit colinkSettingTask\r\n");
+
+    if(DEVICE_MODE_SETTING_SELFAP == coLinkGetDeviceMode())
+    {
+        colinkSoftOverStart();
+    }
+
     colinkProcessStart();
     vTaskDelete(NULL);
 }

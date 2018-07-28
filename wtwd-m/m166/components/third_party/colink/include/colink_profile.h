@@ -1,9 +1,22 @@
+/** 
+ * @file     colink_profile.h
+ */
 #ifndef __COLINK_PROFILE_H__
 #define __COLINK_PROFILE_H__
 
 #include <stdint.h>
 #include "colink_typedef.h"
 #include "colink_error.h"
+#include "colink_gateway_profile.h"
+
+/**
+ * 设备类型枚举。
+ */
+typedef enum
+{
+    COLINK_SINGLE    = 0,    /**< 普通设备 */
+    COLINK_GATEWAY   = 1,    /**< 网关设备 */
+}ColinkDevType;
 
 /**
  * 设备信息的结构体，由酷宅提供。
@@ -14,8 +27,10 @@ typedef struct
     char apikey[37];           /**< 设备密钥 */
     char model[11];            /**< 设备型号 */
     char distor_domain[32];    /**< 分配服务器域名，由APP下发给设备 */
+    uint16_t distor_port;      /**< 分配服务器的端口号，由APP下发给设备 */
     char version[12];          /**< 固件版本 */
     bool ssl_enable;           /**< 是否使能SSL */
+    ColinkDevType dev_type;    /**< 设备类型 */
     int __pad[2];
 }ColinkDev;
 
@@ -52,7 +67,7 @@ typedef struct
      * @param data     [IN] 收到的字符串数据，以Json格式表示。
      *
      */
-    void (*colinkRecvUpdate)(char* data);
+    void (*colinkRecvUpdateCb)(char* data);
     
     /**
      * @brief 设备状态发生改变时的回调函数。
@@ -63,21 +78,86 @@ typedef struct
      * @param status   [IN] 设备状态 在线：DEVICE_ONLINE 离线：DEVICE_OFFLINE。
      *
      */
-    void (*colinkNotifyDevStatus)(ColinkDevStatus status);
+    void (*colinkNotifyDevStatusCb)(ColinkDevStatus status);
 
     /**
      * @brief 升级通知的回调函数。
      *
      * @par 描述:
      * 当APP发出升级通知后，通过此回调函数获取升级信息。
-     * 当升级完成后需要调用colinkUpgradeResponse通知服务器升级完成。
+     * 当升级完成后需要调用colinkUpgradeRes通知服务器升级完成。
      *
      * @param new_ver       [IN] 新固件的版本号。
      * @param file_list     [IN] OTA固件信息列表。
      * @param file_num      [IN] OTA固件的数量。
      *
      */
-    void (*colinkUpgradeRequestCallback)(char *new_ver, ColinkOtaInfo file_list[], uint8_t file_num);
+    void (*colinkUpgradeRequestCb)(char *new_ver, ColinkOtaInfo file_list[], uint8_t file_num);
+
+    /**
+     * @brief 接收请求数据的回调函数。
+     *
+     * @par 描述:
+     * 当APP需要改变设备状态时，子设备通过此回调函数获取数据。
+     * 需要调用colinkSubDevSendRes来响应子设备是否操作成功。
+     *
+     * @param sub_dev       [IN] 子设备对应的指针。
+     * @param data          [IN] 收到请求的数据。
+     *
+     */
+    void (*colinkSubDevRecvReqCb)(ColinkSubDevice *sub_dev, char* data);
+
+    /**
+     * @brief 接收服务器响应的回调函数。
+     *
+     * @par 描述:
+     * 当调用colinkSubDevSendReq发送数据，随后产生此回调函数来获取服务器响应的结果。
+     * 子设备可以通过此回调判断数据是否发送成功。
+     *
+     * @param sub_dev       [IN] 子设备对应的指针。
+     * @param error_code    [IN] 收到服务器响应的错误码。
+     *
+     */
+    void (*colinkSubDevRecvResCb)(ColinkSubDevice *sub_dev, ColinkSubDevResultCode error_code);
+
+    /**
+     * @brief 注册新子设备时服务器响应的回调函数。
+     *
+     * @par 描述:
+     * 当调用colinkAddSubDev注册多个新子设备，随后产生此回调函数来获取服务器响应的结果。
+     * 子设备可以通过此回调判断是否注册成功。
+     *
+     * @param sub_dev       [IN] 子设备对应的数组列表。
+     * @param error_code    [IN] 收到服务器响应的错误码列表。
+     * @param num           [IN] 子设备数量。
+     *
+     */
+    void (*colinkAddSubDevResultCb)(ColinkSubDevice sub_dev[], ColinkSubDevResultCode error_code[], uint16_t num);
+
+    /**
+     * @brief 删除子设备时服务器响应的回调函数。
+     *
+     * @par 描述:
+     * 当调用colinkDelSubDev删除多个子设备，随后产生此回调函数来获取服务器响应的结果。
+     * 子设备可以通过此回调判断是否删除成功。
+     *
+     * @param sub_dev       [IN] 子设备对应的数组列表。
+     * @param error_code    [IN] 收到服务器响应的错误码列表。
+     * @param num           [IN] 子设备数量。
+     *
+     */
+    void (*colinkDelSubDevResultCb)(ColinkSubDevice sub_dev[], ColinkSubDevResultCode error_code[], uint16_t num);
+
+    /**
+     * @brief 服务器发送删除子设备指令，通知网关处理的回调函数。
+     *
+     * @par 描述:
+     * 已注册当前网关的子设备连接其它网关时候，服务器会发送删除子设备指令，通过回调函数来得知哪些子设备已被删除。
+     *
+     * @param sub_dev       [IN] 通知删除的子设备。
+     *
+     */
+    void (*colinkServerDelSubDevCb)(ColinkSubDevice *sub_dev);
 }ColinkEvent;
 
 /**
@@ -107,7 +187,7 @@ ColinkInitErrorCode colinkInit(ColinkDev *dev_data, ColinkEvent *reg_event);
  * @retval COLINK_PROCESS_INIT_INVALID   colinkInit未初始化成功。
  * @retval COLINK_PROCESS_TIMEOUT        长时间未被调用colinkProcess。
  * @retval COLINK_PROCESS_MEMORY_ERROR   内存分配错误。
- 
+ *
  */
 ColinkProcessErrorCode colinkProcess(void);
 
@@ -144,7 +224,7 @@ ColinkDevStatus colinkGetDevStatus(void);
  * @brief 响应升级的结果。
  *
  * @par 描述:
- * 当收到升级通知后（即colinkUpgradeRequestCallback），
+ * 当收到升级通知后（即colinkUpgradeRequestCb），
  * 升级完成需要调用此接口来响应服务器是否升级成功的结果。
  *
  * @param error_code   [IN] 响应错误码值。参考ColinkOtaResCode。
@@ -154,7 +234,7 @@ ColinkDevStatus colinkGetDevStatus(void);
  * @retval COLINK_JSON_CREATE_ERR   创建JSON对象错误。
  * @retval COLINK_DATA_SEND_ERROR   发送数据出错。
  */
-ColinkErrorCode colinkUpgradeResponse(ColinkOtaResCode error_code);
+ColinkErrorCode colinkUpgradeRes(ColinkOtaResCode error_code);
 
 /**
  * @brief 获取colink版本号。

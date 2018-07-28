@@ -1,3 +1,6 @@
+/** 
+ * @file     colink_typedef.h
+ */
 #ifndef __COLINK_TYPEDEF_H__
 #define __COLINK_TYPEDEF_H__
 

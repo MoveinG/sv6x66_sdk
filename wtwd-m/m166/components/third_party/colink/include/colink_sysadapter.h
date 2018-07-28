@@ -1,3 +1,6 @@
+/** 
+ * @file     colink_sysadapter.h
+ */
 #ifndef __COLINK_SYSADAPTER_H__
 #define __COLINK_SYSADAPTER_H__
 
@@ -334,5 +337,46 @@ unsigned short colinkHtons(unsigned short hs);
  * @retval 主机字节顺序表示的16位数
  */
 unsigned short colinkNtohs(unsigned short ns);
+
+/**
+ * @brief 从一个字符串中读进与指定格式相符的数据。
+ *
+ * @par 描述:
+ * 从一个字符串中读进与指定格式相符的数据。
+ *
+ * @param buf        [IN]    检索的字符串
+ * @param format     [IN]    格式化的字符串
+ * @param ...        [IN]    可选参数，可以是任何类型的数据
+ *
+ * @retval 小于0   失败
+ * @retval 大于0   成功填充的参数列表中的项数
+ */
+int colinkSscanf(const char *s, const char *format, ...);
+
+/**
+ * @brief 把字符串转换成双精度浮点数。
+ *
+ * @par 描述:
+ * 扫描参数nptr字符串，跳过前面的空白符，直到遇上数字或正负符号才开始做转换，
+ * 到出现非数字或字符串结束时('\0')才结束转换，并将结果返回。
+ *
+ * @param nptr       [IN]    字符串的首地址
+ * @param endptr    [OUT]    可以为NULL，若不为NULL则会将遇到不合条件而终止的nptr中的字符指针由endptr传回
+ *
+ * @retval 双精度浮点数
+ */
+double colinkStrtod(const char *nptr,char **endptr);
+
+/**
+ * @brief 将字母转换为小写字母。
+ *
+ * @par 描述:
+ * 将字符转换成小写字母,非字母字符不做出处理。
+ *
+ * @param c       [IN]    需要转换的字符
+ *
+ * @retval 当c是大写字母字符返回对应小写字母字符，其它值不处理返回c。
+ */
+int colinkTolower(int c);
 
 #endif

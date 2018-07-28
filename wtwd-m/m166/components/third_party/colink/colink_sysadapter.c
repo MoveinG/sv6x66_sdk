@@ -158,3 +158,25 @@ int colinkNetworkState(int* state)
     return 0;
 }
 
+int colinkSscanf(const char *s, const char *format, ...)
+{
+    va_list args;
+    int ret;
+
+    va_start(args, format);
+    ret = sscanf(s, format, args);
+    va_end(args);
+
+    return ret;
+}
+
+double colinkStrtod(const char *nptr,char **endptr)
+{
+    return strtod(nptr, endptr);
+}
+
+int colinkTolower(int c)
+{
+    return tolower(c);
+}
+

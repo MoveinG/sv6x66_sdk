@@ -9,8 +9,9 @@
 #include "lwip/dns.h"
 #include "lwip/netdb.h"
 #include "cJSON.h"
-#include "colink_profile.h"
-
+#include "colink_global.h"
+#include "colink_upgrade.h"
+#include "colink_link.h"
 
 
 //static char test_read_tcp[1024];
@@ -19,6 +20,98 @@ static bool esptouch_flag = false;
 static bool task_process_flag = false;
 
 #if 0
+static void colinkSelfAPTask(void* pData)
+{
+    os_printf("Enter Self Ap Mode!\n");
+
+    strcpy(colink_flash_param.sap_config.ssid, "ITEAD-");
+    strcat(colink_flash_param.sap_config.ssid, DEVICEID);
+    strcpy(colink_flash_param.sap_config.password, "12345678");
+    colink_flash_param.sap_config.channel = 7;
+    colink_flash_param.sap_config.authmode = 4;
+    colink_flash_param.sap_config.ssid_len = 16;
+    colink_flash_param.sap_config.ssid_hidden = 0;
+    colink_flash_param.sap_config.max_connection = 4;
+    colink_flash_param.sap_config.beacon_interval = 100;
+    
+    smartconfig_stop();
+    coLinkSetDeviceMode(DEVICE_MODE_SETTING_SELFAP);
+    
+    if (wifi_station_disconnect())
+    {
+        os_printf("leave ap ok\n");
+    }
+    else
+    {
+        os_printf("leave ap err!\n");
+    }
+
+    if (STATIONAP_MODE != wifi_get_opmode())
+    {
+        if (wifi_set_opmode(STATIONAP_MODE))
+        {
+            os_printf("Set to STATIONAP_MODE ok\n");
+        }
+        else
+        {
+            os_printf("Set to STATIONAP_MODE err!\n");
+        }
+    }
+    else
+    {
+        os_printf("Already in STATIONAP_MODE!\r\n");
+    }
+
+    if (wifi_softap_dhcps_stop())
+    {
+        os_printf("wifi_softap_dhcps_stop ok");
+    }
+    else
+    {
+        os_printf("wifi_softap_dhcps_stop err");
+    }
+
+    IP4_ADDR(&colink_flash_param.sap_ip_info.ip,       10, 10, 7, 1);
+    IP4_ADDR(&colink_flash_param.sap_ip_info.gw,       10, 10, 7, 1);
+    IP4_ADDR(&colink_flash_param.sap_ip_info.netmask,  255, 255, 255, 0);
+
+    if (wifi_set_ip_info(SOFTAP_IF, &colink_flash_param.sap_ip_info))
+    {
+        os_printf("set sap ip ok\r\n");
+    }
+    else
+    {
+        os_printf("set sap ip err!\r\n");
+    }
+
+    if (wifi_softap_dhcps_start())
+    {
+        os_printf("wifi_softap_dhcps_start ok");
+    }
+    else
+    {
+        os_printf("wifi_softap_dhcps_start err");
+    }
+
+    if (wifi_softap_set_config(&(colink_flash_param.sap_config)))
+    {
+        os_printf("sap config ok\r\n");
+    }
+    else
+    {
+        os_printf("sap config err!\r\n");
+    }
+
+    colinkSettingStart();
+
+    vTaskDelete(NULL);
+}
+
+void enterSettingSelfAPMode(void)
+{
+    xTaskCreate(colinkSelfAPTask, "colinkSelfAPTask", 1024, NULL, 3, NULL);
+}
+
 static void testSocketTask(void* pData)
 {
 
@@ -165,6 +258,7 @@ static void cbSmartConfig(sc_status status, void *pdata)
 static void colinkEsptouchTask(void* pData)
 {
     os_printf("colinkEsptouchTask\r\n");
+    coLinkSetDeviceMode(DEVICE_MODE_SETTING);
     smartconfig_set_type(SC_TYPE_ESPTOUCH_AIRKISS);
     smartconfig_start(cbSmartConfig);
     vTaskDelete(NULL);
@@ -219,16 +313,26 @@ static void colinkNotifyDevStatus(ColinkDevStatus status)
 {
     os_printf("colinkNotifyDevStatus %d\r\n", status);
 }
+/*
+static void colinkUpgradeRequest(char *new_ver, ColinkOtaInfo file_list[], uint8_t file_num)
+{
+    os_printf("colinkUpgradeRequest,");
+    upgradeRequestFromSever(new_ver, file_list, file_num);
 
+}
+*/
 static void colinkProcessTask(void* pData)
 {
     int ret = 0;
     ColinkDev *dev_data = NULL;
     ColinkEvent ev;
     //char domain[32];
+    ColinkLinkInfo colinkInfoCopy;
     
     os_printf("colinkProcessTask\r\n");
-    
+
+    coLinkSetDeviceMode(DEVICE_MODE_WORK_NORMAL);
+
     dev_data = (ColinkDev *)os_malloc(sizeof(ColinkDev));
     
     if(dev_data == NULL)
@@ -238,17 +342,27 @@ static void colinkProcessTask(void* pData)
         return ;
     }
 
-    ev.colinkRecvUpdate = colinkRecvUpdate;
-    ev.colinkNotifyDevStatus = colinkNotifyDevStatus;
+    ev.colinkRecvUpdateCb = colinkRecvUpdate;
+    ev.colinkNotifyDevStatusCb = colinkNotifyDevStatus;
+    ev.colinkUpgradeRequestCb = colinkUpgradeRequest;/**< 升级通知的回调 */
 
+    //system_param_load(DEVICE_CONFIG_START_SEC, 0, &colinkInfoCopy, sizeof(colinkInfoCopy));
     strcpy(dev_data->deviceid, DEVICEID);
     strcpy(dev_data->apikey, APIKEY);
     strcpy(dev_data->model, MODEL);
     strcpy(dev_data->version, VERDION);
-    //system_param_load(/*DEVICE_CONFIG_START_SEC, 0, */dev_data->distor_domain, sizeof(dev_data->distor_domain));
+    dev_data->dev_type = COLINK_SINGLE;
+#ifdef SSLUSERENABLE
+    dev_data->ssl_enable = true;
+    dev_data->distor_port = colinkInfoCopy.distor_port;
+    
+#else
+    dev_data->ssl_enable = false;
+#endif
+    
     strcpy(dev_data->distor_domain, "testapi.coolkit.cc");
     os_printf("distor_domain=[%s]\r\n", dev_data->distor_domain);
-    dev_data->ssl_enable = false;
+
     colinkInit(dev_data, &ev);
 
     os_free(dev_data);
@@ -265,9 +379,49 @@ static void colinkProcessTask(void* pData)
     vTaskDelete(NULL);
 }
 
+#if 0
+static void colinkSoftapOverLinkApTask(void* pData)
+{
+    if (STATION_MODE != wifi_get_opmode())
+    {
+        if (wifi_set_opmode(STATION_MODE))
+        {
+            os_printf("Set to STATION_MODE ok\n");
+        }
+        else
+        {
+            os_printf("Set to STATION_MODE err!\n");
+        }
+    }
+
+    printf("\n#######ssid=%s, password=%s, bssid_set=%d, bssid=%s\n",
+            colink_flash_param.sta_config.ssid,
+            colink_flash_param.sta_config.password,
+            colink_flash_param.sta_config.bssid_set,
+            colink_flash_param.sta_config.bssid
+            );
+
+    colink_flash_param.sta_config.bssid_set = 0;
+
+
+    wifi_station_set_config(&colink_flash_param.sta_config);
+    bool ret;
+    wifi_station_disconnect();
+    ret = wifi_station_connect();
+    printf("the return of station is %d\n",ret);
+
+    vTaskDelete(NULL);
+}
+
+void colinkSoftOverStart(void)
+{
+    xTaskCreate(colinkSoftapOverLinkApTask, "colinkSoftapOverLinkApTask", 512, NULL, 3, NULL);
+}
+#endif
+
 void colinkProcessStart(void)
 {
-    xTaskCreate(colinkProcessTask, "colinkProcessTask", 1024, NULL, 3, NULL);
+    xTaskCreate(colinkProcessTask, "colinkProcessTask", 2048, NULL, 4, NULL);
 }
 
 #if 0
@@ -283,6 +437,7 @@ void network_init(void)
     struct station_config sta_config;
     wifi_set_event_handler_cb(colink_wifi_cb);            //set wifi handler event cb
     memset(&sta_config, 0, sizeof(sta_config));
+    
     wifi_station_get_config(&sta_config);
 
     os_printf("ssid = %s,pwd = %s\r\n", sta_config.ssid, sta_config.password);

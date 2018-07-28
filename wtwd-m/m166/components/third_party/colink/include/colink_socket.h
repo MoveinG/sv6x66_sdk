@@ -1,3 +1,6 @@
+/** 
+ * @file     colink_socket.h
+ */
 #ifndef __COLINK_SOCKET_H__
 #define __COLINK_SOCKET_H__
 
