@@ -6,8 +6,8 @@
 #ifndef _WIFI_HWL_H
 #define _WIFI_HWL_H
 
-#include "tuya_cloud_types.h"
-#include "wf_basic_intf.h"
+    #include "tuya_cloud_types.h"
+    #include "wf_basic_intf.h"
 
 #ifdef __cplusplus
 extern "C" {

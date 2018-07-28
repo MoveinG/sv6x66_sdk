@@ -60,6 +60,7 @@ extern void xlinkProcessEnd(void);
 extern void colinkSettingStart(void);
 extern void colinkProcessStart(void);
 
+extern void user_main(void);
 ///////////////////////////////////////////
 static void led_flash_handler(void)
 {
@@ -310,6 +311,9 @@ void TaskKeyLed(void *pdata)
 					#if defined(CK_CLOUD_EN)
 					/*if(system_param_load(&ssidlen, 1) != 0) colinkSettingStart();
 					else */colinkProcessStart();
+					#endif
+					#if defined(TY_CLOUD_EN)
+					user_main();
 					#endif
 				}
 				if(msg_evt.MsgData == CONNECT_DIS)

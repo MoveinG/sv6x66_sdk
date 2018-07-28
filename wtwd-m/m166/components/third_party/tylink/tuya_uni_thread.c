@@ -7,7 +7,7 @@
 #include "tuya_uni_thread.h"
 //#include "uni_mutex.h"
 //#include "uni_pointer.h"
-//#include "uni_log.h"
+#include "uni_log.h"
 //#include "FreeRTOS.h"
 //#include "task.h"
 #include "osal.h"
@@ -152,8 +152,11 @@ OPERATE_RET tuya_CreateAndStart(OUT THRD_HANDLE *pThrdHandle,\
         return OPRT_INVALID_PARM;
     }
 
+	printf("%s, pThrdFunc=%x, %s, stack=%d, arg=%x, pri=%d, handle=%x\n", 
+		__func__, pThrdFunc, thrd_param->thrdname, thrd_param->stackDepth, pThrdFuncArg, thrd_param->priority, pThrdHandle);
+
     BaseType_t ret;
-    ret = OS_TaskCreate(pThrdFunc, thrd_param->thrdname, thrd_param->stackDepth, pThrdFuncArg, thrd_param->priority, pThrdHandle);
+    ret = OS_TaskCreate(pThrdFunc, thrd_param->thrdname, thrd_param->stackDepth, pThrdFuncArg, thrd_param->priority-1, pThrdHandle);
 	if (ret == 0) {
         PR_ERR("xTaskCreate %d", ret);
         *pThrdHandle = NULL;

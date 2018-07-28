@@ -8,7 +8,7 @@ LOCAL_CFLAGS :=
 LOCAL_AFLAGS :=
 
 LOCAL_INC := -I$(TOPDIR)/components/inc/bsp/$(CHIP_NAME)
-LOCAL_INC := -I$(TOPDIR)/components/inc/bsp
+LOCAL_INC += -I$(TOPDIR)/components/inc/bsp
 LOCAL_INC += -I$(TOPDIR)/components/drv
 LOCAL_INC += -I$(TOPDIR)/components/softmac
 LOCAL_INC += -I$(TOPDIR)/components/iotapi

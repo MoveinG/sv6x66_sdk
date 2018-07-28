@@ -233,7 +233,7 @@ HTTPD_EN          := 1
 CJSON_EN          := 1
 HTTPC_EN          := 1
 MQTT_EN           := 0
-SSL_EN            := 1
+SSL_EN            := 0
 MBED_EN           := 1
 IPERF3_EN         := 1
 SMARTCONFIG_EN    := 1
@@ -595,6 +595,7 @@ endif
 
 ifeq ($(strip $(TY_CLOUD_EN)), 1)
 CFLAGS 		+= -DTY_CLOUD_EN
+CFLAGS 		+= -DWIFI_GW
 endif
 
 ifeq ($(strip $(PING_EN)), 1)

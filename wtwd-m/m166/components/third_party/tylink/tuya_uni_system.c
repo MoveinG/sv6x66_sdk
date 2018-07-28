@@ -8,7 +8,7 @@
 #include "FreeRTOS.h"
 #include "osal.h"
 #include "wdt/drv_wdt.h"
-//#include "uni_log.h"
+#include "uni_log.h"
 //#include "wf_basic_intf.h"
 
 /***********************************************************

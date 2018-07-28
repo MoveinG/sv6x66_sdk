@@ -11,13 +11,9 @@ extern "C" {
 #endif
 
 #include <stdarg.h>
-//#include <basic_types.h> // #include <ctype.h>
+#include <ctype.h>	// #include <basic_types.h> 
 #include <stddef.h>
 #include "tuya_cloud_error_code.h"
-
-#ifndef PR_ERR
-#define PR_ERR printf	
-#endif
 
 typedef long long DLONG_T;
 typedef DLONG_T *PDLONG_T;

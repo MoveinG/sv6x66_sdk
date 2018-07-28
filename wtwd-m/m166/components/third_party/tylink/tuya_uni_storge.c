@@ -51,6 +51,7 @@ STATIC UNI_STORGE_DESC_S storge = {
 ***********************************************************/
 OPERATE_RET tuya_uni_flash_read(IN CONST UINT_T addr, OUT BYTE_T *dst, IN CONST UINT_T size)
 {
+	printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
 #ifndef TY_USE_SPIFFS
     flash_init();
 
@@ -70,7 +71,7 @@ OPERATE_RET tuya_uni_flash_read(IN CONST UINT_T addr, OUT BYTE_T *dst, IN CONST 
 		pos1 = addr-SIMPLE_FLASH_START;
 		pos2 = FS_lseek(fs_handle, fd, pos1, SPIFFS_SEEK_SET);
 
-		printf("read lseek=%x\n", pos2);
+		printf("read 0x%x lseek=0x%x\n", pos1, pos2);
 		if(pos1 == pos2) {
 			FS_read(fs_handle, fd, dst, size);
 		}
@@ -89,6 +90,7 @@ OPERATE_RET tuya_uni_flash_read(IN CONST UINT_T addr, OUT BYTE_T *dst, IN CONST 
 ***********************************************************/
 OPERATE_RET tuya_uni_flash_write(IN CONST UINT_T addr, IN CONST BYTE_T *src, IN CONST UINT_T size)
 {
+	printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
 #ifndef TY_USE_SPIFFS
     flash_init();
 
@@ -99,7 +101,7 @@ OPERATE_RET tuya_uni_flash_write(IN CONST UINT_T addr, IN CONST BYTE_T *src, IN 
     OS_EnterCritical();
     INT_T i=0;
     for(i=start_page; i<=end_page; i++) {
-   	    flash_page_program(FLASH_PAGE_SIZE*i, FLASH_PAGE_SIZE, src+FLASH_PAGE_SIZE*i);
+   	    flash_page_program(FLASH_PAGE_SIZE*i, FLASH_PAGE_SIZE, src+FLASH_PAGE_SIZE*(i-start_page));
 	}
     OS_ExitCritical();
 #else
@@ -113,13 +115,13 @@ OPERATE_RET tuya_uni_flash_write(IN CONST UINT_T addr, IN CONST BYTE_T *src, IN 
 		pos1 = addr-SIMPLE_FLASH_START;
 		pos2 = FS_lseek(fs_handle, fd, 0, SPIFFS_SEEK_END);
 
-		printf("%x write lseek=%x\n", pos1, pos2);
+		printf("0x%x write lseek=0x%x\n", pos1, pos2);
 		if(pos1 > pos2) {
 			FS_write(fs_handle, fd, (BYTE_T*)0x301F0000, pos1-pos2); //write dummy
 		}
 
 		pos2 = FS_lseek(fs_handle, fd, pos1, SPIFFS_SEEK_SET);
-		printf("write lseek=%x\n", pos2);
+		printf("write 0x%x lseek=0x%x\n", pos1, pos2);
 
 		if(pos1 == pos2) {
 			FS_write(fs_handle, fd, src, size);
@@ -140,6 +142,7 @@ OPERATE_RET tuya_uni_flash_write(IN CONST UINT_T addr, IN CONST BYTE_T *src, IN 
 ***********************************************************/
 OPERATE_RET tuya_uni_flash_erase(IN CONST UINT_T addr, IN CONST UINT_T size)
 {
+	printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
 #ifndef TY_USE_SPIFFS
     flash_init();
 

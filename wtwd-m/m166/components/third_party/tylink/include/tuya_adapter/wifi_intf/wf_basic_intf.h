@@ -10,7 +10,7 @@
 #endif
 
 #include "tuya_cloud_types.h"
-#include "tuya_uni_network.h"
+#include "uni_network.h"
 
 #ifdef  __WF_BASIC_INTF_GLOBALS
     #define __WF_BASIC_INTF_EXT

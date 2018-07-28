@@ -14,6 +14,7 @@
 #include "wifi_pkg_cap/smart_config.h"
 #include "tuya_uni_semaphore.h"
 #include "tuya_uni_thread.h"
+#include "uni_log.h"
 
 /***********************************************************
 *************************micro define***********************
@@ -500,15 +501,10 @@ OPERATE_RET hwl_wf_station_disconnect(VOID)
 ***********************************************************/
 OPERATE_RET hwl_wf_station_get_conn_ap_rssi(OUT SCHAR_T *rssi)
 {
-    int ret = 0;
-    int tmp_rssi = 0;
-    
-    ret = wifi_get_rssi(&tmp_rssi);
-    if(ret < 0) {
+    if(!get_wifi_status())
         return OPRT_COM_ERROR;
-    }
 
-    *rssi = tmp_rssi;
+    *rssi = gwifistatus.connAP[0].rssi;
 
     return OPRT_OK;
 }

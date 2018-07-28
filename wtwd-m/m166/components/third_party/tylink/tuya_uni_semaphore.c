@@ -5,7 +5,7 @@
 ***********************************************************/
 #define _UNI_SEMAPHORE_GLOBAL
 #include "tuya_uni_semaphore.h"
-//#include "uni_log.h"
+#include "uni_log.h"
 //#include "mem_pool.h"
 //#include "FreeRTOS.h"
 //#include "task.h"
