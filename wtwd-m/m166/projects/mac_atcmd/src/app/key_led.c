@@ -57,6 +57,7 @@ extern void update_xlink_status(void);
 extern void xlinkProcessStart(void);
 extern void xlinkProcessEnd(void);
 
+extern void colinkSwitchUpdate(void);
 extern void colinkSettingStart(void);
 extern void colinkProcessStart(void);
 
@@ -289,6 +290,9 @@ void TaskKeyLed(void *pdata)
 					Shift_Switch();
 					#if defined(WT_CLOUD_EN)
 					if(cloud_task) update_xlink_status();
+					#endif
+					#if defined(CK_CLOUD_EN)
+					colinkSwitchUpdate();
 					#endif
 				}
 				//if(msg_evt.MsgData == KEY_KEY2) Shift_Switch2();

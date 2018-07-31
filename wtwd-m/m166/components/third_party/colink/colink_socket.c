@@ -17,9 +17,8 @@
 
 #ifdef SSLUSERENABLE
 	#define COLINK_SSL
+	#define COLINK_VERIFY
 #endif
-
-#define COLINK_VERIFY
 
 #if defined(COLINK_VERIFY)
 
