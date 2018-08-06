@@ -596,6 +596,7 @@ endif
 ifeq ($(strip $(TY_CLOUD_EN)), 1)
 CFLAGS 		+= -DTY_CLOUD_EN
 CFLAGS 		+= -DWIFI_GW
+CFLAGS 		+= -DLITTLE_END=1
 endif
 
 ifeq ($(strip $(PING_EN)), 1)

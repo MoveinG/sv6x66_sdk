@@ -40,7 +40,7 @@
 #pragma GCC visibility pop
 #endif
 
-#if !defined(CK_CLOUD_EN)
+#if !defined(CK_CLOUD_EN) && !defined(TY_CLOUD_EN)
 
 #include "cJSON.h"
 

@@ -147,7 +147,7 @@ void colinkSettingStart(void)
 //////////////////////////////////////////////
 int system_param_save_with_protect(char *domain, int size)
 {
-    SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
+    SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
     printf("fd=%d\n", __func__, fd);
 	if(fd >= 0)
 	{

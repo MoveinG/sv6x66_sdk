@@ -153,7 +153,9 @@ OPERATE_RET tuya_CreateAndStart(OUT THRD_HANDLE *pThrdHandle,\
     }
 
     BaseType_t ret;
+    OS_EnterCritical();
     ret = OS_TaskCreate(pThrdFunc, thrd_param->thrdname, thrd_param->stackDepth, pThrdFuncArg, thrd_param->priority, pThrdHandle);
+    OS_ExitCritical();
 	if (ret == 0) {
         PR_ERR("xTaskCreate %d", ret);
         *pThrdHandle = NULL;

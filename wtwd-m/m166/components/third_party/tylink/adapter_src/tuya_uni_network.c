@@ -2,6 +2,7 @@
 #include "tuya_uni_network.h"
 //#include "uni_system.h"
 
+#define ty_net_printf
 #define CANONNAME_MAX 128
 
 typedef struct NETWORK_ERRNO_TRANS {
@@ -166,6 +167,8 @@ INT_T tuya_unw_shutdown(IN CONST INT_T fd,IN CONST INT_T how)
 ************************************************************/
 INT_T tuya_unw_socket_create(IN CONST UNW_PROTOCOL_TYPE type)
 {
+    ty_net_printf("%s type=%d\n", __func__, type);
+
     INT_T fd = -1;
 
     if(PROTOCOL_TCP == type) {
@@ -185,6 +188,8 @@ INT_T tuya_unw_socket_create(IN CONST UNW_PROTOCOL_TYPE type)
 ************************************************************/
 INT_T tuya_unw_connect(IN CONST INT_T fd,IN CONST UNW_IP_ADDR_T addr,IN CONST USHORT_T port)
 {
+    ty_net_printf("%s fd=%d, addr=0x%x, port=%d\n", __func__, fd, addr, port);
+
     struct sockaddr_in sock_addr;
     USHORT_T tmp_port = port;
     UNW_IP_ADDR_T tmp_addr = addr;
@@ -217,6 +222,8 @@ INT_T tuya_unw_connect_raw(IN CONST INT_T fd, void *p_socket_addr, IN CONST INT_
 ************************************************************/
 INT_T tuya_unw_bind(IN CONST INT_T fd,IN CONST UNW_IP_ADDR_T addr,IN CONST USHORT_T port)
 {
+    ty_net_printf("%s fd=%d, addr=0x%x, port=%d\n", __func__, fd, addr, port);
+
     if( fd < 0 ) {
         return UNW_FAIL;
     }
@@ -516,6 +523,8 @@ INT_T tuya_unw_gethostbyname(IN CONST CHAR_T *domain,OUT UNW_IP_ADDR_T *addr)
 		return UNW_FAIL;
     }
 
+    ty_net_printf("%s domain=%s, addr=0x%x\n", __func__, domain);
+
     *addr = UNI_NTOHL(((struct in_addr *)(h->h_addr_list[0]))->s_addr);
 
     return UNW_SUCCESS;
@@ -604,6 +613,9 @@ INT_T tuya_unw_set_keepalive(IN INT_T fd,IN CONST BOOL_T alive,\
     ret |= setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, (void*)&keepidle , sizeof(keepidle));
     ret |= setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, (void *)&keepinterval , sizeof(keepinterval));
     ret |= setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, (void *)&keepcount , sizeof(keepcount));
+
+    ty_net_printf("%s ret=%d, fd=%d, alive=%d, idle=%d, intr=%d, cnt=%d\n", __func__, ret, fd, alive, idle, intr, cnt);
+
     if(0 != ret) {
         return UNW_FAIL;
     }

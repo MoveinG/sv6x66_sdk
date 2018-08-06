@@ -529,9 +529,11 @@ void APP_Init(void)
 	OS_TaskCreate(Cli_Task, "cli", 1024, NULL, 1, NULL);
 #endif
 
+#if defined(WT_CLOUD_EN) || defined(CK_CLOUD_EN)
 	init_global_conf();
 	set_auto_connect_flag(1);
 	OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
+#endif
 
 #if 1
 	OS_TaskCreate(temperature_compensation_task, "rf temperature compensation", 256, NULL, TaskBmp_TASK_PRIORITY, NULL);

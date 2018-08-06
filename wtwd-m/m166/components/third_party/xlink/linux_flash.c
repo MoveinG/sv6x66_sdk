@@ -21,7 +21,7 @@ unsigned char flash_data[XLink_PAGE_NUM_MAX * XLink_PAGE_SIZE];
 int Xlink_Flash_Init(void)
 {
     memset(flash_data, 0, sizeof(flash_data));
-    SSV_FILE fd = FS_open(fs_handle, XLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
+    SSV_FILE fd = FS_open(fs_handle, XLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
     xlink_debug_sdk("fd=%d\n", fd);
 	if(fd >= 0)
 	{

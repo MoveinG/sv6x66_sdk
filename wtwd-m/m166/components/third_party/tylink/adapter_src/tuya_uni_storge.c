@@ -20,6 +20,7 @@
 #define SIMPLE_FLASH_SWAP_START (SIMPLE_FLASH_START+SIMPLE_FLASH_SIZE)
 #define SIMPLE_FLASH_SWAP_SIZE 0x2000 // 8K
 
+#define ty_spi_printf
 #define TY_USE_SPIFFS
 
 #ifdef TY_USE_SPIFFS
@@ -51,7 +52,7 @@ STATIC UNI_STORGE_DESC_S storge = {
 ***********************************************************/
 OPERATE_RET tuya_uni_flash_read(IN CONST UINT_T addr, OUT BYTE_T *dst, IN CONST UINT_T size)
 {
-	printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
+	ty_spi_printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
 #ifndef TY_USE_SPIFFS
     flash_init();
 
@@ -61,7 +62,7 @@ OPERATE_RET tuya_uni_flash_read(IN CONST UINT_T addr, OUT BYTE_T *dst, IN CONST 
     memcpy(dst, (void*)addr, size);
     OS_ExitCritical();
 #else
-    if(NULL == dst || addr < SIMPLE_FLASH_START || (addr+size) > (SIMPLE_FLASH_SWAP_START+SIMPLE_FLASH_SWAP_SIZE))
+    if(NULL == fs_handle || NULL == dst || addr < SIMPLE_FLASH_START || (addr+size) > (SIMPLE_FLASH_SWAP_START+SIMPLE_FLASH_SWAP_SIZE))
         return OPRT_INVALID_PARM;
 
 	INT_T pos1, pos2;
@@ -71,7 +72,7 @@ OPERATE_RET tuya_uni_flash_read(IN CONST UINT_T addr, OUT BYTE_T *dst, IN CONST 
 		pos1 = addr-SIMPLE_FLASH_START;
 		pos2 = FS_lseek(fs_handle, fd, pos1, SPIFFS_SEEK_SET);
 
-		printf("read 0x%x lseek=0x%x\n", pos1, pos2);
+		ty_spi_printf("read 0x%x lseek=0x%x\n", pos1, pos2);
 		if(pos1 == pos2) {
 			FS_read(fs_handle, fd, dst, size);
 		}
@@ -90,7 +91,7 @@ OPERATE_RET tuya_uni_flash_read(IN CONST UINT_T addr, OUT BYTE_T *dst, IN CONST 
 ***********************************************************/
 OPERATE_RET tuya_uni_flash_write(IN CONST UINT_T addr, IN CONST BYTE_T *src, IN CONST UINT_T size)
 {
-	printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
+	ty_spi_printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
 #ifndef TY_USE_SPIFFS
     flash_init();
 
@@ -105,23 +106,23 @@ OPERATE_RET tuya_uni_flash_write(IN CONST UINT_T addr, IN CONST BYTE_T *src, IN 
 	}
     OS_ExitCritical();
 #else
-    if(NULL == src || addr < SIMPLE_FLASH_START || (addr+size) > (SIMPLE_FLASH_SWAP_START+SIMPLE_FLASH_SWAP_SIZE))
+    if(NULL == fs_handle || NULL == src || addr < SIMPLE_FLASH_START || (addr+size) > (SIMPLE_FLASH_SWAP_START+SIMPLE_FLASH_SWAP_SIZE))
         return OPRT_INVALID_PARM;
 
 	INT_T pos1, pos2;
-    SSV_FILE fd = FS_open(fs_handle, TYLINK_FILENAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
+    SSV_FILE fd = FS_open(fs_handle, TYLINK_FILENAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
 	if(fd >= 0)
 	{
 		pos1 = addr-SIMPLE_FLASH_START;
 		pos2 = FS_lseek(fs_handle, fd, 0, SPIFFS_SEEK_END);
 
-		printf("0x%x write lseek=0x%x\n", pos1, pos2);
+		ty_spi_printf("0x%x write lseek=0x%x\n", pos1, pos2);
 		if(pos1 > pos2) {
-			FS_write(fs_handle, fd, (BYTE_T*)0x301F0000, pos1-pos2); //write dummy
+			FS_write(fs_handle, fd, (BYTE_T*)0x300F0000, pos1-pos2); //write dummy
 		}
 
 		pos2 = FS_lseek(fs_handle, fd, pos1, SPIFFS_SEEK_SET);
-		printf("write 0x%x lseek=0x%x\n", pos1, pos2);
+		ty_spi_printf("write 0x%x lseek=0x%x\n", pos1, pos2);
 
 		if(pos1 == pos2) {
 			FS_write(fs_handle, fd, src, size);
@@ -142,7 +143,7 @@ OPERATE_RET tuya_uni_flash_write(IN CONST UINT_T addr, IN CONST BYTE_T *src, IN 
 ***********************************************************/
 OPERATE_RET tuya_uni_flash_erase(IN CONST UINT_T addr, IN CONST UINT_T size)
 {
-	printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
+	ty_spi_printf("%s addr=0x%x, size=%d\n", __func__, addr, size);
 #ifndef TY_USE_SPIFFS
     flash_init();
 

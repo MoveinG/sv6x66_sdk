@@ -278,11 +278,15 @@ void TaskKeyLed(void *pdata)
 			case EVENT_DEV_KEY:
 				if(msg_evt.MsgData == KEY_1LONG)
 				{
+					#if defined(TY_CLOUD_EN)
+					user_main();
+					#else
 					smarting = true;
 					SmartConfig_Start();
 					#if defined(WT_CLOUD_EN)
 					if(cloud_task) xlinkProcessEnd();
 					cloud_task = false;
+					#endif
 					#endif
 				}
 				if(msg_evt.MsgData == KEY_KEY1) 
@@ -315,9 +319,6 @@ void TaskKeyLed(void *pdata)
 					#if defined(CK_CLOUD_EN)
 					/*if(system_param_load(&ssidlen, 1) != 0) colinkSettingStart();
 					else */colinkProcessStart();
-					#endif
-					#if defined(TY_CLOUD_EN)
-					user_main();
 					#endif
 				}
 				if(msg_evt.MsgData == CONNECT_DIS)

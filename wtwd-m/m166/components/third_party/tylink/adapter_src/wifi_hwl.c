@@ -19,7 +19,8 @@
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
-#define SCAN_MAX_AP 32
+#define ty_hwl_printf
+#define SCAN_MAX_AP 64
 typedef struct {
     AP_IF_S *ap_if;
     BYTE_T ap_if_nums;
@@ -42,6 +43,9 @@ STATIC THRD_HANDLE dhcp_thrd = NULL;
 static SEM_HANDLE scan_sem;
 static UINT_T *wifi_ap_num;
 static AP_IF_S *wifi_ap_ary;
+//static uint8_t sniffer_ch;
+static CHAR_T *hwl_ssid;
+static CHAR_T *hwl_passwd;
 
 /***********************************************************
 *************************function define********************
@@ -50,9 +54,11 @@ static AP_IF_S *wifi_ap_ary;
 
 STATIC void __hwl_wifi_scan_cb(void *data)
 {
-	AP_IF_S *ap_ary=wifi_ap_ary;
+    AP_IF_S *ap_ary=wifi_ap_ary;
 
-	*wifi_ap_num = (UINT_T)getAvailableIndex();
+    *wifi_ap_num = (UINT_T)getAvailableIndex();
+    if(*wifi_ap_num > SCAN_MAX_AP) *wifi_ap_num = SCAN_MAX_AP;
+
     for(int i=0; i<*wifi_ap_num; i++)
     {
 	    ap_ary->channel = ap_list[i].channel;
@@ -60,9 +66,9 @@ STATIC void __hwl_wifi_scan_cb(void *data)
     	memcpy(ap_ary->bssid, ap_list[i].mac, 6);
 		memcpy(ap_ary->ssid, ap_list[i].name, WIFI_SSID_LEN+1);
     	ap_ary->s_len = ap_list[i].name_len;
-        printf("%2d - name:%32s, rssi:-%2d CH:%2d mac:%02x-%02x-%02x-%02x-%02x-%02x\n", i, 
-			ap_ary->ssid, ap_ary->rssi, ap_ary->channel, 
-			ap_ary->bssid[0], ap_ary->bssid[1], ap_ary->bssid[2], ap_ary->bssid[3], ap_ary->bssid[4], ap_ary->bssid[5]);
+        ty_hwl_printf("%2d - name:%32s, rssi:-%2d CH:%2d mac:%02x-%02x-%02x-%02x-%02x-%02x\n", i, 
+            ap_ary->ssid, ap_ary->rssi, ap_ary->channel, 
+            ap_ary->bssid[0], ap_ary->bssid[1], ap_ary->bssid[2], ap_ary->bssid[3], ap_ary->bssid[4], ap_ary->bssid[5]);
 		ap_ary++;
     }
 	tuya_PostSemaphore(scan_sem);
@@ -86,6 +92,8 @@ OPERATE_RET hwl_wf_all_ap_scan(OUT AP_IF_S **ap_ary, OUT UINT_T *num)
         op_ret = OPRT_MALLOC_FAILED;
         goto ERR_RET;
     }
+
+    ty_hwl_printf("%s wifi_ap_ary=0x%x\n", __func__, wifi_ap_ary);
     memset(wifi_ap_ary, 0, SIZEOF(AP_IF_S) * SCAN_MAX_AP);
 
     op_ret = tuya_CreateAndInitSemaphore(&scan_sem, 0, 1);
@@ -99,7 +107,7 @@ OPERATE_RET hwl_wf_all_ap_scan(OUT AP_IF_S **ap_ary, OUT UINT_T *num)
     }
     tuya_WaitSemaphore(scan_sem);
 
-	wifi_ap_num = num;
+	*num = *wifi_ap_num;
 	*ap_ary = wifi_ap_ary;
 
     tuya_ReleaseSemaphore(scan_sem);
@@ -138,6 +146,7 @@ STATIC void __hwl_wifi_assign_scan_cb(void *data)
 ***********************************************************/
 OPERATE_RET hwl_wf_assign_ap_scan(IN CONST CHAR_T *ssid, OUT AP_IF_S **ap)
 {
+    ty_hwl_printf("%s ssid=%s, ap=0x%x\n", __func__, ssid, ap);
     if(NULL == ssid || NULL == ap) {
         return OPRT_INVALID_PARM;
     }
@@ -159,7 +168,7 @@ OPERATE_RET hwl_wf_assign_ap_scan(IN CONST CHAR_T *ssid, OUT AP_IF_S **ap)
     }
 
 	*wifi_ap_num = 0;
-    if(scan_AP(__hwl_wifi_scan_cb)) {
+    if(scan_AP(__hwl_wifi_assign_scan_cb)) {
         op_ret = OPRT_WF_AP_SACN_FAIL;
         goto ERR_RET;
     }
@@ -190,6 +199,7 @@ ERR_RET:
 ***********************************************************/
 OPERATE_RET hwl_wf_release_ap(IN AP_IF_S *ap)
 {
+    ty_hwl_printf("%s ap=0x%x\n", __func__, ap);
     if(NULL == ap) {
         return OPRT_INVALID_PARM;
     }
@@ -206,6 +216,7 @@ OPERATE_RET hwl_wf_release_ap(IN AP_IF_S *ap)
 ***********************************************************/
 OPERATE_RET hwl_wf_set_cur_channel(IN CONST BYTE_T chan)
 {
+    ty_hwl_printf("%s ch=%d\n", __func__, chan);
     set_channel(chan);
     return OPRT_OK;
 }
@@ -224,6 +235,7 @@ OPERATE_RET hwl_wf_get_cur_channel(OUT BYTE_T *chan)
 
 STATIC VOID __hwl_promisc_callback(packetinfo *packet)
 {
+    ty_hwl_printf("%s data=0x%x, len=%d\n", __func__, packet->data, packet->len);
     if(NULL == snif_cb) {
         return;
     }
@@ -231,10 +243,11 @@ STATIC VOID __hwl_promisc_callback(packetinfo *packet)
     snif_cb((BYTE_T*)packet->data, (USHORT_T)packet->len);
 }
 
-STATIC VOID ty_ch_change_cb(IN BYTE_T ch)
+/*STATIC VOID ty_ch_change_cb(void)
 {
-    set_channel(ch);
-}
+	sniffer_ch = (sniffer_ch % 13) + 1;
+    set_channel(sniffer_ch);
+}*/
 
 /***********************************************************
 *  Function: hwl_wf_sniffer_set
@@ -247,18 +260,20 @@ OPERATE_RET hwl_wf_sniffer_set(IN CONST BOOL_T en,IN CONST SNIFFER_CALLBACK cb)
     if(TRUE == en && NULL == cb) {
         return OPRT_INVALID_PARM;
     }
-	printf("%s en=%d\n", __func__, en);
+	ty_hwl_printf("%s cb=0x%x, en=%d\n", __func__, cb, en);
 
     int ret = 0;
     if(TRUE == en) {
+	    DUT_wifi_start(DUT_STA);
+		//sniffer_ch = 0;
 		snif_cb = cb;
 		attach_sniffer_cb(RECV_DATA_BCN, &__hwl_promisc_callback, 512);
-		attach_channel_change_cb(&ty_ch_change_cb);
+		//attach_channel_change_cb(&ty_ch_change_cb);
 		start_sniffer_mode();
-		auto_ch_switch_start(100);
+		//auto_ch_switch_start(100);
     }else {
-		auto_ch_switch_stop();
-		deattach_channel_change_cb();
+		//auto_ch_switch_stop();
+		//deattach_channel_change_cb();
 		deattach_sniffer_cb();
 		stop_sniffer_mode();
 		snif_cb = NULL;
@@ -281,7 +296,7 @@ OPERATE_RET hwl_wf_get_ip(IN CONST WF_IF_E wf,OUT NW_IP_S *ip)
 	if(get_if_config(&dhcpen, &ipaddr, &submask, &gateway, &dnsserver) != 0)
 		return OPRT_COM_ERROR;
     // ip
-     sprintf(ip->ip,"%d.%d.%d.%d",ipaddr.u8[0],ipaddr.u8[1],ipaddr.u8[2],ipaddr.u8[3]);
+    sprintf(ip->ip,"%d.%d.%d.%d",ipaddr.u8[0],ipaddr.u8[1],ipaddr.u8[2],ipaddr.u8[3]);
     // gw
     sprintf(ip->gw,"%d.%d.%d.%d",gateway.u8[0],gateway.u8[1],gateway.u8[2],gateway.u8[3]);
     // submask
@@ -341,6 +356,7 @@ OPERATE_RET hwl_wf_wk_mode_set(IN CONST WF_WK_MD_E mode)
 {
 	WIFI_OPMODE mode1;
 
+	ty_hwl_printf("%s mode=%d\n", __func__, mode);
 	mode1 = get_DUT_wifi_mode();
 
 	if(mode == WWM_STATION) mode1 = DUT_STA;
@@ -372,6 +388,7 @@ OPERATE_RET hwl_wf_wk_mode_get(OUT WF_WK_MD_E *mode)
     if(mode1 == DUT_TWOSTA) *mode = WWM_STATIONAP;
     if(mode1 == DUT_SNIFFER) *mode = WWM_SNIFFER;
 
+    ty_hwl_printf("%s mode=%d\n", __func__, *mode);
     return OPRT_OK;
 }
 #if 0
@@ -441,22 +458,24 @@ static int get_ap_security_mode(IN char * ssid, OUT rtw_security_t *security_mod
 ***********************************************************/
 // only support wap/wap2 
 extern void atwificbfunc(WIFI_RSP *msg);
-OPERATE_RET hwl_wf_station_connect(IN CONST CHAR_T *ssid,IN CONST CHAR_T *passwd)
+STATIC void __hwl_connect_scan_cb(void *data)
 {
     int ret = 0;
 
-    ret = set_wifi_config((u8*)ssid, strlen(ssid), (u8*)passwd, strlen(passwd), NULL, 0);
-    if(0 != ret) {
-        PR_ERR("ERROR: set_wifi_config:%d",ret);
-        return OPRT_COM_ERROR;
-    }
+    ret = set_wifi_config((u8*)hwl_ssid, strlen(hwl_ssid), (u8*)hwl_passwd, strlen(hwl_passwd), NULL, 0);
 
-    ret = wifi_connect(atwificbfunc);
-    if(0 != ret) {
-        PR_ERR("ERROR: wifi_connect:%d",ret);
-        return OPRT_COM_ERROR;
-    }
+    ty_hwl_printf("%s ret=%d\n", __func__, ret);
+    if(0 == ret)
+	    ret = wifi_connect(atwificbfunc);
+}
 
+OPERATE_RET hwl_wf_station_connect(IN CONST CHAR_T *ssid,IN CONST CHAR_T *passwd)
+{
+    ty_hwl_printf("%s ssid=%s,passwd=%s\n", __func__, ssid, passwd);
+
+	hwl_ssid = ssid;
+	hwl_passwd = passwd;
+    scan_AP(__hwl_connect_scan_cb);
     return OPRT_OK;
 }
 
@@ -505,6 +524,7 @@ OPERATE_RET hwl_wf_station_get_conn_ap_rssi(OUT SCHAR_T *rssi)
         return OPRT_COM_ERROR;
 
     *rssi = gwifistatus.connAP[0].rssi;
+    ty_hwl_printf("%s rssi=%d\n", __func__, *rssi);
 
     return OPRT_OK;
 }
@@ -517,7 +537,7 @@ OPERATE_RET hwl_wf_station_get_conn_ap_rssi(OUT SCHAR_T *rssi)
 ***********************************************************/
 OPERATE_RET hwl_wf_station_stat_get(OUT WF_STATION_STAT_E *stat)
 {
-	if(get_wifi_status()) *stat = WSS_CONN_SUCCESS;
+	if(get_wifi_status()) *stat = WSS_GOT_IP;
 	else *stat = WSS_IDLE;
 
     return OPRT_OK;
