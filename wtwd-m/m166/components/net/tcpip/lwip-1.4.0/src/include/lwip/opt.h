@@ -1476,7 +1476,11 @@
  * in seconds. (does not require sockets.c, and will affect tcp.c)
  */
 #ifndef LWIP_TCP_KEEPALIVE
-#define LWIP_TCP_KEEPALIVE              1
+  #if !defined(TY_CLOUD_EN)
+    #define LWIP_TCP_KEEPALIVE              0
+  #else
+    #define LWIP_TCP_KEEPALIVE              1
+  #endif
 #endif
 
 /**
