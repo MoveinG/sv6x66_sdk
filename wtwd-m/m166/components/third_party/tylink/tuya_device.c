@@ -7,11 +7,11 @@
 #include "tuya_device.h"
 #include "adapter_platform.h"
 #include "tuya_iot_wifi_api.h"
-//#include "tuya_led.h"
+#include "tuya_led.h"
 //#include "tuya_uart.h"
-//#include "tuya_gpio.h"
-//#include "tuya_key.h"
-//#include "hw_table.h"
+#include "tuya_gpio.h"
+#include "tuya_key.h"
+#include "hw_table.h"
 #include "uni_time_queue.h"
 #include "gw_intf.h"
 #include "uni_log.h"
@@ -49,7 +49,7 @@ VOID Start_boot_up(VOID);
 // 倒计时回调
 STATIC VOID cd_timer_cb(UINT_T timerID,PVOID pTimerArg);
 
-#if 0
+#if 1
 typedef struct
 {
     INT_T   ionum;
@@ -157,7 +157,8 @@ VOID dev_dp_query_cb(IN CONST TY_DP_QUERY_S *dp_qry)
 
 VOID dev_obj_dp_cb(IN CONST TY_RECV_OBJ_DP_S *dp)
 {
-#if 0
+    PR_DEBUG("dev_obj_dp_cb");
+#if 1
     INT_T i = 0,ch_index;
     char buff[30];
     char time[32];
@@ -272,11 +273,7 @@ VOID dev_raw_dp_cb(IN CONST TY_RECV_RAW_DP_S *dp)
 
 STATIC VOID __get_wf_status(IN CONST GW_WIFI_NW_STAT_E stat)
 {
-	
-	#if 0
     hw_set_wifi_led_stat(&g_hw_table, stat);
-  #endif
-  
     return;
 }
 
@@ -289,8 +286,8 @@ STATIC VOID __get_wf_status(IN CONST GW_WIFI_NW_STAT_E stat)
 ***********************************************************/
 BOOL_T gpio_test(VOID)
 {
-#if 0
-    sys_log_uart_off();
+#if 1
+    //sys_log_uart_off();
     INT_T idx,i,j;
     for(idx = 0; idx < gpio_test_table.group_num; idx++) {
         for(i = 0; i < gpio_test_table.group[idx].ionum; i++) {
@@ -328,7 +325,7 @@ BOOL_T gpio_test(VOID)
         }
     }
 #endif
-    sys_log_uart_on();
+    //sys_log_uart_on();
     PR_NOTICE("gpio test succ");
     return TRUE;
 }
@@ -380,9 +377,8 @@ OPERATE_RET device_init(VOID)
         return op_ret;
     }
 
-
-#if 0
     init_hw(&g_hw_table);
+
     if(is_count_down){   
         op_ret = sys_add_timer(cd_timer_cb, NULL, &cd_timer);      // 倒计时定时器
         if(OPRT_OK != op_ret) {
@@ -394,14 +390,11 @@ OPERATE_RET device_init(VOID)
         }
     }
 
-#endif
-
     INT_T size = SysGetHeapSize();//lql
 		PR_NOTICE("device_init ok  free_mem_size:%d",size);
     return OPRT_OK;
 }
 
-#if 0
 STATIC VOID cd_timer_cb(UINT_T timerID,PVOID pTimerArg)
 {
     int i;// 通道号
@@ -470,7 +463,7 @@ OPERATE_RET dp_upload_proc(CHAR_T *jstr)
 
 VOID Start_boot_up(VOID)
 {
-    UCHAR i=0;
+    uint8_t i=0;
     char buff[30];
 
     for(i = 0; i < g_hw_table.channel_num; i++)
@@ -494,5 +487,4 @@ VOID Start_boot_up(VOID)
    }
 
 }
-#endif
 

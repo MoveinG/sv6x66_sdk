@@ -495,7 +495,13 @@ struct st_rf_table customer_rf_table ={ { {10, 10, 10, 10, 10, 10, 10} , 0x81, 0
     OS_TaskDelete(NULL);
 }
 
-extern int wtwd_clone_main(void);
+extern void user_main(void);
+void Task_tymain(void *pdata)
+{
+	user_main();
+    OS_TaskDelete(NULL);
+}
+
 extern void TaskKeyLed(void *pdata);
 extern void drv_uart_init(void);
 void APP_Init(void)
@@ -519,7 +525,11 @@ void APP_Init(void)
 		FS_remove_prevota(fs_handle);
 	}
 
+#if defined(TY_CLOUD_EN)
+	OS_TaskCreate(Task_tymain, "Task_tycloud", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
+#else
 	OS_TaskCreate(TaskKeyLed, "TaskKeyLed", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
+#endif
 
 #if 1
 	OS_TaskCreate(TaskBmp, "TaskBmp", 2048, NULL, TaskBmp_TASK_PRIORITY, NULL);

@@ -10,7 +10,7 @@
 //#include "rtl8710b_ota.h"
 #include "mf_test.h"
 //#include "tuya_uart.h"
-//#include "tuya_gpio.h"
+#include "tuya_gpio.h"
 #include "gw_intf.h"
 #include "wf_basic_intf.h"
 
@@ -68,7 +68,7 @@ extern VOID pre_device_init(VOID);
 extern OPERATE_RET device_init(VOID);
 extern BOOL_T gpio_test(VOID);
 extern void sys_jtag_off(void);
-//extern TY_GPIO_PORT_E swith_ctl_port;
+extern TY_GPIO_PORT_E swith_ctl_port;
 STATIC VOID __gw_ug_inform_cb(IN CONST FW_UG_S *fw);
 STATIC OPERATE_RET __gw_upgrage_process_cb(IN CONST FW_UG_S *fw, IN CONST UINT total_len,IN CONST UINT offset,\
                                                       IN CONST BYTE_T *data,IN CONST UINT len,OUT UINT *remain_len, IN PVOID pri_data);

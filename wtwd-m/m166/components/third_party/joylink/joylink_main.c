@@ -40,13 +40,17 @@ void joylinkwificbfunc(WIFI_RSP *msg)
         printf("default gateway - %d.%d.%d.%d\n", gateway.u8[0], gateway.u8[1], gateway.u8[2], gateway.u8[3]);
         printf("DNS server      - %d.%d.%d.%d\n", dnsserver.u8[0], dnsserver.u8[1], dnsserver.u8[2], dnsserver.u8[3]);
 
+        #if !defined(TY_CLOUD_EN)
         recordAP();
+        #endif
   }
     else
     {
         printf("Wifi Disconnect\n");
     }
+    #if !defined(TY_CLOUD_EN)
     wifi_status_cb(msg->wifistatus);
+    #endif
 }
 
 void joylink_scan_cbfunc(void *data)

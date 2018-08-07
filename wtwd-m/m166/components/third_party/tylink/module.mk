@@ -11,6 +11,12 @@ LIB_SRC += adapter_src/wifi_hwl.c
 LIB_SRC += tuya_main.c
 LIB_SRC += tuya_device.c
 
+LIB_SRC += hw_table.c
+LIB_SRC += driver/tuya_gpio.c
+LIB_SRC += driver/tuya_led.c
+LIB_SRC += driver/tuya_key.c
+#LIB_SRC += driver/tuya_uart.c
+
 STATIC_LIB += $(MYDIR)/libtylink.a
 STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_storge.o
 STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_network.o
@@ -41,6 +47,8 @@ LOCAL_INC += -I$(TOPDIR)/components/third_party/tylink/include/tuya_iot_sdk/com_
 LOCAL_INC += -I$(TOPDIR)/components/third_party/tylink/include/tuya_iot_sdk/tuya_cloud
 LOCAL_INC += -I$(TOPDIR)/components/third_party/tylink/include/tuya_iot_sdk/wifi_cfg_serv
 LOCAL_INC += -I$(TOPDIR)/components/third_party/tylink/include/tuya_iot_sdk/wifi_sdk
+
+LOCAL_INC += -I$(TOPDIR)/components/third_party/tylink/include/driver
 
 RELEASE_SRC := 2
 $(eval $(call build-lib,$(LIBRARY_NAME),$(LIB_SRC),$(LIB_ASRC),$(LOCAL_CFLAGS),$(LOCAL_INC),$(LOCAL_AFLAGS),$(MYDIR)))
