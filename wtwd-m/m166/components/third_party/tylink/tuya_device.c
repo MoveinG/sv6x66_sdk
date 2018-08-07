@@ -342,7 +342,7 @@ BOOL_T gpio_test(VOID)
 VOID pre_device_init(VOID)
 {
     PR_DEBUG("%s:%s",APP_BIN_NAME,DEV_SW_VERSION);
-    SetLogManageAttr(LOG_LEVEL_MAX);
+    SetLogManageAttr(LOG_LEVEL_INFO);
 }
 
 /***********************************************************

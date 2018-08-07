@@ -393,6 +393,7 @@ uint32_t spi_flash_read_jedec()
 }
 #endif
 
+extern void user_main(void);
 void TaskBmp(void *pdata)
 {
     int i = 0;
@@ -437,6 +438,12 @@ void TaskBmp(void *pdata)
 //    if(get_DUT_wifi_mode() == DUT_STA || get_DUT_wifi_mode() == DUT_CONCURRENT)
 //        scan_AP(scanAPcbfunc);
 	
+#if defined(TY_CLOUD_EN)
+	user_main();
+	OS_TaskDelete(NULL);
+	return;
+#endif
+
     while(1) {
         i++;
 
@@ -495,13 +502,6 @@ struct st_rf_table customer_rf_table ={ { {10, 10, 10, 10, 10, 10, 10} , 0x81, 0
     OS_TaskDelete(NULL);
 }
 
-extern void user_main(void);
-void Task_tymain(void *pdata)
-{
-	user_main();
-    OS_TaskDelete(NULL);
-}
-
 extern void TaskKeyLed(void *pdata);
 extern void drv_uart_init(void);
 void APP_Init(void)
@@ -525,9 +525,7 @@ void APP_Init(void)
 		FS_remove_prevota(fs_handle);
 	}
 
-#if defined(TY_CLOUD_EN)
-	OS_TaskCreate(Task_tymain, "Task_tycloud", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
-#else
+#if !defined(TY_CLOUD_EN)
 	OS_TaskCreate(TaskKeyLed, "TaskKeyLed", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
 #endif
 
