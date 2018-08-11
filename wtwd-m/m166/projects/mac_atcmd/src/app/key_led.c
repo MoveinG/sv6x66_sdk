@@ -61,7 +61,9 @@ extern void colinkSwitchUpdate(void);
 extern void colinkSettingStart(void);
 extern void colinkProcessStart(void);
 
-extern void user_main(void);
+extern void esptouch_init(void);
+extern void esptouch_stop(void);
+
 ///////////////////////////////////////////
 static void led_flash_handler(void)
 {
@@ -83,6 +85,13 @@ static void led_flash_handler(void)
 static int SmartConfig_Start(void)
 {
     printf("%s\n", __func__);
+
+	#if defined(CK_CLOUD_EN)
+	esptouch_stop();
+	OS_TimerStart(led_flash_timer);
+	esptouch_init();
+	return;
+	#endif
 	
 	joylink_stop();
 	//if(led_flash_timer != NULL)

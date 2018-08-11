@@ -6,6 +6,8 @@ LIB_SRC += colink_network.c
 LIB_SRC += colink_upgrade.c
 LIB_SRC += colink_global.c
 
+LIB_SRC += esp_touch.c
+
 STATIC_LIB += $(MYDIR)/libcolink.a
 STATIC_LIB += $(TOPDIR)/out/components/third_party/colink/colink_socket.o
 
