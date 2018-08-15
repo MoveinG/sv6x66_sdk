@@ -346,7 +346,7 @@ static void colinkProcessTask(void* pData)
     ev.colinkNotifyDevStatusCb = colinkNotifyDevStatus;
     ev.colinkUpgradeRequestCb = colinkUpgradeRequest;/**< 升级通知的回调 */
 
-    //system_param_load(DEVICE_CONFIG_START_SEC, 0, &colinkInfoCopy, sizeof(colinkInfoCopy));
+    system_param_load(/*DEVICE_CONFIG_START_SEC, 0, */&colinkInfoCopy, sizeof(colinkInfoCopy));
     strcpy(dev_data->deviceid, DEVICEID);
     strcpy(dev_data->apikey, APIKEY);
     strcpy(dev_data->model, MODEL);
@@ -360,7 +360,7 @@ static void colinkProcessTask(void* pData)
     dev_data->ssl_enable = false;
 #endif
     
-    strcpy(dev_data->distor_domain, "testapi.coolkit.cc");
+    strcpy(dev_data->distor_domain, /*"testapi.coolkit.cc"*/colinkInfoCopy.distor_domain);
     os_printf("distor_domain=[%s]\r\n", dev_data->distor_domain);
 
     colinkInit(dev_data, &ev);

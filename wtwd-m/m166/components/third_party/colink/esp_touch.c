@@ -7,6 +7,7 @@
 #include "wifi_pkg_cap/smart_config.h"
 #include "wifi_api.h"
 #include "esp_touch.h"
+#include "lwip/sockets.h"
 
 ////////////////////////////
 #define MAC_BROADCAST	"\xFF\xFF\xFF\xFF\xFF\xFF"
@@ -22,6 +23,7 @@
 #define IPADDRESS_LENGTH			4
 #define ESP_PASSWORD_OFF			(DATUMDATA_LENGTH+IPADDRESS_LENGTH)
 
+#define ESPTOUCH_ACK_UDPPORT		18266
 #define STEP_MULTICAST_HOLD_CHANNEL		5
 
 typedef enum{
@@ -52,6 +54,11 @@ static esptouch_Smnt_t *pSmnt = NULL;
 static esptouch_smnt_param_t esptouch_smnt_gobal;
 
 static void esptouch_smnt_muticastadd(uint8* pAddr, int length);
+void esptouch_stop(void);
+
+extern uint8_t getAvailableIndex(void);
+extern void recordAP(void);
+extern void colinkSettingStart(void);
 //------------------------------------
 static uint8 esptouch_smnt_crc(uint8 *ptr, uint8 len)
 {
@@ -118,6 +125,8 @@ static void esptouch_smnt_finish(void)
 			if(i & 0x01) smnt_result.esp_password[i] -= 2;
 			else smnt_result.esp_password[i] -= 7;
 		}
+		smnt_result.esp_recv_len = pSmnt->payload_multicast[0];
+		memcpy(smnt_result.esp_src_ip, pSmnt->payload_multicast+DATUMDATA_LENGTH, sizeof(smnt_result.esp_src_ip));
 		//memcpy(smnt_result.esp_ssid, pSmnt->payload_multicast+ESP_PASSWORD_OFF+smnt_result.esp_password_len,smnt_result.esp_ssid_len);
 		memcpy(smnt_result.esp_bssid_mac, pSmnt->syncBssid, sizeof(smnt_result.esp_bssid_mac));
 
@@ -126,7 +135,7 @@ static void esptouch_smnt_finish(void)
 			printf("ERROR:esptouch_smnt_finish->get_result_callback NULL\n");
 			return;
 		}
-		esptouch_smnt_gobal.get_result_callback(smnt_result);
+		esptouch_smnt_gobal.get_result_callback(&smnt_result);
 	}
 }
 
@@ -154,7 +163,7 @@ int esptouch_smnt_cyclecall(void)
 
 	if (pSmnt->chCurrentProbability > 0){
 		pSmnt->chCurrentProbability--;
-		printf("------------------->SYNC (CH:%d) %d\n", pSmnt->chCurrentIndex, pSmnt->chCurrentProbability);
+		//printf("------------------->SYNC (CH:%d) %d\n", pSmnt->chCurrentIndex, pSmnt->chCurrentProbability);
 		return 50;
 	}
 
@@ -266,8 +275,8 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 	}
 	if (memcmp(pDest, MAC_MULTICAST, 3) == 0)
 	{
-		if (pSmnt->state == SMART_CH_LOCKING)
-			printf("(%02x-%04d):%02x:%02x:%02x->%d\n", *((uint8*)pHeader) & 0xFF, pHeader->Sequence, pDest[3], pDest[4], pDest[5], length);
+		//if (pSmnt->state == SMART_CH_LOCKING)
+		//	printf("(%02x-%04d):%02x:%02x:%02x->%d\n", *((uint8*)pHeader) & 0xFF, pHeader->Sequence, pDest[3], pDest[4], pDest[5], length);
 		packetType = 1;
 	}
 
@@ -357,7 +366,41 @@ static int start = 0;
 static uint8_t sniffer_ch;
 
 //-------------------------------------
-void esptouchwificbfunc(WIFI_RSP *msg)
+static void esptouch_ack_app(uint8_t *ipaddr, uint8_t *mac)
+{
+    int sockfd;
+	uint8_t pdata[1+6+4];
+    struct sockaddr_in sock_addr;
+
+    /* create a UCP socket */
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
+    {
+        printf("Failed to create socket:%d\n", sockfd);
+        return;
+    }
+
+    pdata[0] = esptouch_wifi_result.esp_recv_len;
+    memcpy(&pdata[1], mac, 6);
+    memcpy(&pdata[7], ipaddr, 4);
+
+    memset(&sock_addr, 0, sizeof(sock_addr));
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_port = htons(ESPTOUCH_ACK_UDPPORT);
+    sock_addr.sin_len = sizeof(sock_addr);
+    sock_addr.sin_addr.s_addr = *(uint32_t*)esptouch_wifi_result.esp_src_ip;
+	
+    for(int i=0; i<10 ;i++)
+    {
+        if(sendto(sockfd, pdata, sizeof(pdata), 0, (struct sockaddr*)&sock_addr, sizeof(sock_addr)) < 0)
+        {
+            printf("Failed to create socket:%d\n", sockfd);
+            return;
+        }
+        OS_MsDelay(50);
+    }
+}
+
+static void esptouchwificbfunc(WIFI_RSP *msg)
 {
     extern void wifi_status_cb(int connect);
 
@@ -383,6 +426,8 @@ void esptouchwificbfunc(WIFI_RSP *msg)
         printf("DNS server      - %d.%d.%d.%d\n", dnsserver.u8[0], dnsserver.u8[1], dnsserver.u8[2], dnsserver.u8[3]);
 
         recordAP();
+        esptouch_ack_app(ipaddr.u8, mac);
+        colinkSettingStart();
     }
     else
     {
@@ -391,7 +436,7 @@ void esptouchwificbfunc(WIFI_RSP *msg)
     wifi_status_cb(msg->wifistatus);
 }
 
-void esptouch_scan_cbfunc(void *data)
+static void esptouch_scan_cbfunc(void *data)
 {
     int i, ret;
     printf("scan finish\n");
@@ -417,7 +462,7 @@ void esptouch_scan_cbfunc(void *data)
         ret = wifi_connect(esptouchwificbfunc);
 }
 
-int esptouch_connect_ap(void *pResult)
+static int esptouch_connect_ap(void *pResult)
 {
     int ret = 0;
 
@@ -429,22 +474,22 @@ int esptouch_connect_ap(void *pResult)
     return ret;
 }
 
-void esptouch_get_result_cb(esptouch_smnt_result_t result)
+static void esptouch_get_result_cb(esptouch_smnt_result_t *result)
 {
     int ret = 0;
 
     printf("==============================\n");
-    printf("flag %d\n", result.smnt_result_status);
-    printf("ssid %s, len %d\n", result.esp_ssid, result.esp_ssid_len);
-    printf("pswd %s, len %d\n", result.esp_password, result.esp_password_len);
+    printf("flag %d\n", result->smnt_result_status);
+    printf("ssid %s, len %d\n", result->esp_ssid, result->esp_ssid_len);
+    printf("pswd %s, len %d\n", result->esp_password, result->esp_password_len);
     printf("==============================\n");
     esptouch_stop();
 
-    if( result.smnt_result_status == smnt_result_ok )
-        esptouch_connect_ap(&result);
+    if( result->smnt_result_status == smnt_result_ok )
+        esptouch_connect_ap(result);
 }
 
-void esptouch_switch_ch_cb(unsigned char ch)
+static void esptouch_switch_ch_cb(unsigned char ch)
 {
     set_channel((u8) ch);
 }

@@ -132,7 +132,7 @@ void colinkSettingTask(void* pData)
 
     if(DEVICE_MODE_SETTING_SELFAP == coLinkGetDeviceMode())
     {
-        colinkSoftOverStart();
+        //colinkSoftOverStart();
     }
 
     colinkProcessStart();
@@ -141,7 +141,7 @@ void colinkSettingTask(void* pData)
 
 void colinkSettingStart(void)
 {
-    xTaskCreate(colinkSettingTask, "colinkSettingTask", 512, NULL, 3, NULL);
+    xTaskCreate(colinkSettingTask, "colinkSettingTask", 512, NULL, 2, NULL);
 }
 
 //////////////////////////////////////////////

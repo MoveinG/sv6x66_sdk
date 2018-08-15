@@ -323,7 +323,7 @@ void TaskKeyLed(void *pdata)
 					#endif
 					#if defined(CK_CLOUD_EN)
 					/*if(system_param_load(&ssidlen, 1) != 0) colinkSettingStart();
-					else */colinkProcessStart();
+					else colinkProcessStart();*/
 					#endif
 				}
 				if(msg_evt.MsgData == CONNECT_DIS)

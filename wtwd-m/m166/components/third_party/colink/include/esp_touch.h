@@ -53,21 +53,23 @@ typedef enum{
 
 typedef struct{
 	esptouch_smnt_result_flag_t smnt_result_status;
-	uint8 esp_bssid_mac[6];
 	uint8 esp_ssid_len;
 	uint8 esp_password_len;
 	uint8 esp_ssid[33];
 	uint8 esp_password[65];
+	uint8 esp_src_ip[4];
+	uint8 esp_bssid_mac[6];
+	uint8 esp_recv_len;
 }esptouch_smnt_result_t;
 
 
-typedef void (*esptouch_smnt_channel_cb)(unsigned char ch);
-typedef void (*esptouch_smnt_result_cb)(esptouch_smnt_result_t result_info);
+//typedef void (*esptouch_smnt_channel_cb)(unsigned char ch);
+//typedef void (*esptouch_smnt_result_cb)(esptouch_smnt_result_t result_info);
 
 typedef struct{
 	unsigned char secretkey[16+1];
 	void (*switch_channel_callback)(unsigned char);
-	void (*get_result_callback)(esptouch_smnt_result_t);
+	void (*get_result_callback)(esptouch_smnt_result_t*);
 } esptouch_smnt_param_t;
 
 void esptouch_smnt_init(esptouch_smnt_param_t *param);
