@@ -439,6 +439,7 @@ void TaskBmp(void *pdata)
 //        scan_AP(scanAPcbfunc);
 	
 #if defined(TY_CLOUD_EN)
+	OS_MsDelay(500);
 	user_main();
 	OS_TaskDelete(NULL);
 	return;

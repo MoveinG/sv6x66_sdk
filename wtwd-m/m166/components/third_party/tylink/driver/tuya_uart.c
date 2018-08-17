@@ -4,20 +4,21 @@
 *  Date: 20171106
 ***********************************************************/
 #define __TUYA_UART_GLOBALS
+#include <string.h>
 #include "tuya_uart.h"
-#include "objects.h"
-#include "serial_api.h"
+//#include "objects.h"
+#include "hsuart/drv_hsuart.h"
 #include "uni_log.h"
-
+#include "mem_pool.h"
 
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
-#define UART_TX PA_23 //UART0 TX
-#define UART_RX PA_18 //UART0 RX 
+//#define UART_TX PA_23 //UART0 TX
+//#define UART_RX PA_18 //UART0 RX 
 
 typedef struct {
-    serial_t sobj;
+    //serial_t sobj;
     UINT_T buf_len;
     BYTE_T *buf;
     USHORT_T in;
@@ -27,12 +28,12 @@ typedef struct {
 /***********************************************************
 *************************variable define********************
 ***********************************************************/
-STATIC TUYA_UART_S ty_uart[TY_UART_NUM];
+STATIC TUYA_UART_S ty_uart;
 
 /***********************************************************
 *************************function define********************
 ***********************************************************/
-STATIC VOID __uart_irq(UINT_T id, SerialIrq event);
+STATIC VOID hsuart_isr(VOID);
 
 /***********************************************************
 *  Function: ty_uart_init 
@@ -44,42 +45,51 @@ OPERATE_RET ty_uart_init(IN CONST TY_UART_PORT_E port,IN CONST TY_UART_BAUD_E ba
                                IN CONST TY_DATA_BIT_E bits,IN CONST TY_PARITY_E parity,\
                                IN CONST TY_STOPBITS_E stop,IN CONST UINT_T bufsz)
 {
-    if((port >= TY_UART_NUM) || (bufsz == 0)) {
+    printf("%s port=%d, badu=%d, bits=%d, parity=%d, stop=%d, bufsz=%d\n", __func__, port, badu, bits, parity, stop, bufsz);
+
+    if((port != TY_UART0) || (bufsz == 0))
         return OPRT_INVALID_PARM;
-    }
     
-    if(ty_uart[port].buf == NULL) {
-        memset(&ty_uart[port], 0, sizeof(TUYA_UART_S));
-        ty_uart[port].buf = Malloc(bufsz);
-        if(ty_uart[port].buf == NULL) {
+	if((stop == TYS_STOPBIT1_5) && (bits != TYWL_5B))
+        return OPRT_INVALID_PARM;
+	
+    if(ty_uart.buf == NULL) {
+        memset(&ty_uart, 0, sizeof(TUYA_UART_S));
+        ty_uart.buf = Malloc(bufsz);
+        if(ty_uart.buf == NULL) {
             return OPRT_MALLOC_FAILED;
         }
-        ty_uart[port].buf_len = bufsz;
+        ty_uart.buf_len = bufsz;
         PR_DEBUG("uart buf size : %d",bufsz);
     }else {
         return OPRT_COM_ERROR;
     }
     
-    serial_init(&ty_uart[port].sobj,UART_TX,UART_RX);
-    serial_baud(&ty_uart[port].sobj,badu);
+    INT_T StopBits=0;
+    if(stop == TYS_STOPBIT1) {
+        StopBits = 0;
+    }else if(stop == TYS_STOPBIT2) {
+        StopBits = 1;
+	}
 
-    INT_T data_bit = 0;
-    if(bits == TYWL_5B) {
-        data_bit = 5;
-    }else if(bits == TYWL_6B) {
-        data_bit = 6;
-    }else if(bits == TYWL_7B) {
-        data_bit = 7;
-    }else {
-        data_bit = 8;
+	INT_T Parity=parity;
+    if(Parity == TYP_EVEN) Parity = 3;
+	
+    drv_hsuart_init ();
+    drv_hsuart_sw_rst ();
+    drv_hsuart_set_fifo (HSUART_INT_RX_FIFO_TRIG_LV_16);
+    drv_hsuart_set_hardware_flow_control (16, 24);
+
+    INT_T retval = drv_hsuart_set_format(badu, bits, StopBits, Parity);
+    if(retval != 0)
+    {
+        Free(ty_uart.buf);
+        ty_uart.buf = NULL;
+        printf("%s retval=%d\n", retval);
+        return OPRT_COM_ERROR;
     }
-    serial_format(&ty_uart[port].sobj,data_bit,parity,stop);
+    //drv_hsuart_register_isr (HSUART_RX_DATA_READY_IE, hsuart_isr);
     
-    serial_irq_handler(&ty_uart[port].sobj, __uart_irq, (uint32_t)&ty_uart[port].sobj);
-    serial_irq_set(&ty_uart[port].sobj, RxIrq, 1);
-    ty_uart[port].in = 0;
-    ty_uart[port].out = 0;
-
     return OPRT_OK;
 }
 
@@ -90,19 +100,20 @@ OPERATE_RET ty_uart_init(IN CONST TY_UART_PORT_E port,IN CONST TY_UART_BAUD_E ba
 *  Return: OPERATE_RET
 ***********************************************************/
 OPERATE_RET ty_uart_free(IN CONST TY_UART_PORT_E port)
-
 {
-    if(port >= TY_UART_NUM) {
-       return OPRT_INVALID_PARM;
-    }
-    serial_free(&ty_uart[port].sobj);
-    if(ty_uart[port].buf != NULL) {
-        Free(ty_uart[port].buf);
-        ty_uart[port].buf = NULL;
-    }
-    ty_uart[port].buf_len = 0;
+    printf("%s port=%d\n", __func__, port);
 
-   return OPRT_OK;
+    if(port != TY_UART0)
+       return OPRT_INVALID_PARM;
+
+    if(ty_uart.buf != NULL) {
+        Free(ty_uart.buf);
+        ty_uart.buf = NULL;
+    }
+    ty_uart.buf_len = 0;
+
+    drv_hsuart_deinit();
+    return OPRT_OK;
 }
 
 /***********************************************************
@@ -113,56 +124,58 @@ OPERATE_RET ty_uart_free(IN CONST TY_UART_PORT_E port)
 ***********************************************************/
 VOID ty_uart_send_data(IN CONST TY_UART_PORT_E port,IN CONST BYTE_T *data,IN CONST UINT_T len)
 {
-    if(port >= TY_UART_NUM) {
-        return;
-    }
+    printf("%s port=%d, data=0x%x, len=%d\n", __func__, port, data, len);
 
-    UINT_T i = 0;
-    for(i = 0;i < len;i++) {
-       serial_putc(&ty_uart[port].sobj, *(data+i));
-    }
+    if(port != TY_UART0 || NULL == data || 0 == len)
+        return;
+
+	drv_hsuart_write_fifo(data, len, HSUART_BLOCKING);
 }
 
-STATIC UINT __ty_uart_read_data_size(IN CONST TY_UART_PORT_E port)
+#if 0
+STATIC UINT_T __ty_uart_read_data_size(IN CONST TY_UART_PORT_E port)
 {
     UINT_T remain_buf_size = 0;
 
-    if(ty_uart[port].in >= ty_uart[port].out) {
-        remain_buf_size = ty_uart[port].in-ty_uart[port].out;
+    if(port != TY_UART0)
+		return 0;
+
+    if(ty_uart.in >= ty_uart.out) {
+        remain_buf_size = ty_uart.in-ty_uart.out;
     }else {
-        remain_buf_size = ty_uart[port].in + ty_uart[port].buf_len - ty_uart[port].out;
+        remain_buf_size = ty_uart.in + ty_uart.buf_len - ty_uart.out;
     }
 
     return remain_buf_size;
 }
 
 
-STATIC VOID __uart_irq(UINT_T id, SerialIrq event)
+STATIC VOID hsuart_isr(VOID)
 {
-    serial_t *sobj = (void*)id;
+    //serial_t *sobj = (void*)id;
     INT_T rc = 0;
     
     INT_T i = 0;
     for(i = 0;i < TY_UART_NUM;i++) {
-        if(&ty_uart[i].sobj == sobj) {
+        /*if(&ty_uart[i].sobj == sobj) {
             break;
-        }
+        }*/
     }
     
-    if(event == RxIrq) {
-        rc = serial_getc(sobj);
+    if(0) {//event == RxIrq) {
+        //rc = serial_getc(sobj);
         //PR_NOTICE("rc = %d", rc);
-        if(__ty_uart_read_data_size(i) < ty_uart[i].buf_len - 1) {
-            ty_uart[i].buf[ty_uart[i].in++] = rc;
-            if(ty_uart[i].in >= ty_uart[i].buf_len){
-                ty_uart[i].in = 0;
+        if(/*__ty_uart_read_data_size*/(i) < ty_uart.buf_len - 1) {
+            ty_uart.buf[ty_uart.in++] = rc;
+            if(ty_uart.in >= ty_uart.buf_len){
+                ty_uart.in = 0;
             }
         }else {
-            //PR_ERR("uart fifo is overflow! buf_zize:%d  data_get:%d",ty_uart[i].buf_len,__ty_uart_read_data_size(i));
+            //PR_ERR("uart fifo is overflow! buf_zize:%d  data_get:%d",ty_uart.buf_len,__ty_uart_read_data_size(i));
         }
     }
 }
-
+#endif
 
 /***********************************************************
 *  Function: ty_uart_send_data 
@@ -172,13 +185,14 @@ STATIC VOID __uart_irq(UINT_T id, SerialIrq event)
 ***********************************************************/
 UINT_T ty_uart_read_data(IN CONST TY_UART_PORT_E port,OUT BYTE_T *buf,IN CONST UINT_T len)
 {
-     if(NULL == buf || 0 == len) {
-        return 0;
-    }
+    printf("%s port=%d, buf=0x%x, len=%d\n", __func__, port, buf, len);
 
-    UINT_T actual_size = 0;
+     if(port != TY_UART0 || NULL == buf || 0 == len)
+        return 0;
+
+    /*UINT_T actual_size = 0;
     UINT_T cur_num = __ty_uart_read_data_size(port);
-    if(cur_num > ty_uart[port].buf_len - 1) {
+    if(cur_num > ty_uart.buf_len - 1) {
         PR_DEBUG("uart fifo is full! buf_zize:%d  len:%d",cur_num,len);
     }
 
@@ -190,13 +204,14 @@ UINT_T ty_uart_read_data(IN CONST TY_UART_PORT_E port,OUT BYTE_T *buf,IN CONST U
     //PR_NOTICE("uart_num = %d", cur_num);
     UINT_T i = 0;
     for(i = 0;i < actual_size;i++) {
-        *buf++ = ty_uart[port].buf[ty_uart[port].out++];
-        if(ty_uart[port].out >= ty_uart[port].buf_len) {
-            ty_uart[port].out = 0;
+        *buf++ = ty_uart.buf[ty_uart.out++];
+        if(ty_uart.out >= ty_uart.buf_len) {
+            ty_uart.out = 0;
         }
-    }
+    }*/
+	drv_hsuart_read_fifo(buf, len, HSUART_BLOCKING);
 
-    return actual_size;
+    return len;
 }
 
 

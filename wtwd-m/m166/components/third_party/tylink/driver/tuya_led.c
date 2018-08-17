@@ -4,10 +4,12 @@
 *  Date: 20171117
 ***********************************************************/
 #define __TUYA_LED_GLOBALS
+#include <string.h>
 #include "tuya_led.h"
 #include "sys_timer.h"
 #include "uni_mutex.h"
 #include "uni_log.h"
+#include "mem_pool.h"
 
 #define USHORT	USHORT_T
 #define UINT	UINT_T

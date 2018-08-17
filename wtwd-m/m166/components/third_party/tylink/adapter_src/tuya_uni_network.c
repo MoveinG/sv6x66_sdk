@@ -71,6 +71,8 @@ UNW_ERRNO_T tuya_unw_get_errno(VOID)
 INT_T tuya_unw_select(IN CONST INT_T maxfd,INOUT UNW_FD_SET *readfds,INOUT UNW_FD_SET *writefds,\
                OUT UNW_FD_SET *errorfds,IN CONST UINT_T ms_timeout)
 {
+    ty_net_printf("%s maxfd=%d, ms_timeout=%d\n", __func__, maxfd, ms_timeout);
+
     if(maxfd <= 0) {
         return UNW_FAIL;
     }
@@ -96,6 +98,8 @@ INT_T tuya_unw_select(IN CONST INT_T maxfd,INOUT UNW_FD_SET *readfds,INOUT UNW_F
 ***********************************************************/
 INT_T tuya_unw_get_nonblock(IN CONST INT_T fd)
 {
+    ty_net_printf("%s fd=%d\n", __func__, fd);
+
     if( fd < 0 ) {
         return -1;
     }
@@ -119,6 +123,8 @@ INT_T tuya_unw_get_nonblock(IN CONST INT_T fd)
 ***********************************************************/
 INT_T tuya_unw_set_block(IN CONST INT_T fd,IN CONST BOOL_T block)
 {
+    ty_net_printf("%s fd=%d, block=%d\n", __func__, fd, block);
+
     if( fd < 0 ) {
         return UNW_FAIL;
     }
@@ -174,7 +180,7 @@ INT_T tuya_unw_socket_create(IN CONST UNW_PROTOCOL_TYPE type)
     if(PROTOCOL_TCP == type) {
         fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     }else {
-        fd = socket(AF_INET, SOCK_DGRAM,0);
+        fd = socket(AF_INET, SOCK_DGRAM, 0);
     }
 
     return fd;
@@ -263,6 +269,8 @@ INT_T tuya_unw_listen(IN CONST INT_T fd,IN CONST INT_T backlog)
 ************************************************************/
 INT_T tuya_unw_accept(IN CONST INT_T fd,OUT UNW_IP_ADDR_T *addr,OUT USHORT_T *port)
 {
+    ty_net_printf("%s fd=%d, addr=0x%x\n", __func__, fd, addr);
+
     if( fd < 0 ) {
         return UNW_FAIL;
     }
@@ -344,6 +352,8 @@ INT_T tuya_unw_recv(IN CONST INT_T fd, OUT VOID *buf, IN CONST UINT_T nbytes)
 INT_T tuya_unw_recv_nd_size(IN CONST INT_T fd, OUT VOID *buf, \
                      IN CONST UINT_T buf_size,IN CONST UINT_T nd_size)
 {
+    ty_net_printf("%s fd=%d, buf_size=%d, nd_size=%d\n", __func__, fd, buf_size, nd_size);
+
     if(NULL == buf || \
        buf_size < nd_size) {
         return -1;
@@ -413,6 +423,8 @@ INT_T tuya_unw_recvfrom(IN CONST INT_T fd,OUT VOID *buf,IN CONST UINT_T nbytes,\
 INT_T tuya_unw_set_timeout(IN CONST INT_T fd,IN CONST INT_T ms_timeout,\
                     IN CONST UNW_TRANS_TYPE_E type)
 {    
+    ty_net_printf("%s fd=%d, ms_timeout=%d, type=%d\n", __func__, fd, ms_timeout, type);
+
     if( fd < 0 ) {
         return UNW_FAIL;
     }

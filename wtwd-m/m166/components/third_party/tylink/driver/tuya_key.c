@@ -4,10 +4,12 @@
 *  Date: 20171117
 ***********************************************************/
 #define __TUYA_KEY_GLOBALS
+#include <string.h>
 #include "tuya_key.h"
 #include "sys_timer.h"
 #include "uni_mutex.h"
 #include "uni_log.h"
+#include "mem_pool.h"
 
 /***********************************************************
 *************************micro define***********************

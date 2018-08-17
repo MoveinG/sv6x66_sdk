@@ -21,9 +21,11 @@ extern "C" {
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
-#define PRODUCT_KEY "DCfFKwjz8rxAe3fF"//"C14iixkNmv1CGNkJ"   DCfFKwjz8rxAe3fF  6c362d2905157cf336ik8z
+#define PRODUCT_KEY "AmTkt36gXlhjSxCH" //"DCfFKwjz8rxAe3fF"
 #define DEV_SW_VERSION USER_SW_VER
 
+#define APP_BIN_NAME	"mac_atcmd"
+#define USER_SW_VER		"0.0.1"
 /***********************************************************
 *************************variable define********************
 ***********************************************************/

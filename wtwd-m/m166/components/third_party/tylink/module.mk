@@ -15,7 +15,7 @@ LIB_SRC += hw_table.c
 LIB_SRC += driver/tuya_gpio.c
 LIB_SRC += driver/tuya_led.c
 LIB_SRC += driver/tuya_key.c
-#LIB_SRC += driver/tuya_uart.c
+LIB_SRC += driver/tuya_uart.c
 
 STATIC_LIB += $(MYDIR)/libtylink.a
 STATIC_LIB += $(TOPDIR)/out/components/third_party/tylink/adapter_src/tuya_uni_storge.o

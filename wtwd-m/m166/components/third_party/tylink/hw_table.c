@@ -44,7 +44,7 @@ static CTRL_CHANNEL channels[] =
         // 绑定dpid
         .dpid   = 1,
         // 绑定倒计时dpid DPID_NOT_EXIST表示不存在倒计时
-        .cd_dpid = 11,
+        .cd_dpid = 9,
     }
 };
 

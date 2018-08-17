@@ -7,12 +7,14 @@
 #include "tuya_iot_wifi_api.h"
 //#include "flash_api.h"
 //#include <device_lock.h>
-//#include "rtl8710b_ota.h"
+#include "tuya_device.h"
 #include "mf_test.h"
-//#include "tuya_uart.h"
+#include "tuya_uart.h"
 #include "tuya_gpio.h"
 #include "gw_intf.h"
 #include "wf_basic_intf.h"
+#include "fsal.h"
+#include "wdt/drv_wdt.h"
 
 #define PVOID	PVOID_T
 #define UINT	UINT_T
@@ -21,7 +23,9 @@
 *************************micro define***********************
 ***********************************************************/
 #define TEST_SSID "tuya_mdev_test1"
-
+#define OTA_BIN_FILENAME	"ota.bin"
+#define OTA_MD5_FILENAME	"ota_info.bin"
+extern spiffs* fs_handle;
 /***********************************************************
 *************************variable define********************
 ***********************************************************/
@@ -59,8 +63,6 @@ typedef VOID (*APP_PROD_CB)(BOOL_T flag, CHAR_T rssi);//lql
 STATIC APP_PROD_CB app_prod_test = NULL;//lql
 STATIC GW_WF_CFG_MTHD_SEL gwcm_mode = GWCM_OLD;//lql
 
-
-
 /***********************************************************
 *************************function define********************
 ***********************************************************/
@@ -76,7 +78,7 @@ STATIC VOID __gw_upgrade_notify_cb(IN CONST FW_UG_S *fw, IN CONST INT_T download
 
 STATIC OPERATE_RET __mf_gw_upgrade_notify_cb(VOID);
 STATIC VOID __mf_gw_ug_inform_cb(VOID);
-#if 0
+
 STATIC VOID __tuya_mf_uart_init(UINT_T baud,UINT_T bufsz)
 {
     ty_uart_init(TY_UART0,baud,TYWL_8B,TYP_NONE,TYS_STOPBIT1,bufsz);
@@ -95,7 +97,7 @@ STATIC UINT __tuya_mf_recv(OUT BYTE_T *buf,IN CONST UINT len)
 {
     return ty_uart_read_data(TY_UART0,buf,len);
 }
-#endif
+
 STATIC BOOL_T scan_test_ssid(VOID)
 {
 	//if(FALSE == get_new_prod_mode()) {
@@ -241,13 +243,12 @@ VOID __mf_gw_ug_inform_cb(VOID)
 // gateway upgrade start 
 STATIC VOID __gw_ug_inform_cb(IN CONST FW_UG_S *fw)
 {
-		#if 0
-    ug_proc = Malloc(SIZEOF(UG_PROC_S));
+    /*ug_proc = Malloc(SIZEOF(UG_PROC_S));
     if(NULL == ug_proc) {
         PR_ERR("malloc err");
         return;
     }
-    memset(ug_proc,0,SIZEOF(UG_PROC_S));
+    memset(ug_proc,0,SIZEOF(UG_PROC_S));*/
     OPERATE_RET op_ret = OPRT_OK;
     op_ret = tuya_iot_upgrade_gw(fw,__gw_upgrage_process_cb,__gw_upgrade_notify_cb,NULL);
     if(OPRT_OK != op_ret) {
@@ -255,15 +256,14 @@ STATIC VOID __gw_ug_inform_cb(IN CONST FW_UG_S *fw)
         return;
     }
 
-    memset(ug_proc,0,SIZEOF(UG_PROC_S));
+    /*memset(ug_proc,0,SIZEOF(UG_PROC_S));
     if (ota_get_cur_index() == OTA_INDEX_1) {
         ug_proc->ota_index = OTA_INDEX_2;
         PR_DEBUG("OTA2 address space will be upgraded\n");
     } else {
         ug_proc->ota_index = OTA_INDEX_1;
         PR_DEBUG("OTA1 address space will be upgraded\n");
-    }
-    #endif
+    }*/
 }
 // mf gateway upgrade result notify
 OPERATE_RET __mf_gw_upgrade_notify_cb(VOID)
@@ -297,265 +297,51 @@ OPERATE_RET __mf_gw_upgrade_notify_cb(VOID)
 // gateway upgrade result notify
 STATIC VOID __gw_upgrade_notify_cb(IN CONST FW_UG_S *fw, IN CONST INT_T download_result, IN PVOID pri_data)
 {
-	#if 0
-    if(OPRT_OK == download_result) { // update success
-        // verify 
-        u32 ret = 0;
-        ret = verify_ota_checksum(ug_proc->new_addr,ug_proc->DownloadInfo[0].ImageLen, \ 
-                                  ug_proc->signature,&ug_proc->hdr);
-        if(1 != ret) {
-            PR_ERR("verify_ota_checksum err");
+	printf("url=%s\n", fw->fw_url);
+	printf("%s tp=%d, ver=%s, size=%d, result=%d\n", __func__, fw->tp, fw->sw_ver, fw->file_size, download_result);
+	printf("%s\n", fw->fw_md5);
 
-            device_mutex_lock(RT_DEV_LOCK_FLASH);
-            flash_erase_sector(&ug_proc->flash, ug_proc->new_addr - SPI_FLASH_BASE);
-            device_mutex_unlock(RT_DEV_LOCK_FLASH);
-            return;
-        }
+    if(OPRT_OK == download_result) // update success
+	{
+		SSV_FILE fd = FS_open(fs_handle, OTA_MD5_FILENAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
 
-        if(!change_ota_signature(ug_proc->new_addr, ug_proc->signature, ug_proc->ota_index)) {
-            PR_ERR("change signature failed\n");
-            return;
-        }
+		uint32_t write_len = FS_write(fs_handle, fd, fw->fw_md5, sizeof(fw->fw_md5));
+		FS_close(fs_handle, fd);
+		//if(write_len == sizeof(fw->fw_md5))
+		{
+			ota_set_parameter(OTA_BIN_FILENAME, "");
+			ota_update();
 
-        PR_NOTICE("the gateway upgrade success");
-        ota_platform_reset();
-        return;
-    }else {
-        PR_ERR("the gateway upgrade failed");
-    }
-	#endif
+			drv_wdt_init(); //reboot
+			drv_wdt_enable(1/*SYS_WDT*/, 100);
+		}
+	}
+	else FS_remove(fs_handle, OTA_BIN_FILENAME);
 }
 
 // gateway upgrade process
 STATIC OPERATE_RET __gw_upgrage_process_cb(IN CONST FW_UG_S *fw, IN CONST UINT total_len,IN CONST UINT offset,\
                                                       IN CONST BYTE_T *data,IN CONST UINT len,OUT UINT *remain_len, IN PVOID pri_data)
 {
-	
-	#if 0
-    STATIC UINT ota_hd_len = 0;
+	*remain_len = 0;
+	//printf("%s tp=%d, ver=%s, size=%d\n", __func__, fw->tp, fw->sw_ver, fw->file_size);
+	//printf("total_len=%d, offset=%d, data=0x%x, len=%d, *remain_len=%d, pri_data=%x\n", total_len, offset, data, len, *remain_len, pri_data);
 
-    switch(ug_proc->stat) {
-        case UGS_RECV_HEADER: {
-            if(len < SIZEOF(update_file_hdr)) {
-                *remain_len = len;
-                break;
-            }
+	SSV_FILE fd = FS_open(fs_handle, OTA_BIN_FILENAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
 
-            memcpy(&ug_proc->hdr.FileHdr,data,SIZEOF(update_file_hdr));
-            ug_proc->stat = UGS_RECV_OTA_HD;
-            ota_hd_len = (ug_proc->hdr.FileHdr.HdrNum) * SIZEOF(update_file_img_hdr);
-            *remain_len = len;
-            
-            PR_DEBUG("ota_hd_len:%d",ota_hd_len);
-        }
-        break;
-
-        case UGS_RECV_OTA_HD: {
-            if(len < ota_hd_len+SIZEOF(update_file_hdr)) {
-                *remain_len = len;
-                break;
-            }
-
-            char * pImgId = NULL;
-            if(OTA_INDEX_1 == ug_proc->ota_index) {
-                pImgId = "OTA1";
-            }else {
-                pImgId = "OTA2";
-            }
-
-            u32 ret = 0;
-            ret = get_ota_tartget_header(data,(ota_hd_len+SIZEOF(update_file_hdr)), \
-                                         &(ug_proc->hdr), pImgId);
-            if(0 == ret) {
-                PR_ERR("get_ota_tartget_header err");
-                return OPRT_COM_ERROR;
-            }
-
-            // get new image addr and check new address validity
-            if(!get_ota_address(ug_proc->ota_index, &ug_proc->new_addr, &(ug_proc->hdr))) {
-                PR_ERR("get_ota_address err");
-                return OPRT_COM_ERROR;
-            }
-
-            u32 new_img_len = ug_proc->hdr.FileImgHdr.ImgLen;
-            
-            PR_NOTICE("ug_proc->new_addr:0x%x",ug_proc->new_addr);
-            PR_NOTICE("new_img_len:%d",new_img_len);
-            if(new_img_len > (0x80000 - 0xB000)) {
-                PR_ERR("image length is too big");
-                return OPRT_COM_ERROR;
-            }
-            erase_ota_target_flash(ug_proc->new_addr, new_img_len);
-            if(ug_proc->hdr.RdpStatus == ENABLE) {
-                device_mutex_lock(RT_DEV_LOCK_FLASH);
-                flash_erase_sector(&ug_proc->flash, RDP_FLASH_ADDR - SPI_FLASH_BASE);
-                device_mutex_unlock(RT_DEV_LOCK_FLASH);
-            }
-
-            // 暂时仅支持image的升级
-            if(ug_proc->hdr.RdpStatus == ENABLE) {
-                ug_proc->image_cnt = 2;
-                if(ug_proc->hdr.FileImgHdr.Offset < ug_proc->hdr.FileRdpHdr.Offset) {
-                    ug_proc->DownloadInfo[0].ImgId = OTA_IMAG;
-                    /* get OTA image and Write New Image to flash, skip the signature,
-                    not write signature first for power down protection*/
-                    ug_proc->DownloadInfo[0].FlashAddr = ug_proc->new_addr -SPI_FLASH_BASE + 8;
-                    ug_proc->DownloadInfo[0].ImageLen = ug_proc->hdr.FileImgHdr.ImgLen - 8;/*skip the signature*/
-                    ug_proc->DownloadInfo[0].ImgOffset = ug_proc->hdr.FileImgHdr.Offset;
-                    #if 0
-                    ug_proc->DownloadInfo[1].ImgId = RDP_IMAG;
-                    ug_proc->DownloadInfo[1].FlashAddr = RDP_FLASH_ADDR - SPI_FLASH_BASE;
-                    ug_proc->DownloadInfo[1].ImageLen = ug_proc->hdr.FileRdpHdr.ImgLen;
-                    ug_proc->DownloadInfo[1].ImgOffset = ug_proc->hdr.FileRdpHdr.Offset;
-                    #endif
-                } else {
-                    #if 0
-                    ug_proc->DownloadInfo[0].ImgId = RDP_IMAG;
-                    ug_proc->DownloadInfo[0].FlashAddr = RDP_FLASH_ADDR - SPI_FLASH_BASE;
-                    ug_proc->DownloadInfo[0].ImageLen = ug_proc->hdr.FileRdpHdr.ImgLen;
-                    ug_proc->DownloadInfo[0].ImgOffset = ug_proc->hdr.FileRdpHdr.Offset;  
-                    ug_proc->DownloadInfo[1].ImgId = OTA_IMAG;
-                    /* get OTA image and Write New Image to flash, skip the signature, 
-                    not write signature first for power down protection*/
-                    ug_proc->DownloadInfo[1].FlashAddr = ug_proc->new_addr -SPI_FLASH_BASE + 8;
-                    ug_proc->DownloadInfo[1].ImageLen = ug_proc->hdr.FileImgHdr.ImgLen - 8;/*skip the signature*/
-                    ug_proc->DownloadInfo[1].ImgOffset = ug_proc->hdr.FileImgHdr.Offset;
-                    #else
-                    ug_proc->DownloadInfo[0].ImgId = OTA_IMAG;
-                    /* get OTA image and Write New Image to flash, skip the signature, 
-                    not write signature first for power down protection*/
-                    ug_proc->DownloadInfo[0].FlashAddr = ug_proc->new_addr -SPI_FLASH_BASE + 8;
-                    ug_proc->DownloadInfo[0].ImageLen = ug_proc->hdr.FileImgHdr.ImgLen - 8;/*skip the signature*/
-                    ug_proc->DownloadInfo[0].ImgOffset = ug_proc->hdr.FileImgHdr.Offset;
-                    #endif
-                }
-            }else {
-                ug_proc->image_cnt = 1;
-                ug_proc->DownloadInfo[0].ImgId = OTA_IMAG;
-                /* get OTA image and Write New Image to flash, skip the signature, 
-                not write signature first for power down protection*/
-                ug_proc->DownloadInfo[0].FlashAddr = ug_proc->new_addr -SPI_FLASH_BASE + 8;
-                ug_proc->DownloadInfo[0].ImageLen = ug_proc->hdr.FileImgHdr.ImgLen - 8;/*skip the signature*/
-                ug_proc->DownloadInfo[0].ImgOffset = ug_proc->hdr.FileImgHdr.Offset;
-            }
-            PR_NOTICE("FlashAddr = 0x%x", ug_proc->DownloadInfo[0].FlashAddr);
-            PR_NOTICE("ImageLen = %d", ug_proc->DownloadInfo[0].ImageLen);
-            PR_NOTICE("ImgOffset = %d", ug_proc->DownloadInfo[0].ImgOffset);
-            PR_NOTICE("OTA Image Address = 0x%x", ug_proc->new_addr);
-            if(ug_proc->hdr.RdpStatus == ENABLE) {
-                PR_NOTICE("RDP Image Address = %x", RDP_FLASH_ADDR);
-            }
-
-            ug_proc->recv_data_cnt = ota_hd_len + sizeof(update_file_hdr); // (ug_proc->hdr.FileHdr.HdrNum * ug_proc->hdr.FileImgHdr.ImgHdrLen)
-            *remain_len = len - (ota_hd_len+SIZEOF(update_file_hdr));
-            ug_proc->stat = UGS_SEARCH_SIGN;
-        }
-        break;
-
-        case UGS_SEARCH_SIGN: {
-            if(ug_proc->recv_data_cnt + len < ug_proc->DownloadInfo[0].ImgOffset) {
-                ug_proc->recv_data_cnt += len;
-                *remain_len = 0;
-                break;
-            }
-            PR_NOTICE("ug_proc->recv_data_cnt:%d",ug_proc->recv_data_cnt);
-            PR_NOTICE("len:%d",len);
-
-            INT_T offset = (ug_proc->DownloadInfo[0].ImgOffset - ug_proc->recv_data_cnt);
-            *remain_len = len - offset;
-            if(*remain_len < SIZEOF(ug_proc->signature)) {
-                ug_proc->recv_data_cnt += offset;
-                ug_proc->stat = UGS_RECV_SIGN;
-            }else {
-                mempcpy(ug_proc->signature,data+offset,SIZEOF(ug_proc->signature));
-                *remain_len -= SIZEOF(ug_proc->signature);
-                ug_proc->stat = UGS_RECV_IMG_DATA;
-            }
-        }
-        break;
-
-        case UGS_RECV_SIGN: {
-            if(len < SIZEOF(ug_proc->signature)) { // 8 is signature
-                *remain_len = len;
-                break;
-            }
-
-            mempcpy(ug_proc->signature,data,SIZEOF(ug_proc->signature));
-
-            #if 0
-            INT_T i = 0;
-            PR_DEBUG_RAW("ug_proc->signature:");
-            for(i = 0;i < SIZEOF(ug_proc->signature);i++) {
-                PR_DEBUG_RAW("%02x",ug_proc->signature[i]);
-            }
-            PR_DEBUG_RAW("\n");
-            #endif
-            
-            ug_proc->recv_data_cnt += 8;
-            *remain_len = len-8;
-            ug_proc->stat = UGS_RECV_IMG_DATA;
-        }
-        break;
-
-        case UGS_RECV_IMG_DATA: {
-            #define RT_IMG_WR_UNIT 1024
-            if(ug_proc->cur_image_cnt[0] >= ug_proc->DownloadInfo[0].ImageLen) {
-                ug_proc->stat = UGS_FINISH;
-                *remain_len = len;
-                break;
-            }
-
-            if((ug_proc->cur_image_cnt[0] + len < ug_proc->DownloadInfo[0].ImageLen) && \
-               (len < RT_IMG_WR_UNIT)) {
-                *remain_len = len;
-                break;
-            }
-
-            u32 write_len = 0;
-            if(ug_proc->cur_image_cnt[0] + len < ug_proc->DownloadInfo[0].ImageLen) {
-                write_len = RT_IMG_WR_UNIT;
-            }else {
-                write_len = (ug_proc->DownloadInfo[0].ImageLen - ug_proc->cur_image_cnt[0]);
-            }
-
-            device_mutex_lock(RT_DEV_LOCK_FLASH);
-            #if 0
-            {
-                PR_DEBUG_RAW("wirite data:");
-                INT_T i = 0;
-                for(i = 0;i < 16;i++) {
-                    PR_DEBUG_RAW("%02x ",data[i]);
-                }
-                PR_DEBUG_RAW("\n");
-            }
-
-            #endif
-            if(flash_stream_write(&ug_proc->flash, ug_proc->DownloadInfo[0].FlashAddr + ug_proc->cur_image_cnt[0], \
-                                  write_len, data) < 0) {
-                device_mutex_unlock(RT_DEV_LOCK_FLASH);
-                PR_ERR("[%s] Write sector failed");
-                return OPRT_WR_FLASH_ERROR;
-            }
-            device_mutex_unlock(RT_DEV_LOCK_FLASH);
-
-            ug_proc->cur_image_cnt[0] += write_len;
-            ug_proc->recv_data_cnt += write_len;
-            *remain_len = len - write_len;
-
-            if(ug_proc->cur_image_cnt[0] >= ug_proc->DownloadInfo[0].ImageLen) {
-                ug_proc->stat = UGS_FINISH;
-                break;
-            }
-        }
-        break;
-
-        case UGS_FINISH: {
-            *remain_len = 0;
-        }
-        break;
-    }
-    
-#endif
+	int32_t seek_pos = FS_lseek(fs_handle, fd, offset, SPIFFS_SEEK_SET);
+	if(offset != seek_pos)
+	{
+		printf("seek_pos=%d, offset=%d\n", (int)seek_pos, offset);
+		return OPRT_WR_FLASH_ERROR;
+	}
+	int32_t write_len = FS_write(fs_handle, fd, (void*)data, len);
+	if(write_len != len)
+	{
+		printf("write_len=%d, len=%d\n", (int)write_len, len);
+		return OPRT_WR_FLASH_ERROR;
+	}
+	FS_close(fs_handle, fd);
 
     return OPRT_OK;
 }
