@@ -11,11 +11,12 @@
 #include "uni_log.h"
 #include "mem_pool.h"
 
+#define uart_printf
+
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
-//#define UART_TX PA_23 //UART0 TX
-//#define UART_RX PA_18 //UART0 RX 
+#define UARTR_ONCE_SIZE	32
 
 typedef struct {
     //serial_t sobj;
@@ -45,7 +46,7 @@ OPERATE_RET ty_uart_init(IN CONST TY_UART_PORT_E port,IN CONST TY_UART_BAUD_E ba
                                IN CONST TY_DATA_BIT_E bits,IN CONST TY_PARITY_E parity,\
                                IN CONST TY_STOPBITS_E stop,IN CONST UINT_T bufsz)
 {
-    printf("%s port=%d, badu=%d, bits=%d, parity=%d, stop=%d, bufsz=%d\n", __func__, port, badu, bits, parity, stop, bufsz);
+    uart_printf("%s port=%d, badu=%d, bits=%d, parity=%d, stop=%d, bufsz=%d\n", __func__, port, badu, bits, parity, stop, bufsz);
 
     if((port != TY_UART0) || (bufsz == 0))
         return OPRT_INVALID_PARM;
@@ -85,10 +86,10 @@ OPERATE_RET ty_uart_init(IN CONST TY_UART_PORT_E port,IN CONST TY_UART_BAUD_E ba
     {
         Free(ty_uart.buf);
         ty_uart.buf = NULL;
-        printf("%s retval=%d\n", retval);
+        uart_printf("%s retval=%d\n", retval);
         return OPRT_COM_ERROR;
     }
-    //drv_hsuart_register_isr (HSUART_RX_DATA_READY_IE, hsuart_isr);
+    drv_hsuart_register_isr(HSUART_RX_DATA_READY_IE, hsuart_isr);
     
     return OPRT_OK;
 }
@@ -101,7 +102,7 @@ OPERATE_RET ty_uart_init(IN CONST TY_UART_PORT_E port,IN CONST TY_UART_BAUD_E ba
 ***********************************************************/
 OPERATE_RET ty_uart_free(IN CONST TY_UART_PORT_E port)
 {
-    printf("%s port=%d\n", __func__, port);
+    uart_printf("%s port=%d\n", __func__, port);
 
     if(port != TY_UART0)
        return OPRT_INVALID_PARM;
@@ -124,7 +125,7 @@ OPERATE_RET ty_uart_free(IN CONST TY_UART_PORT_E port)
 ***********************************************************/
 VOID ty_uart_send_data(IN CONST TY_UART_PORT_E port,IN CONST BYTE_T *data,IN CONST UINT_T len)
 {
-    printf("%s port=%d, data=0x%x, len=%d\n", __func__, port, data, len);
+    uart_printf("%s port=%d, data=0x%x, len=%d\n", __func__, port, data, len);
 
     if(port != TY_UART0 || NULL == data || 0 == len)
         return;
@@ -132,7 +133,6 @@ VOID ty_uart_send_data(IN CONST TY_UART_PORT_E port,IN CONST BYTE_T *data,IN CON
 	drv_hsuart_write_fifo(data, len, HSUART_BLOCKING);
 }
 
-#if 0
 STATIC UINT_T __ty_uart_read_data_size(IN CONST TY_UART_PORT_E port)
 {
     UINT_T remain_buf_size = 0;
@@ -153,29 +153,27 @@ STATIC UINT_T __ty_uart_read_data_size(IN CONST TY_UART_PORT_E port)
 STATIC VOID hsuart_isr(VOID)
 {
     //serial_t *sobj = (void*)id;
-    INT_T rc = 0;
+    INT_T retval;
     
-    INT_T i = 0;
+    /*INT_T i = 0;
     for(i = 0;i < TY_UART_NUM;i++) {
-        /*if(&ty_uart[i].sobj == sobj) {
+        if(&ty_uart[i].sobj == sobj) {
             break;
-        }*/
-    }
-    
-    if(0) {//event == RxIrq) {
-        //rc = serial_getc(sobj);
-        //PR_NOTICE("rc = %d", rc);
-        if(/*__ty_uart_read_data_size*/(i) < ty_uart.buf_len - 1) {
-            ty_uart.buf[ty_uart.in++] = rc;
-            if(ty_uart.in >= ty_uart.buf_len){
-                ty_uart.in = 0;
-            }
-        }else {
-            //PR_ERR("uart fifo is overflow! buf_zize:%d  data_get:%d",ty_uart.buf_len,__ty_uart_read_data_size(i));
         }
-    }
+    }*/
+    
+	retval = ty_uart.buf_len - ty_uart.in - 1;
+    if(retval > UARTR_ONCE_SIZE) retval = UARTR_ONCE_SIZE;
+
+    retval = drv_hsuart_read_fifo(ty_uart.buf+ty_uart.in, retval, HSUART_NON_BLOCKING);
+	if(retval >= 0)
+	{
+	    ty_uart.in += retval;
+    	if(ty_uart.in >= ty_uart.buf_len) ty_uart.in = 0;
+	}
+	else uart_printf("hsuart_isr=%d\n", retval);
+
 }
-#endif
 
 /***********************************************************
 *  Function: ty_uart_send_data 
@@ -185,12 +183,12 @@ STATIC VOID hsuart_isr(VOID)
 ***********************************************************/
 UINT_T ty_uart_read_data(IN CONST TY_UART_PORT_E port,OUT BYTE_T *buf,IN CONST UINT_T len)
 {
-    printf("%s port=%d, buf=0x%x, len=%d\n", __func__, port, buf, len);
+    uart_printf("%s port=%d, buf=0x%x, len=%d\n", __func__, port, buf, len);
 
-     if(port != TY_UART0 || NULL == buf || 0 == len)
+    if(port != TY_UART0 || NULL == buf || 0 == len)
         return 0;
 
-    /*UINT_T actual_size = 0;
+    UINT_T actual_size = 0;
     UINT_T cur_num = __ty_uart_read_data_size(port);
     if(cur_num > ty_uart.buf_len - 1) {
         PR_DEBUG("uart fifo is full! buf_zize:%d  len:%d",cur_num,len);
@@ -201,17 +199,18 @@ UINT_T ty_uart_read_data(IN CONST TY_UART_PORT_E port,OUT BYTE_T *buf,IN CONST U
     }else {
         actual_size = len;
     }
-    //PR_NOTICE("uart_num = %d", cur_num);
+    uart_printf("cur_num=%d, actual_size = %d\n", cur_num, actual_size);
+
     UINT_T i = 0;
     for(i = 0;i < actual_size;i++) {
         *buf++ = ty_uart.buf[ty_uart.out++];
         if(ty_uart.out >= ty_uart.buf_len) {
             ty_uart.out = 0;
         }
-    }*/
-	drv_hsuart_read_fifo(buf, len, HSUART_BLOCKING);
+    }
+	//return  drv_hsuart_read_fifo(buf, len, HSUART_NON_BLOCKING);
 
-    return len;
+    return actual_size;
 }
 
 

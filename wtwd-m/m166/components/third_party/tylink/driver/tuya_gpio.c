@@ -11,6 +11,7 @@
 #include "mem_pool.h"
 #include "uni_log.h"
 
+#define gpio_printf
 #if 0
 /***********************************************************
 *************************micro define***********************
@@ -81,6 +82,7 @@ TY_GPIO_MAP_S gpio_map_list[] = {
 ***********************************************************/
 OPERATE_RET tuya_gpio_inout_set(IN CONST TY_GPIO_PORT_E port,IN CONST BOOL_T in)
 {
+    gpio_printf("%s port=%d, in=%d\n", __func__, port, in);
 #if 0
     if(NULL == gpio_map_list[port].pf_obj) {
         gpio_map_list[port].pf_obj = Malloc(SIZEOF(gpio_t));
@@ -114,6 +116,7 @@ OPERATE_RET tuya_gpio_inout_set(IN CONST TY_GPIO_PORT_E port,IN CONST BOOL_T in)
 ***********************************************************/
 INT_T tuya_gpio_read(IN CONST TY_GPIO_PORT_E port)
 {
+    gpio_printf("%s port=%d\n", __func__, port);
 #if 0
     if(NULL == gpio_map_list[port].pf_obj) {
         return -1;
@@ -134,6 +137,7 @@ INT_T tuya_gpio_read(IN CONST TY_GPIO_PORT_E port)
 ***********************************************************/
 OPERATE_RET tuya_gpio_write(IN CONST TY_GPIO_PORT_E port,IN CONST BOOL_T high)
 {  
+    gpio_printf("%s port=%d, high=%d\n", __func__, port, high);
 #if 0
     if(NULL == gpio_map_list[port].pf_obj) {
         PR_ERR("tuya_gpio_write err");

@@ -163,7 +163,7 @@ void user_main(void)
     }
 
     pre_device_init();
-#if 0
+#if 1
     // to add prodect test code
     mf_reg_gw_ug_cb(__mf_gw_ug_inform_cb, __gw_upgrage_process_cb, __mf_gw_upgrade_notify_cb);
     MF_IMPORT_INTF_S intf = {
@@ -173,7 +173,7 @@ void user_main(void)
         __tuya_mf_recv,
         gpio_test,
     };
-    op_ret = mf_init(&intf,APP_BIN_NAME,USER_SW_VER,TRUE);
+    op_ret = mf_init(&intf,APP_BIN_NAME,USER_SW_VER,FALSE);
     if(OPRT_OK != op_ret) {
         PR_ERR("mf_init err:%d",op_ret);
         return;
@@ -185,7 +185,7 @@ void user_main(void)
     tuya_iot_force_reg_gw_ug_cb(__gw_ug_inform_cb);
 
 // for debug
-#if 1
+#if 0
     WF_GW_PROD_INFO_S wf_prod_info = {
         "003tuyatestf7f149189","NeA8Wc7srpAZHEMuru867oblOLN2QCC5",NULL,NULL
     };

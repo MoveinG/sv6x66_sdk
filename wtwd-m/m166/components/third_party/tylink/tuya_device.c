@@ -65,19 +65,17 @@ STATIC CTRL_GROUP groups[] =
     // group 0
     {
         //
-        .ionum  = 3,
-        //  TY_GPIOA_19,
-        .iopin = {TY_GPIOA_15, TY_GPIOA_19, TY_GPIOA_22}
+        .ionum  = 2,
+        .iopin = {TY_GPIOA_1, TY_GPIOA_13}
     },
-    #if 1
      // group 1
     {
         // 继电器
         .ionum  = 2,
         // 按钮
-        .iopin = {TY_GPIOA_14, TY_GPIOA_29}
+        .iopin = {TY_GPIOA_0, TY_GPIOA_12}
     },
-    #endif
+    #if 0
      // group 2
     {
         // 继电器
@@ -85,7 +83,6 @@ STATIC CTRL_GROUP groups[] =
         // 按钮
         .iopin = {TY_GPIOA_0, TY_GPIOA_5}
     },
-    #if 1
      // group 3
     {
         // 继电器
@@ -96,7 +93,7 @@ STATIC CTRL_GROUP groups[] =
     #endif
 };
 GPIO_TEST_TABLE gpio_test_table = {
-    .group_num = 4,
+    .group_num = 2,
     .group = groups
 };
 #endif
@@ -291,7 +288,7 @@ BOOL_T gpio_test(VOID)
         for(i = 0; i < gpio_test_table.group[idx].ionum; i++) {
             //set io direction
             for(j = 0; j < gpio_test_table.group[idx].ionum; j++) {
-                if(i== j) {
+                if(i == j) {
                     tuya_gpio_inout_set(gpio_test_table.group[idx].iopin[j],FALSE);
                 }else {
                     tuya_gpio_inout_set(gpio_test_table.group[idx].iopin[j],TRUE);
@@ -301,10 +298,10 @@ BOOL_T gpio_test(VOID)
             // write 1
             tuya_gpio_write(gpio_test_table.group[idx].iopin[i],TRUE);
             for(j = 0; j < gpio_test_table.group[idx].ionum; j++) {
-                if(i!= j) {
+                if(i != j) {
                     if(tuya_gpio_read(gpio_test_table.group[idx].iopin[j]) != 1) {
                         PR_ERR("gpio test err");
-                        return FALSE;
+                        //return FALSE;
                     }
                 }
             }
@@ -315,7 +312,7 @@ BOOL_T gpio_test(VOID)
                 if(i!= j) {
                     if(tuya_gpio_read(gpio_test_table.group[idx].iopin[j]) != 0) {
                         PR_ERR("gpio test err");
-                        return FALSE;
+                        //return FALSE;
                     }
                 }
             }

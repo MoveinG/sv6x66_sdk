@@ -531,7 +531,7 @@ void APP_Init(void)
 #endif
 
 #if 1
-	OS_TaskCreate(TaskBmp, "TaskBmp", 2048, NULL, TaskBmp_TASK_PRIORITY, NULL);
+	OS_TaskCreate(TaskBmp, "TaskBmp", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
 #if 1

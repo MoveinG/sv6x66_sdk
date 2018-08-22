@@ -25,7 +25,7 @@ extern "C" {
 #define DEV_SW_VERSION USER_SW_VER
 
 #define APP_BIN_NAME	"mac_atcmd"
-#define USER_SW_VER		"0.0.1"
+#define USER_SW_VER		"0.0.2"
 /***********************************************************
 *************************variable define********************
 ***********************************************************/

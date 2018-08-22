@@ -5,20 +5,20 @@
 ***********************************************************/
 #define _UNI_THREAD_GLOBAL
 #include "tuya_uni_thread.h"
-//#include "uni_mutex.h"
-//#include "uni_pointer.h"
+#include "uni_mutex.h"
+#include "uni_pointer.h"
 #include "uni_log.h"
-//#include "FreeRTOS.h"
-//#include "task.h"
+#include "FreeRTOS.h"
+#include "mem_pool.h"
 #include "osal.h"
-//#include <string.h>
+#include <string.h>
 
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
 // thread id
-typedef OsTaskHandle THREAD;
-#if 0
+typedef xTaskHandle THREAD;
+
 // 定义线程管理结构
 typedef struct
 {
@@ -127,7 +127,6 @@ STATIC VOID __free_all_del_thrd_node(VOID)
     }
     MutexUnLock(s_del_thrd_mag->mutex);
 }
-#endif
 
 /***********************************************************
 *  Function: CreateAndStart 创建并正常运行，在其他线程中可进行JOIN处理
@@ -146,26 +145,49 @@ OPERATE_RET tuya_CreateAndStart(OUT THRD_HANDLE *pThrdHandle,\
                            IN CONST PVOID_T pThrdFuncArg,\
                            IN CONST THRD_PARAM_S *thrd_param)
 {
+    if(NULL == s_del_thrd_mag)
+    {
+        PR_DEBUG("Init Thread Del Mgr");
+        __cr_and_init_del_thrd_mag();
+    }
+
     if(!pThrdHandle || !pThrdFunc)
     {
         PR_ERR("Invalid Param");
         return OPRT_INVALID_PARM;
     }
 
-    BaseType_t ret;
-    OS_EnterCritical();
-    ret = OS_TaskCreate(pThrdFunc, thrd_param->thrdname, thrd_param->stackDepth, pThrdFuncArg, thrd_param->priority, pThrdHandle);
-    OS_ExitCritical();
-	if (ret == 0) {
+    THRD_MANAGE *pMgr = (P_THRD_MANAGE)Malloc(sizeof(THRD_MANAGE));
+    if(pMgr == NULL)
+    {
+        PR_ERR("Malloc Thread Mgr Fails");
+        return OPRT_MALLOC_FAILED;
+    }
+
+    INIT_LIST_HEAD(&(pMgr->node));
+
+    pMgr->thrdRunSta = STATE_EMPTY;
+    pMgr->pThrdFunc = pThrdFunc;
+    pMgr->pThrdFuncArg = pThrdFuncArg;
+    pMgr->enter = enter;
+    pMgr->exit = exit;
+
+    *pThrdHandle = pMgr;
+    BaseType_t ret = 0;
+    ret = xTaskCreate(__WrapRunFunc, thrd_param->thrdname, thrd_param->stackDepth/sizeof(portSTACK_TYPE), \
+                      pMgr, thrd_param->priority, &(pMgr->thrdID));
+    if(ret != pdPASS)
+    {
         PR_ERR("xTaskCreate %d", ret);
+        Free(pMgr);
         *pThrdHandle = NULL;
         return OPRT_THRD_CR_FAILED;
     }
 
+
     return OPRT_OK;
 }
 
-#if 0
 STATIC void __WrapRunFunc(IN PVOID_T pArg)
 {
     __free_all_del_thrd_node();
@@ -200,7 +222,6 @@ STATIC void __WrapRunFunc(IN PVOID_T pArg)
 
     THRD_RETURN;
 }
-#endif
 
 /***********************************************************
 *  Function: GetThrdSta
@@ -216,7 +237,9 @@ THRD_STA tuya_GetThrdSta(IN CONST THRD_HANDLE thrdHandle)
         return -1;
     }
 
-    return STATE_RUNNING;
+    P_THRD_MANAGE pThrdManage = (P_THRD_MANAGE)thrdHandle;
+
+    return pThrdManage->thrdRunSta;
 }
 
 /***********************************************************
@@ -232,11 +255,20 @@ OPERATE_RET tuya_DeleteThrdHandle(IN CONST THRD_HANDLE thrdHandle)
         return OPRT_INVALID_PARM;
     }
 
-	OS_TaskDelete(thrdHandle);
+    P_THRD_MANAGE pThrdManage = (P_THRD_MANAGE)thrdHandle;
+
+    MutexLock(s_del_thrd_mag->mutex);
+    if(STATE_EMPTY == pThrdManage->thrdRunSta) {
+        MutexUnLock(s_del_thrd_mag->mutex);
+        return OPRT_COM_ERROR;
+    }
+    MutexUnLock(s_del_thrd_mag->mutex);
+
+    __add_del_thrd_node(pThrdManage);
+
     return OPRT_OK;
 }
 
-#if 0
 /***********************************************************
 *  Function: __GetThrdId
 *  Input: thrdHandle->线程句柄 
@@ -266,7 +298,6 @@ STATIC THREAD __GetSelfId(VOID)
 
     return task_handle;
 }
-#endif
 
 /***********************************************************
 *  Function: ThreadRunSelfSpace
@@ -280,8 +311,18 @@ OPERATE_RET tuya_ThreadRunSelfSpace(IN CONST THRD_HANDLE thrdHandle,OUT BOOL_T *
         return OPRT_INVALID_PARM;
     }
 
-	OsTaskHandle cur_handle = OS_TaskGetCurrHandle();
-    if(cur_handle == thrdHandle) {
+    THREAD thrd1,thrd2;
+    thrd1 = __GetThrdId(thrdHandle);
+    if(thrd1 == (THREAD)-1) {
+        return OPRT_COM_ERROR;
+    }
+
+    thrd2 = __GetSelfId();
+    if(thrd2 == (THREAD)-1) {
+        return OPRT_COM_ERROR;
+    }
+
+    if(thrd1 == thrd2) {
         *bl = TRUE;
     }else {
         *bl = FALSE;
