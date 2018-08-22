@@ -200,8 +200,8 @@ OPERATE_RET dev_report_dp_json_async(IN CONST CHAR_T *dev_id,IN CONST TY_OBJ_DP_
 *  Return: OPERATE_RET
 ***********************************************************/
 OPERATE_RET dev_report_dp_raw_sync(IN CONST CHAR_T *dev_id,IN CONST BYTE_T dpid,\
-                                              IN CONST BYTE_T *data,IN CONST UINT_T len,\
-                                              IN CONST UINT_T timeout);
+                                   IN CONST BYTE_T *data,IN CONST UINT_T len,\
+                                   IN CONST UINT_T timeout);
 
 /***********************************************************
 *  Function: dev_report_dp_stat_sync
@@ -216,8 +216,24 @@ OPERATE_RET dev_report_dp_raw_sync(IN CONST CHAR_T *dev_id,IN CONST BYTE_T dpid,
 *  Return: OPERATE_RET
 ***********************************************************/
 OPERATE_RET dev_report_dp_stat_sync(IN CONST CHAR_T *dev_id,IN CONST TY_OBJ_DP_S *dp_data,\
-                                               IN CONST UINT_T cnt,IN CONST UINT_T timeout);
+                                    IN CONST UINT_T cnt,IN CONST UINT_T timeout);
 
+/***********************************************************
+*  Function: tuya_iot_media_init
+*  Input: none
+*  Output: none
+*  Return: OPERATE_RET
+***********************************************************/
+OPERATE_RET tuya_iot_media_init(VOID);
+
+/***********************************************************
+*  Function: tuya_iot_media_data_report
+*  Input: dt_body->media data
+*         timeout->need report time
+*  Output: none
+*  Return: OPERATE_RET
+***********************************************************/
+OPERATE_RET tuya_iot_media_data_report(IN CONST FLOW_BODY_ST *dt_body,IN CONST UINT_T timeout);
 
 #ifdef __cplusplus
 }

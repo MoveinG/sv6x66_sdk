@@ -89,7 +89,7 @@ VOID SysFree(IN PVOID_T pReqMem);
 *  Return: INT_T-> <0 means don't support to get heapsize
 ***********************************************************/
 _UNI_SYSTEM_EXT \
-UINT_T SysGetHeapSize(VOID);
+INT_T SysGetHeapSize(VOID);
 
 /***********************************************************
 *  Function: GetSerialNo 

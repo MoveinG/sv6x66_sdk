@@ -109,6 +109,7 @@ typedef struct {
     CHAR_T local_key[LOCAL_KEY_LEN+1];
     CHAR_T http_url[HTTP_URL_LMT+1];
     CHAR_T mq_url[MQ_URL_LMT+1];
+    CHAR_T mq_meida_url[MQ_URL_LMT+1];
     CHAR_T time_zone[TIME_ZONE_LEN+1];
     CHAR_T summer_time_zone[SUMMER_TM_ZONE_LEN+1];
 
@@ -255,6 +256,7 @@ typedef struct {
     GW_EXT_STAT_T ext_stat;
 
     BOOL_T is_oem; // is oem?
+    BOOL_T is_init; // has inited?
 
     GW_BASE_IF_S gw_base;
     GW_WORK_STAT_MAG_S gw_wsm;

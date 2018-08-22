@@ -136,6 +136,9 @@ typedef int OPERATE_RET; /*!<  操作结果返回值 */
 #define OPRT_STRING_TOO_LONG                (-1004)
 #define OPRT_WR_FLASH_ERROR                 (-1005)
 
+#define OPRT_ROUTER_NOT_FIND                (-1006)
+
+
 
 
 #ifdef __cplusplus

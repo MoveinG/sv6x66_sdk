@@ -48,6 +48,113 @@ typedef struct
 typedef VOID (*SNIFFER_CALLBACK)(IN CONST BYTE_T *buf,IN CONST USHORT_T len);
 
 /*!
+\brief WIFI芯片探测本地AP信息结构体
+\struct MIMO_IF_S
+*/
+typedef enum
+{
+    MIMO_TYPE_NORMAL = 0,
+    MIMO_TYPE_HT40,
+    MIMO_TYPE_2X2,
+    MIMO_TYPE_LDPC,
+
+    MIMO_TYPE_NUM,
+}MIMO_TYPE_E;
+
+typedef struct
+{
+    SCHAR_T rssi;               /*!< MIMO包信号 */
+    MIMO_TYPE_E type;           /*!< MIMO包类型 */
+    USHORT_T len;               /*!< MIMO包长度 */
+    BYTE_T channel;             /*!< MIMO包信道 */
+    BYTE_T mcs;
+} MIMO_IF_S;
+
+/*!
+\brief 802.11 frame info
+\enum WLAN_FRM_TP_E
+*/
+typedef enum {
+    WFT_BEACON = 0x80,      // Beacon
+    WFT_DATA = 0x08,        // Data
+    WFT_QOS_DATA = 0x88,    // QOS Data
+    WFT_MIMO_DATA = 0xff,   // MIMO Data
+}WLAN_FRM_TP_E;
+
+#pragma pack(1)
+typedef struct {
+    BYTE_T frame_ctrl_flags; // Frame Control flags
+    USHORT_T duration; // Duration
+    BYTE_T dest[6]; // Destination MAC Address
+    BYTE_T src[6]; // Source MAC Address
+    BYTE_T bssid[6]; // BSSID MAC Address
+    USHORT_T seq_frag_num; // Sequence and Fragmentation number
+    BYTE_T timestamp[8]; // Time stamp
+    USHORT_T beacon_interval; // Beacon Interval
+    USHORT_T cap_info; // Capability Information
+    BYTE_T ssid_element_id; // SSID Element ID
+    BYTE_T ssid_len; // SSID Length
+    CHAR_T ssid[0]; // SSID
+}WLAN_BECAON_IF_S;
+
+#define TO_FROM_DS_MASK 0x03
+#define TFD_IBSS 0x00 // da+sa+bssid
+#define TFD_TO_AP 0x01 // bssid+sa+da
+#define TFD_FROM_AP 0x02 // ds+bssid+sa
+#define TFD_WDS 0x03 // ra+ta+da
+
+typedef BYTE_T BC_DA_CHAN_T;
+#define BC_TO_AP 0
+#define BC_FROM_AP 1
+#define BC_CHAN_NUM 2
+
+typedef struct {
+    BYTE_T addr1[6];
+    BYTE_T addr2[6];
+    BYTE_T addr3[6];
+}WLAN_COM_ADDR_S;
+
+typedef struct {
+    BYTE_T bssid[6];
+    BYTE_T src[6];
+    BYTE_T dst[6];
+}WLAN_TO_AP_ADDR_S;
+
+typedef struct {
+    BYTE_T dst[6];
+    BYTE_T bssid[6];
+    BYTE_T src[6];
+}WLAN_FROM_AP_ADDR_S;
+
+typedef union {
+    WLAN_COM_ADDR_S com;
+    WLAN_TO_AP_ADDR_S to_ap;
+    WLAN_FROM_AP_ADDR_S from_ap;
+}WLAN_ADDR_U;
+
+typedef struct {
+    BYTE_T frame_ctrl_flags; // Frame Control flags
+    USHORT_T duration; // Duration
+    WLAN_ADDR_U addr; // address
+    USHORT_T seq_frag_num; // Sequence and Fragmentation number
+    USHORT_T qos_ctrl; // QoS Control bits
+}WLAN_DATA_IF_S;
+
+/*!
+\brief WLAN Frame info
+\struct WLAN_FRAME_S
+*/
+typedef struct {
+    BYTE_T frame_type; // WLAN Frame type
+    union {
+        WLAN_BECAON_IF_S beacon_info; // WLAN Beacon info
+        WLAN_DATA_IF_S data_info; // WLAN Data info
+        MIMO_IF_S mimo_info; // mimo info
+    } frame_data;
+}WLAN_FRAME_S,*P_WLAN_FRAME_S;
+#pragma pack()
+
+/*!
 \brief WIFI联网模式
 \enum WF_IF_E
 */

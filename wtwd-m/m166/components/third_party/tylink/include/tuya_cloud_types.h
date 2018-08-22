@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 #include <stdarg.h>
-#include <ctype.h>	// #include <basic_types.h> 
+#include <ctype.h> //#include <basic_types.h> 
 #include <stddef.h>
 #include "tuya_cloud_error_code.h"
 

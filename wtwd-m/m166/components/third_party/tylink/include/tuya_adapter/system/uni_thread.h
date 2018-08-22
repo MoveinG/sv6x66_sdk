@@ -29,6 +29,7 @@ typedef VOID(*P_CONSTRUCT_FUNC)(VOID); // thread construct
 typedef VOID(*P_EXTRACT_FUNC)(VOID); // thread extract
 
 typedef unsigned int TRD_PRI;
+#if 0
 #define TRD_PRIO_0     5    /** High **/
 #define TRD_PRIO_1     4
 #define TRD_PRIO_2     3
@@ -36,7 +37,15 @@ typedef unsigned int TRD_PRI;
 #define TRD_PRIO_4     1
 #define TRD_PRIO_5     0
 #define TRD_PRIO_6     0
-
+#else
+#define TRD_PRIO_0     4    /** High **/
+#define TRD_PRIO_1     3
+#define TRD_PRIO_2     2
+#define TRD_PRIO_3     1
+#define TRD_PRIO_4     1
+#define TRD_PRIO_5     0
+#define TRD_PRIO_6     0
+#endif	
 
 typedef unsigned short STACK_SIZE;
 typedef struct {

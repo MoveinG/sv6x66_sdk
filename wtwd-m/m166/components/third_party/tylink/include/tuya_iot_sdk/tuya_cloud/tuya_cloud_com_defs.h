@@ -456,6 +456,23 @@ typedef struct {
     GW_BIND_DEV_INFORM_CB gw_ifm_cb;
 }TY_IOT_GW_CBS_S;
 
+// mqtt media data interface
+typedef BYTE_T TRAN_STEP_T;
+#define TS_START 0
+#define TS_TRANSFER 1
+#define TS_END 2
+
+#pragma pack(1) 
+typedef struct {
+    USHORT_T id;
+    UINT_T posix;
+    TRAN_STEP_T step;
+    UINT_T offset;
+    USHORT_T len;
+    BYTE_T data[0];
+}FLOW_BODY_ST;
+#pragma pack()
+
 
 #ifdef __cplusplus
 }

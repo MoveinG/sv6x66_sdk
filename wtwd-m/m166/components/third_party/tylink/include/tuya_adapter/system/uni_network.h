@@ -11,40 +11,22 @@
 	extern "C" {
 #endif
 
-
 /** 255.255.255.255 */
 #ifndef IPADDR_NONE
-#define IPADDR_NONE         ((u32_t)0xffffffffUL)
+#define IPADDR_NONE         ((UINT_T)0xffffffffUL)
 #endif
-
 /** 127.0.0.1 */
 #ifndef IPADDR_LOOPBACK
-#define IPADDR_LOOPBACK     ((u32_t)0x7f000001UL)
+#define IPADDR_LOOPBACK     ((UINT_T)0x7f000001UL)
 #endif
-
 /** 0.0.0.0 */
-#ifndef IPADDR_ANY
-#define IPADDR_ANY          ((u32_t)0x00000000UL)
+#ifndef	IPADDR_ANY
+#define IPADDR_ANY          ((UINT_T)0x00000000UL)
 #endif
-
 /** 255.255.255.255 */
 #ifndef IPADDR_BROADCAST
-#define IPADDR_BROADCAST    ((u32_t)0xffffffffUL)
-#endif
-
-
-#if 0
-/** 255.255.255.255 */
-#define IPADDR_NONE         ((UINT_T)0xffffffffUL)
-/** 127.0.0.1 */
-#define IPADDR_LOOPBACK     ((UINT_T)0x7f000001UL)
-/** 0.0.0.0 */
-#define IPADDR_ANY          ((UINT_T)0x00000000UL)
-/** 255.255.255.255 */
 #define IPADDR_BROADCAST    ((UINT_T)0xffffffffUL)
 #endif
-
-
 
 typedef enum {
     PROTOCOL_TCP = 0,

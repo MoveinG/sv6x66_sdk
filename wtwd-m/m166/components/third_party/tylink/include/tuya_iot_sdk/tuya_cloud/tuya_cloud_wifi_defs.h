@@ -14,9 +14,9 @@ extern "C" {
 
 typedef BYTE_T GW_WF_CFG_MTHD_SEL; // wifi config method select
 #define GWCM_OLD 0 // do not have low power mode
-#define GWCM_OLD_PROD 1 // GWCM_OLD mode with product
-#define GWCM_LOW_POWER 2 // with low power mode
-#define GWCM_SPCL_MODE 3 // special with low power mode
+#define GWCM_LOW_POWER 1 // with low power mode
+#define GWCM_SPCL_MODE 2 // special with low power mode
+#define GWCM_OLD_PROD  3 // GWCM_OLD mode with product
 
 
 
