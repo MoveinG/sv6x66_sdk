@@ -271,6 +271,7 @@ endif
 
 ifeq ($(strip $(TY_CLOUD_EN)), 1)
 IMPORT_DIR		+=	components/third_party/tylink
+TY_MCU_MODE		:= TRUE
 endif
 
 ifeq ($(strip $(NOPOLL_EN)), 1)

@@ -9,7 +9,11 @@ LIB_SRC += adapter_src/tuya_uni_thread.c
 LIB_SRC += adapter_src/wifi_hwl.c
 
 LIB_SRC += tuya_main.c
+ifeq ($(strip $(TY_MCU_MODE)), TRUE)
+LIB_SRC += tuya_device_mcu.c
+else
 LIB_SRC += tuya_device.c
+endif
 
 LIB_SRC += hw_table.c
 LIB_SRC += driver/tuya_gpio.c
