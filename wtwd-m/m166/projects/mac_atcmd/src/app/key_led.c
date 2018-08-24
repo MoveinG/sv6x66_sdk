@@ -37,6 +37,7 @@
 
 #define CONNECT_DIS		0
 #define CONNECT_CON		1
+#define CONNECT_SET		2
 
 #define SWITCH_CLOSE	0
 #define SWITCH_OPEN		1
@@ -47,11 +48,7 @@ static OsTimer led_flash_timer;
 static u32 keydown_time;
 static int led_status, pwr_status;
 
-//static OsSemaphore key_led_sem;
 static OsMsgQ keyled_msgq;
-
-//for power_on auto_reconnect
-//static uint8_t cur_ssid[32+1], cur_key[64+1], cur_mac[6];
 
 extern void update_xlink_status(void);
 extern void xlinkProcessStart(void);
@@ -86,13 +83,6 @@ static int SmartConfig_Start(void)
 {
     printf("%s\n", __func__);
 
-	#if defined(CK_CLOUD_EN)
-	esptouch_stop();
-	OS_TimerStart(led_flash_timer);
-	esptouch_init();
-	return;
-	#endif
-	
 	joylink_stop();
 	//if(led_flash_timer != NULL)
 	//{
@@ -198,33 +188,6 @@ static void KeyLed_Init(void)
 #endif
 }
 
-#if 0
-static int check_set_wifi_config(void)
-{   
-    uint8_t ssid[33], ssidlen = 32, key[65], keylen = 64, mac[6];
-
-    if(get_wifi_config(ssid, &ssidlen, key, &keylen, mac, 6) == 0)
-    {
-        ssid[ssidlen] = 0;
-        key[keylen] = 0;
-
-		printf("ssid(%s=%s), key(%s=%s), mac(%02x %02x %02x %02x %02x %02x=%02x %02x %02x %02x %02x %02x)\n", 
-				ssid, cur_ssid, key, cur_key, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
-				cur_mac[0], cur_mac[1], cur_mac[2], cur_mac[3], cur_mac[4], cur_mac[5]);
-
-		if(strcmp(ssid, cur_ssid) || strcmp(key, cur_key) || memcmp(mac, cur_mac, sizeof(mac)))
-		{
-			recordAP();
-			memcpy(cur_ssid, ssid, sizeof(cur_ssid));
-			memcpy(cur_key, key, sizeof(cur_key));
-			memcpy(cur_mac, mac, sizeof(cur_mac));
-			return 1;
-		}
-    }
-	return 0;
-}
-#endif
-
 int get_Switch_status(void)
 {
 	return (pwr_status == SWITCH_PWRON) ? 1 : 0;
@@ -248,6 +211,7 @@ void wifi_status_cb(int connect)
 	msg_evt.MsgCmd = EVENT_CONNECT;
 	if(connect) msg_evt.MsgData = CONNECT_CON;
 	else msg_evt.MsgData = CONNECT_DIS;
+	//msg_evt.MsgData = connect;
 
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
@@ -258,11 +222,8 @@ void TaskKeyLed(void *pdata)
 	bool smarting=false, cloud_task=false;
 	uint8_t ssidlen=32, keylen=64;
 
-	//key_value = 0;
 	pwr_status = SWITCH_PWROFF;
 	led_flash_timer = NULL;
-
-	//get_wifi_config(cur_ssid, &ssidlen, cur_key, &keylen, cur_mac, 6);
 
 	if(get_wifi_status() == 1) led_status = LED_LIGHT_ON;
 	led_status = LED_LIGHT_OFF;
@@ -271,16 +232,12 @@ void TaskKeyLed(void *pdata)
 	if(OS_TimerCreate(&led_flash_timer, LIGHT_FLASH1, (u8)FALSE, NULL, (OsTimerHandler)led_flash_handler) == OS_FAILED)
 		return;
 
-	//if(OS_SemInit(&key_led_sem, 1, 0) == OS_FAILED)
     if(OS_MsgQCreate(&keyled_msgq, KEYLED_MSGLEN) != OS_SUCCESS)
         return;
 
 	printf("TaskKeyLed Init OK!\n");
 	while(1)
 	{
-		//OS_SemWait(key_led_sem, portMAX_DELAY);
-		//if(key_value == KEY_LONG_VAL) SmartConfig_Start();
-		//if(key_value == KEY_NORMAL_VAL) Shift_Switch();
         if(OS_MsgQDequeue(keyled_msgq, &msg_evt, portMAX_DELAY) == OS_SUCCESS)
 		{
 			switch(msg_evt.MsgCmd) {
@@ -288,8 +245,15 @@ void TaskKeyLed(void *pdata)
 				if(msg_evt.MsgData == KEY_1LONG)
 				{
 					smarting = true;
-					SmartConfig_Start();
+					#if defined(CK_CLOUD_EN)
+					system_param_delete();
+					esptouch_stop();
+					OS_TimerStart(led_flash_timer);
+					esptouch_init();
+					#endif
+
 					#if defined(WT_CLOUD_EN)
+					SmartConfig_Start();
 					if(cloud_task) xlinkProcessEnd();
 					cloud_task = false;
 					#endif
@@ -308,27 +272,35 @@ void TaskKeyLed(void *pdata)
 				break;
 
 			case EVENT_CONNECT:
+				if(smarting)
+				{
+					OS_TimerStop(led_flash_timer);
+					smarting = false;
+				}
+				/*if(msg_evt.MsgData == CONNECT_SET)
+				{
+					show_wifi_status(1);
+
+					#if defined(CK_CLOUD_EN)
+					colinkSettingStart();
+					#endif
+				}*/
 				if(msg_evt.MsgData == CONNECT_CON)
 				{
-					if(smarting)
-					{
-						OS_TimerStop(led_flash_timer);
-						smarting = false;
-					}
 					show_wifi_status(1);
-					//check_set_wifi_config();
+
 					#if defined(WT_CLOUD_EN)
 					if(!cloud_task) xlinkProcessStart();
 					cloud_task = true;
 					#endif
+
 					#if defined(CK_CLOUD_EN)
-					/*if(system_param_load(&ssidlen, 1) != 0) colinkSettingStart();
-					else colinkProcessStart();*/
+					if(system_param_load(NULL, 0) == 0) colinkProcessStart();
 					#endif
 				}
 				if(msg_evt.MsgData == CONNECT_DIS)
 				{
-					if(smarting == false) show_wifi_status(0);
+					show_wifi_status(0);
 				}
 				break;
 

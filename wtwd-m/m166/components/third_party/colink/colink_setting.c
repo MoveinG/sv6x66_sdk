@@ -28,7 +28,7 @@ void colinkSettingTask(void* pData)
     char *content = NULL;
     cJSON *cjson_root = NULL;
     cJSON *cjson_server_name = NULL;
-    char domain[32] = "";
+    //char domain[32] = "";
 
     os_printf("colinkSettingTask\r\n");
 
@@ -102,13 +102,12 @@ void colinkSettingTask(void* pData)
                     os_printf("distor_domain:%s\r\n", colinkInfo.distor_domain);
                     os_printf("distor_port:%d\r\n", colinkInfo.distor_port);
                     
-                    strcpy(colinkInfoSetting.ssid, colinkInfo.ssid);
-                    strcpy(colinkInfoSetting.password, colinkInfo.password);
-                    strcpy(colinkInfoSetting.distor_domain, colinkInfo.distor_domain);
-                    colinkInfoSetting.distor_port =  colinkInfo.distor_port;
+                    //strcpy(colinkInfoSetting.ssid, colinkInfo.ssid);
+                    //strcpy(colinkInfoSetting.password, colinkInfo.password);
+                    //strcpy(colinkInfoSetting.distor_domain, colinkInfo.distor_domain);
+                    //colinkInfoSetting.distor_port =  colinkInfo.distor_port;
                     
-                    system_param_save_with_protect(/*DEVICE_CONFIG_START_SEC,*/ &colinkInfoSetting, 
-                                                    sizeof(colinkInfoSetting));
+                    system_param_save_with_protect(/*DEVICE_CONFIG_START_SEC,*/ &colinkInfo, sizeof(colinkInfo));
 
                     if(DEVICE_MODE_SETTING_SELFAP == coLinkGetDeviceMode())
                     {
@@ -147,11 +146,11 @@ void colinkSettingStart(void)
 //////////////////////////////////////////////
 int system_param_save_with_protect(char *domain, int size)
 {
-    SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
-    printf("fd=%d\n", __func__, fd);
+	SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
+	printf("%s fd=%d\n", __func__, fd);
 	if(fd >= 0)
 	{
-	    FS_write(fs_handle, fd, domain, size);
+		if(domain && size>0) FS_write(fs_handle, fd, domain, size);
 		FS_close(fs_handle, fd);
 		return 0;
 	}
@@ -160,14 +159,19 @@ int system_param_save_with_protect(char *domain, int size)
 
 int system_param_load(char *domain, int size)
 {
-    SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_RDWR, 0);
-    printf("fd=%d\n", __func__, fd);
+	SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_RDWR, 0);
+	printf("%s fd=%d\n", __func__, fd);
 	if(fd >= 0)
 	{
-	    FS_read(fs_handle, fd, domain, size);
+		if(domain && size>0) FS_read(fs_handle, fd, domain, size);
 		FS_close(fs_handle, fd);
 		return 0;
 	}
 	return -1;
+}
+
+void system_param_delete(void)
+{
+	FS_remove(fs_handle, COLINKFILE_NAME);
 }
 

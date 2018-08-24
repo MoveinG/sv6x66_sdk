@@ -23,9 +23,9 @@ typedef enum
 #define DEVICE_CONFIG_START_SEC (0x7C)
 
 
-#define DEVICEID "100037ed0e"
-#define APIKEY "8333ef42-4031-464e-8dd5-972874746b29"
-#define MODEL "PSF-BU1-GL"
-#define VERDION "1.0.0"
+#define DEVICEID "100003a0d0"
+#define APIKEY "352c0793-94e9-4538-b6d8-7c0d302b6111"
+#define MODEL "C01-X01-GL"
+#define VERDION "0.0.1"
 
 #endif /* #ifndef __COLINK_DEFINE_H__ */

@@ -20,6 +20,7 @@ LOCAL_INC := -I$(TOPDIR)/components/third_party/colink/include
 LOCAL_INC += -I$(TOPDIR)/components/osal
 LOCAL_INC += -I$(TOPDIR)/components/third_party/mbedtls/include
 LOCAL_INC += -I$(TOPDIR)/components/net/tcpip/lwip-1.4.0/src/include
+LOCAL_INC += -I$(TOPDIR)/components/tools/ota_api
 
 RELEASE_SRC := 2
 $(eval $(call build-lib,$(LIBRARY_NAME),$(LIB_SRC),$(LIB_ASRC),$(LOCAL_CFLAGS),$(LOCAL_INC),$(LOCAL_AFLAGS),$(MYDIR)))

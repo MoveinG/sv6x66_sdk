@@ -360,7 +360,7 @@ static void colinkProcessTask(void* pData)
     dev_data->ssl_enable = false;
 #endif
     
-    strcpy(dev_data->distor_domain, /*"testapi.coolkit.cc"*/colinkInfoCopy.distor_domain);
+    strcpy(dev_data->distor_domain, "testapiproxy.coolkit.cc"/*colinkInfoCopy.distor_domain*/);
     os_printf("distor_domain=[%s]\r\n", dev_data->distor_domain);
 
     colinkInit(dev_data, &ev);

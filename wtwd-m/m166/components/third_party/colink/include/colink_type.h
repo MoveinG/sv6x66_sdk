@@ -27,7 +27,7 @@ typedef enum
     DEVICE_MODE_INVALID        = 255,/**< 初始无效的设备模式 */
 }CoLinkDeviceMode;
 
-ColinkLinkInfo colinkInfoSetting;
+//ColinkLinkInfo colinkInfoSetting;
 
 
 
