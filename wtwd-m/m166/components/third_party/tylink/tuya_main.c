@@ -15,6 +15,7 @@
 #include "wf_basic_intf.h"
 #include "fsal.h"
 #include "wdt/drv_wdt.h"
+#include "ota_api.h"
 
 #define PVOID	PVOID_T
 #define UINT	UINT_T
@@ -304,6 +305,7 @@ STATIC VOID __gw_upgrade_notify_cb(IN CONST FW_UG_S *fw, IN CONST INT_T download
     if(OPRT_OK == download_result) // update success
 	{
 		SSV_FILE fd = FS_open(fs_handle, OTA_MD5_FILENAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
+		if(fd < 0) return;
 
 		uint32_t write_len = FS_write(fs_handle, fd, fw->fw_md5, sizeof(fw->fw_md5));
 		FS_close(fs_handle, fd);
@@ -313,7 +315,7 @@ STATIC VOID __gw_upgrade_notify_cb(IN CONST FW_UG_S *fw, IN CONST INT_T download
 			ota_update();
 
 			drv_wdt_init(); //reboot
-			drv_wdt_enable(1/*SYS_WDT*/, 100);
+			drv_wdt_enable(SYS_WDT, 100);
 		}
 	}
 	else FS_remove(fs_handle, OTA_BIN_FILENAME);
@@ -328,17 +330,20 @@ STATIC OPERATE_RET __gw_upgrage_process_cb(IN CONST FW_UG_S *fw, IN CONST UINT t
 	//printf("total_len=%d, offset=%d, data=0x%x, len=%d, *remain_len=%d, pri_data=%x\n", total_len, offset, data, len, *remain_len, pri_data);
 
 	SSV_FILE fd = FS_open(fs_handle, OTA_BIN_FILENAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
+	if(fd < 0) return OPRT_WR_FLASH_ERROR;
 
 	int32_t seek_pos = FS_lseek(fs_handle, fd, offset, SPIFFS_SEEK_SET);
 	if(offset != seek_pos)
 	{
 		printf("seek_pos=%d, offset=%d\n", (int)seek_pos, offset);
+		FS_close(fs_handle, fd);
 		return OPRT_WR_FLASH_ERROR;
 	}
 	int32_t write_len = FS_write(fs_handle, fd, (void*)data, len);
 	if(write_len != len)
 	{
 		printf("write_len=%d, len=%d\n", (int)write_len, len);
+		FS_close(fs_handle, fd);
 		return OPRT_WR_FLASH_ERROR;
 	}
 	FS_close(fs_handle, fd);

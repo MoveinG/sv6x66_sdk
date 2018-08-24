@@ -233,7 +233,7 @@ HTTPD_EN          := 1
 CJSON_EN          := 1
 HTTPC_EN          := 1
 MQTT_EN           := 0
-SSL_EN            := 0
+SSL_EN            := 1
 MBED_EN           := 1
 IPERF3_EN         := 1
 SMARTCONFIG_EN    := 1
@@ -271,7 +271,8 @@ endif
 
 ifeq ($(strip $(TY_CLOUD_EN)), 1)
 IMPORT_DIR		+=	components/third_party/tylink
-TY_MCU_MODE		:= TRUE
+SSL_EN			:= 0
+#TY_MCU_MODE		:= TRUE
 endif
 
 ifeq ($(strip $(NOPOLL_EN)), 1)

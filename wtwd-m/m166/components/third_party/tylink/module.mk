@@ -38,6 +38,8 @@ LOCAL_AFLAGS +=
 
 LOCAL_INC := -I$(TOPDIR)/components/third_party/mbedtls/include
 LOCAL_INC += -I$(TOPDIR)/components/net/tcpip/lwip-1.4.0/src/include
+LOCAL_INC += -I$(TOPDIR)/components/tools/ota_api
+
 LOCAL_INC += -I$(TOPDIR)/components/third_party/tylink/include/common
 LOCAL_INC += -I$(TOPDIR)/components/third_party/tylink/include
 LOCAL_INC += -I$(TOPDIR)/components/third_party/tylink/include/tuya_adapter
