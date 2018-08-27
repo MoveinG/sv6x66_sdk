@@ -438,13 +438,6 @@ void TaskBmp(void *pdata)
 //    if(get_DUT_wifi_mode() == DUT_STA || get_DUT_wifi_mode() == DUT_CONCURRENT)
 //        scan_AP(scanAPcbfunc);
 	
-#if defined(TY_CLOUD_EN)
-	OS_MsDelay(500);
-	user_main();
-	OS_TaskDelete(NULL);
-	return;
-#endif
-
     while(1) {
         i++;
 
@@ -503,6 +496,22 @@ struct st_rf_table customer_rf_table ={ { {10, 10, 10, 10, 10, 10, 10} , 0x81, 0
     OS_TaskDelete(NULL);
 }
 
+void ssvradio_init_task(void *pdata)
+{
+    PBUF_Init();
+    NETSTACK_RADIO.init();    
+    drv_sec_init();
+#ifdef TCPIPSTACK_EN
+    netstack_init(NULL);
+#endif
+#if defined(TY_CLOUD_EN)
+    OS_MsDelay(1500);
+    user_main();
+#endif
+
+    OS_TaskDelete(NULL);
+}
+
 extern void TaskKeyLed(void *pdata);
 extern void drv_uart_init(void);
 void APP_Init(void)
@@ -530,22 +539,24 @@ void APP_Init(void)
 	OS_TaskCreate(TaskKeyLed, "TaskKeyLed", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
 #endif
 
-#if 1
-	OS_TaskCreate(TaskBmp, "TaskBmp", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
+#if 0
+	OS_TaskCreate(TaskBmp, "TaskBmp", 2048, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
 #if 1
 	OS_TaskCreate(Cli_Task, "cli", 1024, NULL, 1, NULL);
 #endif
 
+    OS_TaskCreate(ssvradio_init_task, "ssvradio_init", 512, NULL, TaskBmp_TASK_PRIORITY, NULL);
+
+#if 1
+	OS_TaskCreate(temperature_compensation_task, "rf temperature compensation", 256, NULL, TaskBmp_TASK_PRIORITY, NULL);
+#endif
+
 #if defined(WT_CLOUD_EN) || defined(CK_CLOUD_EN)
 	init_global_conf();
 	set_auto_connect_flag(1);
 	OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
-#endif
-
-#if 1
-	OS_TaskCreate(temperature_compensation_task, "rf temperature compensation", 256, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
 	printf("[%s][%d] string\n", __func__, __LINE__);
