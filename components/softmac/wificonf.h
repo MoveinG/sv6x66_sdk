@@ -251,7 +251,9 @@ typedef struct t_DATARATE_INFO
 	u8 succfulcnt;
     u8 failcnt;
     u8 tryup;
-	u8 reserver;
+    u8 mcs0_7;
+    u8 ratetbl[12];
+    u8 ratetblnum;
 }DATARATE_INFO;
 
 typedef enum {
@@ -348,6 +350,14 @@ typedef enum {
 }COUNTRY_CODE;
 
 typedef enum {
+    RADIO_BAND_2G=0,
+    RADIO_BAND_5100=1,
+    RADIO_BAND_5500=2,
+    RADIO_BAND_5700=3,
+    RADIO_BAND_5900=4,
+}RADIO_BAND;   
+
+typedef enum {
 	SOFTAP_EAPOL_INITIAL = 0,
 	SOFTAP_EAPOL_STEP1,	// tx1_of_4
 	SOFTAP_EAPOL_STEP3,	// tx3_of_4
@@ -391,9 +401,10 @@ typedef struct t_AP_DETAIL_INFO
 	u8                    	      cci_start;
 	u8		              cci_gate;    
 	u8		              rssi;
+    u8                    configen;
 	u8		              pmk[32];
-	u8		              ratetbl[16];
-	u8		              ratetblnum;
+//	u8		              ratetbl[16];
+//	u8		              ratetblnum;
 	u8		              rssiLevelChangCnt;
     u8					  retrycnt;
     u8 					  beaconmisscnt;
@@ -524,7 +535,20 @@ typedef struct t_IEEE80211STATUS
 
     /* mutex. protect the member of gwifistatus */
     OsMutex w_mutex;
-    
+#if 1
+    bool LowRateRTSCTS;
+#endif
+    bool ICMPFixLowRate;
+    bool rate_2m_enable;
+
+    /*
+        bit0:RADIO_BAND_2G,
+        bit1:RADIO_BAND_5100,
+        bit2:RADIO_BAND_5500,
+        bit3:RADIO_BAND_5700,
+        bit4:RADIO_BAND_5900,
+    */
+    u8 dpd_disable_mask;
 }IEEE80211STATUS;
 
 /*int remove_sysconfig(void);

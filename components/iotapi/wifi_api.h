@@ -290,4 +290,36 @@ int wifi_set_ap_list_amount(u32 amount);
 */
 int wifi_send_null_data(int pwmode, u8 id);
 
+/**
+ *@ send icmp with fix 1M or use auto rate
+ *@ en=0, auto rate (default)
+ *@ en=1, fix 1M   
+*/
+int wifi_set_icmp_1m(bool en);
+
+/**
+ *@ enable/disable 2M tx rate 
+ *@ en=0, disable (default)
+ *@ en=1, enable   
+*/
+int wifi_set_rate2m_enable(bool en);
+
+#if 1
+/**
+ *@ send low rate with rts/cts
+ *@ en=0, without rts/cts (default)
+ *@ en=1, with rts/cts
+*/
+int wifi_set_low_rate_rts_cts(bool en);
+#endif
+
+/**
+    RADIO_BAND_2G:      ch<=14
+    RADIO_BAND_5100:    ch<36
+    RADIO_BAND_5500:    ch>=36 && ch<100
+    RADIO_BAND_5700:    ch>=100 && ch<140
+    RADIO_BAND_5900:    ch>=140 
+*/
+int wifi_padpd_on_off(RADIO_BAND band,bool benable);
+
 #endif

@@ -684,7 +684,17 @@ int At_RadioRFCount(stParam *param)
 
     return ret;
 }
+int At_RadioEnableTCSR(stParam *param)
+{
+    printf("\n");
+    int ret = ERROR_SUCCESS;	
 
+    if(param->argc <1)
+        return ERROR_INVALID_PARAMETER;
+    
+    ret = rf_enable_tcsr(atoi(param->argv[0]));
+    return ret;
+}
 int At_RadioRFDump(stParam *param)
 {
     printf("\n");
@@ -1817,8 +1827,12 @@ int At_Reboot (stParam *param)
 
 int At_NetScan (stParam *param)
 {
+    if((get_DUT_wifi_mode() == DUT_NONE) || (get_DUT_wifi_mode() == DUT_SNIFFER))
+        printf("\nPlease run AT+DUT_START=1 first\n");
+    
     if(scan_AP(scan_cbfunc))
         return ERROR_INVALID_PARAMETER;
+    
     return ERROR_SUCCESS_NO_RSP;
 }
 int At_Connect2 (stParam *param)
@@ -2715,6 +2729,68 @@ int At_CmdSetCountryCode(stParam *param)
     ret = config_channel(atoi(param->argv[0]));
     return ret;
 }
+
+int At_MacHWQueue(stParam *param) 
+{
+    drv_mac_hw_queue_status();
+    return ERROR_SUCCESS;
+}
+
+int At_MacHWMIB(stParam *param) 
+{
+    if(param->argc!=1)
+    {
+        goto USAGE;        
+    }
+
+    if(0==strcmp(param->argv[0],"on"))
+    {
+        drv_mac_mib_on();
+    }
+    else if(0==strcmp(param->argv[0],"off"))
+    {
+        drv_mac_mib_off();
+    }
+    else if(0==strcmp(param->argv[0],"reset"))
+    {
+        drv_mac_mib_reset();    
+    }
+    else if(0==strcmp(param->argv[0],"tx"))
+    {
+        drv_mac_mib_tx();    
+    }
+    else if(0==strcmp(param->argv[0],"rx"))
+    {
+        drv_mac_mib_rx();    
+    }
+    else if(0==strcmp(param->argv[0],"txrx"))
+    {
+        drv_mac_mib_tx();    
+        drv_mac_mib_rx();        
+    }
+    else
+    {
+        goto USAGE;
+    }
+
+    return ERROR_SUCCESS;
+    
+USAGE:
+    printf("mib=on\r\n");
+    printf("mib=off\r\n");        
+    printf("mib=reset\r\n");        
+    printf("mib=tx\r\n");        
+    printf("mib=rx\r\n");        
+    printf("mib=txrx\r\n");        
+    return ERROR_SUCCESS;
+}
+
+int At_UartFWUpgrade(stParam *param)
+{
+    sys_uart_fw_upgrade();
+    return ERROR_SUCCESS;
+}
+
 /*---------------------------------------------------------------------------*/
 int At_CmdList (stParam *param);
 
@@ -2746,6 +2822,7 @@ const at_cmd_info atcmdicomm_info_tbl[] =
     {ATCMD_TEST_PERIPHERAL,    At_TEST_PERIPHERAL,    0},
     {ATCMD_SYSINFO,            At_SYSINFO,            0},
     {ATCMD_MEMINFO,            At_MEMINFO,            0},
+    {ATCMD_MEMDUMP,            At_MEMDUMP,            2},    
     {ATCMD_IPERF,    		   At_IPERF,              0},
     {ATCMD_PING,               At_Ping,               0},    
     {ATCMD_WRITE_REG,          At_WriteReg32,         0},
@@ -2813,7 +2890,7 @@ const at_cmd_info atcmdicomm_info_tbl[] =
     {ATCMD_RADIO_RF_STOP,            At_RadioRFStop,            0},
     {ATCMD_RADIO_RF_RESET,            At_RadioRFReset,            0},
     {ATCMD_RADIO_RF_COUNT,            At_RadioRFCount,            1},
-
+    {ATCMD_RADIO_RF_ENABLE_TCSR,   At_RadioEnableTCSR,     1},
     {ATCMD_RADIO_RF_DUMP,            At_RadioRFDump,            0},
     
     {ATCMD_RF_CALI_DPD,            At_RfCaliDPD,            1},
@@ -2921,17 +2998,22 @@ const at_cmd_info atcmdicomm_info_tbl[] =
     {ATCMD_JD_DEVICE_REMOVE,       At_JDDeviceRemove,       0},
     {ATCMD_JD_START,        At_JDStart,        0},
 #endif
-    {ATCMD_SET_GPIO_TRI_STATE, At_SetGpioTriState,    0},
-    {ATCMD_SET_GPIO_LOGIC,     At_SetGpioLogic,       0},
-    {ATCMD_SET_GPIO_PULL,      At_SetGpioPull,        0},
-    {ATCMD_READ_GPIO,          At_ReadGpio,           0},
-    {ATCMD_SET_GPIO_INT,       At_SetGpioInt,         0},
-    {ATCMD_SET_PWM,            At_SetPWM,             0},
-    {ATCMD_SET_PWM_DISABLE,    At_SetPWMDisable,      0},
-    {ATCMD_SET_PWM_ENABLE,     At_SetPWMEnable,       0},
-    {ATCMD_SET_PWM_RECONFIG,   At_SetPWMReconfig,     0},
-    {ATCMD_SET_COUNTRY_CODE,      At_CmdSetCountryCode,      0},    
-    {ATCMD_LIST,      At_CmdList,      0},
+    {ATCMD_SET_GPIO_TRI_STATE ,At_SetGpioTriState   ,0},
+    {ATCMD_SET_GPIO_LOGIC     ,At_SetGpioLogic      ,0},
+    {ATCMD_SET_GPIO_PULL      ,At_SetGpioPull       ,0},
+    {ATCMD_READ_GPIO          ,At_ReadGpio          ,0},
+    {ATCMD_SET_GPIO_INT       ,At_SetGpioInt        ,0},
+    {ATCMD_SET_PWM            ,At_SetPWM            ,0},
+    {ATCMD_SET_PWM_DISABLE    ,At_SetPWMDisable     ,0},
+    {ATCMD_SET_PWM_ENABLE     ,At_SetPWMEnable      ,0},
+    {ATCMD_SET_PWM_RECONFIG   ,At_SetPWMReconfig    ,0},
+    {ATCMD_SET_COUNTRY_CODE   ,At_CmdSetCountryCode ,0},
+    {ATCMD_MAC_HW_QUEUE       ,At_MacHWQueue        ,0},
+    {ATCMD_MAC_HW_MIB         ,At_MacHWMIB          ,0},
+#if (SETTING_UART_FW_UPGRADE == 0)
+    {ATCMD_UART_FW_UPGRADE    ,At_UartFWUpgrade     ,0},
+#endif
+    {ATCMD_LIST               ,At_CmdList           ,0},
 };
 
 /*---------------------------------------------------------------------------*/
