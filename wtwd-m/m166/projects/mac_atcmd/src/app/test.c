@@ -504,6 +504,10 @@ void ssvradio_init_task(void *pdata)
 #ifdef TCPIPSTACK_EN
     netstack_init(NULL);
 #endif
+
+    DUT_wifi_start(DUT_STA);
+    OS_MsDelay(500);
+
 #if defined(TY_CLOUD_EN)
     OS_MsDelay(1500);
     user_main();
