@@ -18,6 +18,11 @@ projects/uart/src/libc_patch.o
 projects/uart_echo/src/libc_patch.o
 projects/wdt/src/libc_patch.o
 
+utils/src-SPI_burn/SPI_burn
+utils/src-SPI_burn/flash.o
+utils/src-SPI_burn/main.o
+utils/src-SPI_burn/util.o
+
 image/
 out/
 wtwd-m/back_temp/

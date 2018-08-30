@@ -73,7 +73,7 @@ STATIC CTRL_GROUP groups[] =
         // 继电器
         .ionum  = 2,
         // 按钮
-        .iopin = {TY_GPIOA_0, TY_GPIOA_12}
+        .iopin = {TY_GPIOA_0, TY_GPIOA_11}
     },
     #if 0
      // group 2

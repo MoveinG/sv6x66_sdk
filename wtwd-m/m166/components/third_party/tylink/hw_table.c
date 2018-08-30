@@ -36,11 +36,11 @@ static CTRL_CHANNEL channels[] =
     // channel 0
     {
         // 继电器
-        .relay  = {.type = IO_DRIVE_LEVEL_HIGH, .pin = TY_GPIOA_12},
+        .relay  = {.type = IO_DRIVE_LEVEL_HIGH, .pin = TY_GPIOA_11},
         // 按钮
-        .button = {TY_GPIOA_13,TRUE,LP_INVALID,0,50,NULL},
+        .button = {TY_GPIOA_0,TRUE,LP_INVALID,0,50,NULL},
         // 通道状态指示灯
-        .led    = {.type = IO_DRIVE_LEVEL_LOW, .pin = TY_GPIOA_0},
+        .led    = {.type = IO_DRIVE_LEVEL_LOW, .pin = TY_GPIOA_13},
         // 绑定dpid
         .dpid   = 1,
         // 绑定倒计时dpid DPID_NOT_EXIST表示不存在倒计时
@@ -53,7 +53,7 @@ HW_TABLE g_hw_table =
 {
     // wifi状态指示灯 有效对应wifi连接 无效对应wifi未连接
     .wifi_stat_led = {.type = IO_DRIVE_LEVEL_HIGH, .pin = TY_GPIOA_1},
-    .rst_button = {TY_GPIOA_13,TRUE,LP_ONCE_TRIG,KEY_RST_TIME,50,key_process},
+    .rst_button = {TY_GPIOA_0,TRUE,LP_ONCE_TRIG,KEY_RST_TIME,50,key_process},
     .channels = channels
 };
 
