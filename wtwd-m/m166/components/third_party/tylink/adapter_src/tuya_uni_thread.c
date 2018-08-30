@@ -121,7 +121,7 @@ STATIC VOID __free_all_del_thrd_node(VOID)
         THREAD thrdID = tmp_node->thrdID;
         DeleteNode(tmp_node,node);
 		Free(tmp_node);
-        MutexUnLock(s_del_thrd_mag->mutex);
+        MutexUnLock(s_del_thrd_mag->mutex);//???????
         __inner_del_thread(thrdID);
         MutexLock(s_del_thrd_mag->mutex);
     }
@@ -163,6 +163,7 @@ OPERATE_RET tuya_CreateAndStart(OUT THRD_HANDLE *pThrdHandle,\
         PR_ERR("Malloc Thread Mgr Fails");
         return OPRT_MALLOC_FAILED;
     }
+    printf("%s thrdname=%s, enter=0x%x, exit=0x%x\n", __func__, thrd_param->thrdname, enter, exit);//fixed shutdown?????
 
     INIT_LIST_HEAD(&(pMgr->node));
 

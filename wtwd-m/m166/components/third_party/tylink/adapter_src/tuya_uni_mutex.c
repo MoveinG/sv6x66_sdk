@@ -39,7 +39,8 @@ OPERATE_RET tuya_CreateMutexAndInit(OUT MUTEX_HANDLE *pMutexHandle)
 {
     if(!pMutexHandle)
         return OPRT_INVALID_PARM;
-    
+    //printf("%s, p=0x%x, *p=0x%x\n", __func__, pMutexHandle, *pMutexHandle);
+    #if 0
     P_MUTEX_MANAGE pMutexManage;
     pMutexManage = (P_MUTEX_MANAGE)OS_MemAlloc(SIZEOF(MUTEX_MANAGE));
     if(!(pMutexManage))
@@ -49,7 +50,11 @@ OPERATE_RET tuya_CreateMutexAndInit(OUT MUTEX_HANDLE *pMutexHandle)
         return OPRT_INIT_MUTEX_FAILED;
 
     *pMutexHandle = (MUTEX_HANDLE)pMutexManage;
-
+    #else
+	if(OS_MutexInit(pMutexHandle) != OS_SUCCESS)
+        return OPRT_INIT_MUTEX_FAILED;
+    #endif
+    //printf("%s, p=0x%x, *p=0x%x\n", __func__, pMutexHandle, *pMutexHandle);
     return OPRT_OK;
 }
 
@@ -64,13 +69,17 @@ OPERATE_RET tuya_MutexLock(IN CONST MUTEX_HANDLE mutexHandle)
 {
     if(!mutexHandle)
         return OPRT_INVALID_PARM;
-
+    //printf("%s, m=0x%x\n", __func__, mutexHandle);
+    #if 0
     P_MUTEX_MANAGE pMutexManage;
     pMutexManage = (P_MUTEX_MANAGE)mutexHandle;
     
     if(OS_MutexLock(pMutexManage->mutex) != OS_SUCCESS)
         return OPRT_MUTEX_LOCK_FAILED;
- 
+    #else
+    if(OS_MutexLock(mutexHandle) != OS_SUCCESS)
+        return OPRT_MUTEX_LOCK_FAILED;
+    #endif 
     return OPRT_OK;
 }
 
@@ -98,13 +107,17 @@ OPERATE_RET tuya_MutexUnLock(IN CONST MUTEX_HANDLE mutexHandle)
 {
     if(!mutexHandle)
         return OPRT_INVALID_PARM;
-    
+    //printf("%s, m=0x%x\n", __func__, mutexHandle);
+    #if 0
     P_MUTEX_MANAGE pMutexManage;
     pMutexManage = (P_MUTEX_MANAGE)mutexHandle;
     
 	if(OS_MutexUnLock(pMutexManage->mutex) != OS_SUCCESS)
         return OPRT_MUTEX_UNLOCK_FAILED;
-
+    #else
+	if(OS_MutexUnLock(mutexHandle) != OS_SUCCESS)
+        return OPRT_MUTEX_UNLOCK_FAILED;
+    #endif 
     return OPRT_OK;
 }
 
@@ -119,14 +132,17 @@ OPERATE_RET tuya_ReleaseMutex(IN CONST MUTEX_HANDLE mutexHandle)
 {
     if(!mutexHandle)
         return OPRT_INVALID_PARM;
-
+    //printf("%s, m=0x%x\n", __func__, mutexHandle);
+    #if 0
     P_MUTEX_MANAGE pMutexManage;
     pMutexManage = (P_MUTEX_MANAGE)mutexHandle;
     
     OS_MutexDelete(pMutexManage->mutex);
 
     OS_MemFree(mutexHandle);
-
+    #else
+    OS_MutexDelete(mutexHandle);
+    #endif 
     return OPRT_OK;
 }
 
