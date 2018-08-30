@@ -121,7 +121,7 @@ static void irq_key1_gpio_ipc(uint32_t irq_num)
 	u32 key_time;
 	OsMsgQEntry msg_evt;
 
-	printf("%s\n", __func__);
+	//printf("%s\n", __func__);
 
 	drv_gpio_intc_clear(DEVICE_KEY1);
 	level = drv_gpio_get_logic(DEVICE_KEY1);
@@ -131,7 +131,7 @@ static void irq_key1_gpio_ipc(uint32_t irq_num)
 		keydown_time = os_tick2ms(OS_GetSysTick());
 		drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_RISING_EDGE);
 
-		printf("keydown_time=%d\n", keydown_time);
+		//printf("keydown_time=%d\n", keydown_time);
 	}
 	else
 	{
@@ -147,7 +147,7 @@ static void irq_key1_gpio_ipc(uint32_t irq_num)
 			//OS_SemSignal(key_led_sem);
 	        OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 		}
-		printf("key_time=%d, event=%d\n", key_time, msg_evt.MsgData);
+		//printf("key_time=%d, event=%d\n", key_time, msg_evt.MsgData);
 	}
 }
 

@@ -3018,9 +3018,16 @@ const at_cmd_info atcmdicomm_info_tbl[] =
     {ATCMD_UART_FW_UPGRADE    ,At_UartFWUpgrade     ,0},
 #endif
     {ATCMD_LIST               ,At_CmdList           ,0},
+    {ATCMD_GPIO_TEST          ,At_Gpio_Test         ,0},
 };
 
 /*---------------------------------------------------------------------------*/
+int At_Gpio_Test(stParam *param)
+{
+	if(gpio_test()) return ERROR_SUCCESS;
+	return -11;
+}
+
 int At_ShowRfCommand (stParam *param)
 {
     int i = 0;
