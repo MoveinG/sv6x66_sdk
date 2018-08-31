@@ -182,6 +182,7 @@ void user_main(void)
     ty_uart_free(TY_UART0);
     PR_NOTICE("mf_init succ"); 
 #endif
+    OS_MsDelay(2000);
     // register gw upgrade inform callback
     tuya_iot_force_reg_gw_ug_cb(__gw_ug_inform_cb);
 
