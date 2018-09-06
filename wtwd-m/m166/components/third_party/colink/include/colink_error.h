@@ -44,6 +44,16 @@ typedef enum
 
 typedef enum
 {
+    COLINK_REQ_RESULT_NO_ERROR         = 0,         /**< 操作成功 */
+    COLINK_REQ_RESULT_BAD_REQUEST      = 400,       /**< 参数错误 */
+    COLINK_REQ_RESULT_AUTH_ERROR       = 401,       /**< 认证不通过 */
+    COLINK_REQ_RESULT_NO_PERMISSION    = 403,       /**< 无权限 */
+    COLINK_REQ_RESULT_NUMBER_ERROR     = 414,       /**< 子设备数量超过限制 */
+    COLINK_REQ_RESULT_SERVER_ERROR     = 500,       /**< 服务器内部错误 */
+}ColinkReqResultCode;
+
+typedef enum
+{
     COLINK_OTA_NO_ERROR            = 0,         /**< OTA升级成功 */
     COLINK_OTA_DOWNLOAD_ERROR      = 404,       /**< OTA文件下载失败 */
     COLINK_OTA_MODEL_ERROR         = 406,       /**< 设备型号不正确 */
@@ -59,10 +69,10 @@ typedef enum
 
 typedef enum
 {
-    COLINK_GATEWAT_NO_ERROR         = 0,         /**< 无错误 */
-    COLINK_GATEWAT_ARG_INVALID      = -2,        /**< 无效的参数 */
-    COLINK_GATEWAT_NET_ERROR        = -100,      /**< 网络异常 */
-    COLINK_GATEWAT_DEV_TYPE_ERROR   = -101,      /**< 设备不属于网关类型 */
+    COLINK_GATEWAY_NO_ERROR         = 0,         /**< 无错误 */
+    COLINK_GATEWAY_ARG_INVALID      = -2,        /**< 无效的参数 */
+    COLINK_GATEWAY_NET_ERROR        = -100,      /**< 网络异常 */
+    COLINK_GATEWAY_DEV_TYPE_ERROR   = -101,      /**< 设备不属于网关类型 */
 }ColinkGatewayErrorCode;
 
 typedef enum

@@ -9,6 +9,7 @@ LIB_SRC += colink_global.c
 LIB_SRC += esp_touch.c
 
 STATIC_LIB += $(MYDIR)/libcolink.a
+STATIC_LIB += $(MYDIR)/libcolinkcJSON.a
 STATIC_LIB += $(TOPDIR)/out/components/third_party/colink/colink_socket.o
 
 LIB_ASRC :=

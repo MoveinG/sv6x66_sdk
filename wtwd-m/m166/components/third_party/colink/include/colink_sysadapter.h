@@ -18,7 +18,7 @@
  * @retval COLINK_NO_ERROR    获取成功
  * @retval -1                 获取失败
  */
-int colinkGettime(uint32_t* ms);
+int32_t colinkGettime(uint32_t* ms);
 
 /**
  * @brief 获取网络状态。
@@ -32,7 +32,7 @@ int colinkGettime(uint32_t* ms);
  * @retval 0    获取成功
  * @retval 非0  获取失败
  */
-int colinkNetworkState(int* state);
+int32_t colinkNetworkState(int32_t* state);
 
 /**
  * @brief 随机数发生器的初始化函数。
@@ -44,19 +44,19 @@ int colinkNetworkState(int* state);
  *
  * @retval 随机数
  */
-unsigned long colinkRand(void);
+uint32_t colinkRand(void);
 
 /**
  * @brief 计算给定字符串的长度。
  *
  * @par 描述:
- * 计算给定字符串的（unsigned int型）长度，不包括'\0'在内。
+ * 计算给定字符串的（uint32_t型）长度，不包括'\0'在内。
  *
  * @param src   [IN]     字符串的首地址
  *
  * @retval 字符串的长度
  */
-unsigned int colinkStrlen(const char* src);
+uint32_t colinkStrlen(const char* src);
 
 /**
  * @brief 复制字符串中的内容。
@@ -83,7 +83,7 @@ char* colinkStrcpy(char* dst, const char* src);
  *
  * @retval dst 目标字符数组的首地址
  */
-char* colinkStrncpy(char* dst, const char* src, unsigned int len);
+char* colinkStrncpy(char* dst, const char* src, uint32_t len);
 
 /**
  * @brief 连接字符串。
@@ -110,7 +110,7 @@ char* colinkStrcat(char* dst, const char* src);
  *
  * @retval dst  目标字符串的指针
  */
-char* colinkStrncat(char* dst, const char* src, unsigned int len);
+char* colinkStrncat(char* dst, const char* src, uint32_t len);
 
 /**
  * @brief 查找字符串第一次出现的位置。
@@ -139,7 +139,7 @@ char *colinkStrstr(const char *s1, const char *s2);
  * @retval 小于0   str1小于str2
  * @retval 大于0   str1大于str2
  */
-int colinkStrcmp(const char* str1, const char* str2);
+int32_t colinkStrcmp(const char* str1, const char* str2);
 
 /**
  * @brief 比较两个字符串的大小。
@@ -155,7 +155,7 @@ int colinkStrcmp(const char* str1, const char* str2);
  * @retval 小于0   str1小于str2
  * @retval 大于0   str1大于str2
  */
-int colinkStrncmp(const char* str1, const char* str2, unsigned int len);
+int32_t colinkStrncmp(const char* str1, const char* str2, uint32_t len);
 
 /**
  * @brief 查找一个字符在一个字符串中首次出现的位置。
@@ -170,7 +170,7 @@ int colinkStrncmp(const char* str1, const char* str2, unsigned int len);
  * @retval Null,未能找到指定字符
  * @retval 非Null,字符首次出现位置的地址
  */
-char* colinkStrchr(char* str, int ch);
+char* colinkStrchr(char* str, int32_t ch);
 
 /**
  * @brief 查找一个字符在一个字符串中末次出现的位置。
@@ -198,7 +198,7 @@ char* colinkStrrchr(const char* str, char c);
  *
  * @retval 整型数
  */
-int colinkAtoi(const char* str);
+int32_t colinkAtoi(const char* str);
 
 /**
  * @brief 字符串格式化函数。
@@ -213,7 +213,7 @@ int colinkAtoi(const char* str);
  * @retval 小于0       写入失败
  * @retval 大于等于0   写入的字符串长度
  */
-int colinkSprintf(char* buf, const char* format, ...);
+int32_t colinkSprintf(char* buf, const char* format, ...);
 
 /**
  * @brief 字符串格式化函数。
@@ -229,7 +229,7 @@ int colinkSprintf(char* buf, const char* format, ...);
  * @retval 小于0       写入失败
  * @retval 大于等于0   成功则返回欲写入的字符串长度
  */
-int colinkSnprintf(char* buf, unsigned int size, const char* format, ...);
+int32_t colinkSnprintf(char* buf, uint32_t size, const char* format, ...);
 
 /**
  * @brief 格式化输出函数。
@@ -243,7 +243,7 @@ int colinkSnprintf(char* buf, unsigned int size, const char* format, ...);
  * @retval 小于0       输出失败
  * @retval 大于等于0   输出的长度
  */
-int colinkPrintf(const char* format, ...);
+int32_t colinkPrintf(const char* format, ...);
 
 /**
  * @brief 在一段内存块中填充某个给定的值。
@@ -256,7 +256,7 @@ int colinkPrintf(const char* format, ...);
  * @param len   [IN]         要填充的值字节数
  *
  */
-void* colinkMemset(void* dst, int c, unsigned int len);
+void* colinkMemset(void* dst, int32_t c, uint32_t len);
 
 /**
  * @brief 复制内存中的内容。
@@ -269,7 +269,7 @@ void* colinkMemset(void* dst, int c, unsigned int len);
  * @param len   [IN]         要复制的字节数
  *
  */
-void* colinkMemcpy(void* dst, const void* src, unsigned int len);
+void* colinkMemcpy(void* dst, const void* src, uint32_t len);
 
 /**
  * @brief 比较两块内存区域。
@@ -285,7 +285,7 @@ void* colinkMemcpy(void* dst, const void* src, unsigned int len);
  * @retval 小于0   buf1小于buf2
  * @retval 大于0   buf1大于buf2
  */
-int colinkMemcmp(const void* buf1, const void* buf2, unsigned int len);
+int32_t colinkMemcmp(const void* buf1, const void* buf2, uint32_t len);
 
 /**
  * @brief 获取所需的内存空间。
@@ -299,7 +299,21 @@ int colinkMemcmp(const void* buf1, const void* buf2, unsigned int len);
  * @retval 非NULL  分配失败
  *
  */
-void* colinkMalloc(unsigned long n);
+void* colinkMalloc(uint32_t n);
+
+/**
+ * @brief  调整一块内存空间大小。
+ *
+ * @par 描述:
+ * 尝试重新调整之前调用 colinkMalloc 所分配的 ptr 所指向的内存块的大小。
+ *
+ * @param n   [IN]     需要分配内存大小。
+ *
+ * @retval NULL    重新分配成功。
+ * @retval 非NULL  返回指针指向重新分配大小的内存。
+ *
+ */
+void *colinkRealloc(void *ptr, uint32_t n);
 
 /**
  * @brief 释放指针pt所占用的内存空间。
@@ -351,7 +365,7 @@ unsigned short colinkNtohs(unsigned short ns);
  * @retval 小于0   失败
  * @retval 大于0   成功填充的参数列表中的项数
  */
-int colinkSscanf(const char *s, const char *format, ...);
+int32_t colinkSscanf(const char *s, const char *format, ...);
 
 /**
  * @brief 把字符串转换成双精度浮点数。
@@ -377,6 +391,6 @@ double colinkStrtod(const char *nptr,char **endptr);
  *
  * @retval 当c是大写字母字符返回对应小写字母字符，其它值不处理返回c。
  */
-int colinkTolower(int c);
+int32_t colinkTolower(int32_t c);
 
 #endif

@@ -12,8 +12,8 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
-
-#include "colink_network.h"
+#include "colink_socket.h"
+#include "colink_sysadapter.h"
 
 #ifdef SSLUSERENABLE
 	#define COLINK_SSL
@@ -45,13 +45,13 @@ const int32_t colink_test_cas_pem_len = sizeof(colink_test_cli_key_rsa);
 
 #endif
 
-ColinkTcpErrorCode colinkGethostbyname(char* hostname, char ip_list[][20], int num)
+ColinkTcpErrorCode colinkGethostbyname(char* hostname, char ip_list[][20], uint8_t num)
 {
     struct in_addr sin_addr;
 
     if (!inet_aton(hostname, &sin_addr)) {
         struct hostent* hp;
-        os_printf("%s\n", hostname);
+        colinkPrintf("%s\n", hostname);
         hp = gethostbyname(hostname);
 
         if (!hp) {
@@ -61,7 +61,7 @@ ColinkTcpErrorCode colinkGethostbyname(char* hostname, char ip_list[][20], int n
         int i = 0;
 
         for (i = 0; (hp->h_addr_list[i] != 0) && (i < num); i++) {
-            os_printf("tmp ip = %s\n", inet_ntoa(*((struct in_addr*)hp->h_addr_list[i])));
+            colinkPrintf("tmp ip = %s\n", inet_ntoa(*((struct in_addr*)hp->h_addr_list[i])));
             memcpy(ip_list[i], inet_ntoa(*((struct in_addr*)hp->h_addr_list[i])),
                    strlen(inet_ntoa(*((struct in_addr*)hp->h_addr_list[i]))));
         }
@@ -78,7 +78,7 @@ static void my_debug( void *ctx, int level,
 {
     ((void) level);
 
-    os_printf("%s:%04d: %s", file, line, str);
+    colinkPrintf("%s:%04d: %s", file, line, str);
 }
 
 mbedtls_ssl_context ssl;
@@ -115,23 +115,26 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
     mbedtls_entropy_init(&entropy);
 
     if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-                                     NULL, 0)) != 0) {
+                                     NULL, 0)) != 0)
+    {
         return COLINK_TCP_CREATE_CONNECT_ERR;
     }
 
 #if defined(COLINK_VERIFY)
-     ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *)colink_test_cli_key_rsa,
+    ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *)colink_test_cli_key_rsa,
                                    colink_test_cas_pem_len );
  
-     if (ret < 0){
-             printf("\r\n mbedtls_x509_crt_parse returned -0x%x\n\n", -ret);
-     }
+    if (ret < 0)
+    {
+        printf("\r\n mbedtls_x509_crt_parse returned -0x%x\n\n", -ret);
+    }
 #endif
 
     if ((ret = mbedtls_ssl_config_defaults(&conf,
                                            MBEDTLS_SSL_IS_CLIENT,
                                            MBEDTLS_SSL_TRANSPORT_STREAM,
-                                           MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
+                                           MBEDTLS_SSL_PRESET_DEFAULT)) != 0)
+    {
         printf("mbedtls_ssl_config_defaults returned %d", ret);
         return COLINK_TCP_CREATE_CONNECT_ERR;
     }
@@ -149,7 +152,8 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
     mbedtls_ssl_conf_read_timeout(&conf, 10);
     mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
 
-    if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0) {
+    if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0)
+    {
         printf("mbedtls_ssl_setup returned -0x%x\n\n", -ret);
         return COLINK_TCP_CREATE_CONNECT_ERR;
     }
@@ -160,24 +164,26 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
 
     server_fd.fd = socket(AF_INET, SOCK_STREAM, 0);
 
-  
-    if (server_fd.fd < 0) {
-        os_printf("ssl creat socket fd failed\n");
+    if (server_fd.fd < 0)
+    {
+        colinkPrintf("ssl creat socket fd failed\n");
         return COLINK_TCP_CREATE_CONNECT_ERR;
     }
 
     flags = fcntl(server_fd.fd, F_GETFL, 0);
 
-    if (flags < 0 || fcntl(server_fd.fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-        os_printf("ssl fcntl: %s\n", strerror(errno));
+    if (flags < 0 || fcntl(server_fd.fd, F_SETFL, flags | O_NONBLOCK) < 0)
+    {
+        colinkPrintf("ssl fcntl: %s\n", strerror(errno));
         close(server_fd.fd);
         return COLINK_TCP_CREATE_CONNECT_ERR;
     }
 
     if (setsockopt(server_fd.fd, SOL_SOCKET, SO_REUSEADDR,
-                   (const char*) &reuse, sizeof(reuse)) != 0) {
+                   (const char*) &reuse, sizeof(reuse)) != 0)
+    {
         close(server_fd.fd);
-        os_printf("ssl set SO_REUSEADDR failed\n");
+        colinkPrintf("ssl set SO_REUSEADDR failed\n");
         return COLINK_TCP_CREATE_CONNECT_ERR;
     } 
 
@@ -186,14 +192,20 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
     servaddr.sin_addr.s_addr = inet_addr(dst);
     servaddr.sin_port = htons(port);
 
-    if (connect(server_fd.fd, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) == 0) {
-        os_printf("ssl dst %s port %d errno %d\n", dst, port, errno);
-    } else {
-        os_printf("ssl dst %s port %d errno %d\n", dst, port, errno);
+    if (connect(server_fd.fd, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) == 0)
+    {
+        colinkPrintf("ssl dst %s errno %d\n", dst, errno);
+    }
+    else
+    {
+        colinkPrintf("ssl dst %s errno %d\n", dst, errno);
 
-        if (errno == EINPROGRESS) {
-            os_printf("tcp conncet noblock\n");
-        } else {
+        if (errno == EINPROGRESS)
+        {
+            colinkPrintf("ssl tcp conncet noblock\n");
+        }
+        else
+        {
             close(server_fd.fd);
             return COLINK_TCP_CREATE_CONNECT_ERR;
         }
@@ -202,6 +214,33 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
     mbedtls_ssl_set_bio(&ssl, &server_fd, mbedtls_net_send, mbedtls_net_recv, mbedtls_net_recv_timeout);
 
     return (int32_t)&ssl;
+}
+
+void colinkTcpSslDisconnect(int32_t fd)
+{
+    mbedtls_ssl_context *pssl = (mbedtls_ssl_context *)fd;
+
+    if (NULL == pssl)
+    {
+        colinkPrintf("colinkTcpSslDisconnect ????????\r\n");
+    }
+
+    mbedtls_ssl_close_notify(pssl);
+
+    mbedtls_net_free((mbedtls_net_context*)(pssl->p_bio));
+
+#if defined(COLINK_VERIFY)
+
+        mbedtls_x509_crt_free( &cacert );
+
+#endif
+
+    mbedtls_ssl_free( pssl);
+    mbedtls_ssl_config_free( &conf );
+    mbedtls_ctr_drbg_free( &ctr_drbg );
+    mbedtls_entropy_free( &entropy );
+
+    printf("colinkTcpSslDisconnect\r\n");
 }
 
 ColinkTcpErrorCode colinkTcpSslState(int32_t fd)
@@ -230,7 +269,6 @@ ColinkTcpErrorCode colinkTcpSslState(int32_t fd)
     timeout.tv_sec = 2;
     timeout.tv_usec = 0;
 
-    /*ʹ��select�����ж�tcp����״̬*/
     ready_n = select(tcp_fd + 1, &rset, &wset, NULL, &timeout);
 
     if (0 == ready_n)
@@ -245,13 +283,14 @@ ColinkTcpErrorCode colinkTcpSslState(int32_t fd)
     {
         if (FD_ISSET(tcp_fd, &wset) != 0)
         {
-            os_printf("ssl COLINK_TCP_CONNECTING \n");
+            colinkPrintf("ssl COLINK_TCP_CONNECTING \n");
             errcode = COLINK_TCP_CONNECTING;
 
             if(pssl->state != MBEDTLS_SSL_HANDSHAKE_OVER)
             {
                 ret = mbedtls_ssl_handshake_step( pssl );
-                os_printf("mbedtls_ssl_handshake_step return = 0X%X\r\n", -ret);
+                colinkPrintf("mbedtls_ssl_handshake_step return = 0X%X\r\n", -ret);
+
                 if (0 != ret)
                 {
                     errcode = COLINK_TCP_CONNECT_ERR;
@@ -280,34 +319,9 @@ ColinkTcpErrorCode colinkTcpSslState(int32_t fd)
         }
     }
 
-    os_printf("colinkTcpState errcode=%d\n", errcode);
+    colinkPrintf("colinkTcpState errcode=%d\n", errcode);
 
     return errcode;
-}
-
-
-void colinkTcpSslDisconnect(int32_t fd)
-{
-    mbedtls_ssl_context *pssl = (mbedtls_ssl_context *)fd;
-
-    if (NULL == pssl)
-    {
-        os_printf("colinkTcpSslDisconnect ��������\r\n");
-    }
-
-    mbedtls_ssl_close_notify(pssl);  
-    mbedtls_net_free((mbedtls_net_context*)(pssl->p_bio));
-
-#if defined(COLINK_VERIFY)
-        mbedtls_x509_crt_free( &cacert );
-#endif
-
-    mbedtls_ssl_free( pssl);
-    mbedtls_ssl_config_free( &conf );
-    mbedtls_ctr_drbg_free( &ctr_drbg );
-    mbedtls_entropy_free( &entropy );
-    
-    printf("colinkTcpSslDisconnect\r\n");
 }
 
 int32_t colinkTcpSslSend(int32_t fd, const uint8_t* buf, uint16_t len)
@@ -319,7 +333,7 @@ int32_t colinkTcpSslSend(int32_t fd, const uint8_t* buf, uint16_t len)
     {
         return COLINK_TCP_ARG_INVALID;
     }
-    
+
     ret = mbedtls_ssl_write(pssl, buf, len);
     
     if(ret > 0)
@@ -328,12 +342,12 @@ int32_t colinkTcpSslSend(int32_t fd, const uint8_t* buf, uint16_t len)
     }
     else if(MBEDTLS_ERR_SSL_TIMEOUT == ret)
     {
-        os_printf("colinkTcpSslSend timeout ret = 0X%X\r\n",-MBEDTLS_ERR_SSL_TIMEOUT);
+        colinkPrintf("colinkTcpSslSend timeout ret = 0X%X\r\n",-MBEDTLS_ERR_SSL_TIMEOUT);
         return 0;
     }
     else
     {
-        os_printf("colinkTcpSslsend error\r\n");
+        colinkPrintf("colinkTcpSslsend error\r\n");
         return COLINK_TCP_SEND_ERR;
     }
 
@@ -362,7 +376,7 @@ int32_t colinkTcpSslRead(int32_t fd, uint8_t* buf, uint16_t len)
     }
     else
     {
-        os_printf("colinkTcpSslRead ret = 0X%X\r\n",-ret);
+        colinkPrintf("colinkTcpSslRead ret = 0X%X\r\n",-ret);
         return COLINK_TCP_READ_ERR;
     }
 }
@@ -377,29 +391,24 @@ int32_t colinkTcpRead(int32_t fd, uint8_t* buf, uint16_t len)
 
     int ret = -1;
 
-    if (buf == NULL) {
+    if (buf == NULL)
+    {
         return COLINK_ARG_INVALID;
     }
 
-    /*TCP��ȡ������Ҫ�жϴ�����*/
     ret = (int)(recv(fd, buf, len, MSG_DONTWAIT));
 
-    if (ret <= 0) {
+    if (ret <= 0)
+    {
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
             return COLINK_NO_ERROR;
-        } else {
+        }
+        else
+        {
             printf("ret=%d errno=%d\n", ret, errno);
             return COLINK_TCP_READ_ERR;
         }
     }
-printf("colinkTcpRead fd=%d len=%d ret=%d\n", fd, len, ret);
-{
-    int i;
-	for (i = 0; i < len && len < 64; i++) {
-		printf ("%02X ", buf[i]);
-	}
-	printf ("\r\n");
-}
     return ret;
 
 #endif
@@ -413,18 +422,21 @@ int32_t colinkTcpSend(int32_t fd, const uint8_t* buf, uint16_t len)
 
     int ret = -1;
 
-    if (buf == NULL) {
+    if (buf == NULL)
+    {
         return COLINK_ARG_INVALID;
     }
 
-    /*TCP����������Ҫ�жϴ�����*/
     ret = (int)(send(fd, buf, len, MSG_DONTWAIT));
 
     if (ret < 0)
     {
-        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+        {
             return COLINK_NO_ERROR;
-        } else {
+        }
+        else
+        {
             printf("ret=%d errno=%d\n", ret, errno);
             return COLINK_TCP_SEND_ERR;
         }
@@ -452,7 +464,8 @@ ColinkTcpErrorCode colinkTcpState(int32_t fd)
     int errcode = 0;
     int tcp_fd = fd;
     
-    if (tcp_fd < 0) {
+    if (tcp_fd < 0)
+    {
         return COLINK_TCP_CONNECT_ERR;
     }
 
@@ -465,34 +478,42 @@ ColinkTcpErrorCode colinkTcpState(int32_t fd)
     FD_CLR(tcp_fd, &wset);
     FD_SET(tcp_fd, &rset);
     FD_SET(tcp_fd, &wset);
-    // wset = rset;
 
     struct timeval timeout;
     timeout.tv_sec = 3;
     timeout.tv_usec = 0;
 
-    /*ʹ��select�����ж�tcp����״̬*/
     ready_n = select(tcp_fd + 1, &rset, &wset, NULL, &timeout);
 
-    if (0 == ready_n) {
-        os_printf("select time out\n");
+    if (0 == ready_n)
+    {
+        colinkPrintf("select time out\n");
         errcode = COLINK_TCP_CONNECTING;
-    } else if (ready_n < 0) {
-        os_printf("select error\n");
+    }
+    else if (ready_n < 0)
+    {
+        colinkPrintf("select error\n");
         errcode = COLINK_TCP_CONNECT_ERR;
-    } else {
-        if (FD_ISSET(tcp_fd, &wset) != 0) {
+    }
+    else
+    {
+        if (FD_ISSET(tcp_fd, &wset) != 0)
+        {
             errcode = COLINK_TCP_NO_ERROR;
-        } else {
+        }
+        else
+        {
             int ret;
             int len = (int) sizeof(int);;
 
-            if (0 != getsockopt(tcp_fd, SOL_SOCKET, SO_ERROR, &ret, &len)) {
-                os_printf("getsocketopt failed\r\n");
+            if (0 != getsockopt(tcp_fd, SOL_SOCKET, SO_ERROR, &ret, &len))
+            {
+                colinkPrintf("getsocketopt failed\r\n");
                 errcode = COLINK_TCP_CONNECT_ERR;
             }
 
-            if (0 != ret) {
+            if (0 != ret)
+            {
                 errcode = COLINK_TCP_CONNECT_ERR;
             }
 
@@ -524,15 +545,15 @@ int32_t colinkTcpConnect(const char* dst, uint16_t port)
 
 
     if (fd < 0) {
-        os_printf("creat socket fd failed\n");
+        colinkPrintf("creat socket fd failed\n");
         return COLINK_TCP_CONNECT_ERR;
     }
 
-    /*���÷�����ģʽ*/
     flags = fcntl(fd, F_GETFL, 0);
 
-    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-        os_printf("fcntl: %s\n", strerror(errno));
+    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
+    {
+        colinkPrintf("fcntl: %s\n", strerror(errno));
         close(fd);
         return COLINK_TCP_CONNECT_ERR;
     }
@@ -540,9 +561,10 @@ int32_t colinkTcpConnect(const char* dst, uint16_t port)
     reuse = 1;
 
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
-                   (const char*) &reuse, sizeof(reuse)) != 0) {
+                   (const char*) &reuse, sizeof(reuse)) != 0)
+    {
         close(fd);
-        os_printf("set SO_REUSEADDR failed\n");
+        colinkPrintf("set SO_REUSEADDR failed\n");
         return COLINK_TCP_CONNECT_ERR;
     } 
 
@@ -552,24 +574,25 @@ int32_t colinkTcpConnect(const char* dst, uint16_t port)
     servaddr.sin_addr.s_addr = inet_addr(dst);
     servaddr.sin_port = htons(port);
 
-    if (connect(fd, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) == 0) {
-        os_printf("dst %s port %d errno %d\n", dst, port, errno);
+    if (connect(fd, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) == 0)
+    {
+        colinkPrintf("dst %s errno %d\n", dst, errno);
         return fd;
-    } else {
-        os_printf("dst %s port %d errno %d\n", dst, port, errno);
+    }
+    else
+    {
+        colinkPrintf("dst %s errno %d\n", dst, errno);
 
-        if (errno == EINPROGRESS) {
-            os_printf("tcp conncet noblock\n");
+        if (errno == EINPROGRESS)
+        {
+            colinkPrintf("tcp conncet noblock\n");
             return fd;
-        } else {
+        }
+        else
+        {
             close(fd);
             return COLINK_TCP_CONNECT_ERR;
         }
     }
-    
 #endif
 }
-
-
-
-

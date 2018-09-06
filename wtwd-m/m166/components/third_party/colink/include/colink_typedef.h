@@ -11,7 +11,7 @@ extern "C" {
 #include <stdbool.h>
 
 #ifndef bool
-#define bool	int
+#define bool	int32_t
 #endif
 
 #ifndef true

@@ -31,7 +31,7 @@ typedef struct
     char version[12];          /**< 固件版本 */
     bool ssl_enable;           /**< 是否使能SSL */
     ColinkDevType dev_type;    /**< 设备类型 */
-    int __pad[2];
+    int32_t __pad[2];
 }ColinkDev;
 
 /**
@@ -39,8 +39,9 @@ typedef struct
  */
 typedef enum
 {
-    DEVICE_OFFLINE   = 0,    /**< 设备离线 */
-    DEVICE_ONLINE    = 1,    /**< 设备在线 */
+    DEVICE_OFFLINE      = 0,    /**< 设备离线 */
+    DEVICE_ONLINE       = 1,    /**< 设备在线 */
+    DEVICE_UNREGISTERED = 2,    /**< 设备未注册 */
 } ColinkDevStatus;
 
 /**
@@ -95,6 +96,19 @@ typedef struct
     void (*colinkUpgradeRequestCb)(char *new_ver, ColinkOtaInfo file_list[], uint8_t file_num);
 
     /**
+     * @brief 向服务器请求UTC时间的回调函数。
+     *
+     * @par 描述:
+     * 当设备调用colinkSendUTCRequest发送获取UTC时间后，
+     * 通过此回调函数获取请求结果。
+     *
+     * @param error_code    [IN] 收到服务器响应的错误码。
+     * @param utc_str       [IN] UTC时间字符串。
+     *
+     */
+    void (*colinkSendUTCRequestCb)(ColinkReqResultCode error_code, char utc_str[]);
+
+    /**
      * @brief 接收请求数据的回调函数。
      *
      * @par 描述:
@@ -103,9 +117,10 @@ typedef struct
      *
      * @param sub_dev       [IN] 子设备对应的指针。
      * @param data          [IN] 收到请求的数据。
+     * @param req_sequence  [IN] 收到的sequence。
      *
      */
-    void (*colinkSubDevRecvReqCb)(ColinkSubDevice *sub_dev, char* data);
+    void (*colinkSubDevRecvReqCb)(ColinkSubDevice *sub_dev, char* data, char req_sequence[]);
 
     /**
      * @brief 接收服务器响应的回调函数。
@@ -149,10 +164,38 @@ typedef struct
     void (*colinkDelSubDevResultCb)(ColinkSubDevice sub_dev[], ColinkSubDevResultCode error_code[], uint16_t num);
 
     /**
+     * @brief 上报子设备在线时服务器响应的回调函数。
+     *
+     * @par 描述:
+     * 当调用colinkOnlineSubDev上报多个子设备在线，随后产生此回调函数来获取服务器响应的结果。
+     * 子设备可以通过此回调判断是否删除成功。
+     *
+     * @param sub_dev       [IN] 子设备对应的数组列表。
+     * @param error_code    [IN] 收到服务器响应的错误码列表。
+     * @param num           [IN] 子设备数量。
+     *
+     */
+    void (*colinkOnlineSubDevResultCb)(ColinkSubDevice sub_dev[], ColinkSubDevResultCode error_code[], uint16_t num);
+
+    /**
+     * @brief 上报子设备离线时服务器响应的回调函数。
+     *
+     * @par 描述:
+     * 当调用colinkOfflineSubDev上报多个子设备离线，随后产生此回调函数来获取服务器响应的结果。
+     * 子设备可以通过此回调判断是否删除成功。
+     *
+     * @param sub_dev       [IN] 子设备对应的数组列表。
+     * @param error_code    [IN] 收到服务器响应的错误码列表。
+     * @param num           [IN] 子设备数量。
+     *
+     */
+    void (*colinkOfflineSubDevResultCb)(ColinkSubDevice sub_dev[], ColinkSubDevResultCode error_code[], uint16_t num);
+
+    /**
      * @brief 服务器发送删除子设备指令，通知网关处理的回调函数。
      *
      * @par 描述:
-     * 已注册当前网关的子设备连接其它网关时候，服务器会发送删除子设备指令，通过回调函数来得知哪些子设备已被删除。
+     * 已注册当前网关的子设备连接其它网关或者app端删除子设备的时候，服务器会发送删除子设备指令，通过回调函数来得知哪些子设备已被删除。
      *
      * @param sub_dev       [IN] 通知删除的子设备。
      *
@@ -175,11 +218,27 @@ typedef struct
 ColinkInitErrorCode colinkInit(ColinkDev *dev_data, ColinkEvent *reg_event);
 
 /**
+ * @brief 反初始化colink Device。
+ *
+ * @par 描述:
+ * 反初始化colink，释放当前colink占用的资源。
+ * 用于使用过程中，设备需要重新配网或者出现问题需要重新初始化colink的状况下，须先
+ * 把colinkProcess进程结束，然后调用该接口释放colink占用的资源。
+ *
+ * @param 无。
+ *
+ * @retval true      反初始化成功。
+ * @retval false     反初始化失败。
+ */
+bool colinkDeInit(void);
+
+/**
  * @brief colink事件处理。
  *
  * @par 描述:
  * 启动colink事件处理，必须在colinkInit初始化成功后调用！
  * 建议调用间隔最大25~50毫秒。若该函数长时间未被调用，则可能返回异常信息。
+ * 调用该接口的任务分配栈空间建议2048字节！！！
  *
  * @param 无。
  *
@@ -217,6 +276,7 @@ ColinkErrorCode colinkSendUpdate(char* data);
  *
  * @retval DEVICE_OFFLINE     离线。
  * @retval DEVICE_ONLINE      在线。
+ * @retval DEVICE_UNREGISTER  设备未注册。
  */
 ColinkDevStatus colinkGetDevStatus(void); 
 
@@ -235,6 +295,21 @@ ColinkDevStatus colinkGetDevStatus(void);
  * @retval COLINK_DATA_SEND_ERROR   发送数据出错。
  */
 ColinkErrorCode colinkUpgradeRes(ColinkOtaResCode error_code);
+
+/**
+ * @brief 向服务器发送获取UTC时间请求。
+ *
+ * @par 描述:
+ * 当设备需要同步服务器UTC时间时，调用此接口发送请求，
+ * 发送请求成功后通过colinkSendUTCRequestCb获取请求结果。
+ *
+ * @param error_code   [IN] 响应错误码值。参考ColinkOtaResCode。
+ *
+ * @retval COLINK_NO_ERROR          响应成功。
+ * @retval COLINK_JSON_CREATE_ERR   创建JSON对象错误。
+ * @retval COLINK_DATA_SEND_ERROR   发送数据出错。
+ */
+ColinkErrorCode colinkSendUTCRequest(void);
 
 /**
  * @brief 获取colink版本号。
