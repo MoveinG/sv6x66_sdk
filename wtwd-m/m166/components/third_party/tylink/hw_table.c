@@ -40,7 +40,7 @@ static CTRL_CHANNEL channels[] =
         // 按钮
         .button = {TY_GPIOA_0,TRUE,LP_INVALID,0,50,NULL},
         // 通道状态指示灯
-        .led    = {.type = IO_DRIVE_LEVEL_LOW, .pin = TY_GPIOA_13},
+        .led    = {.type = IO_DRIVE_LEVEL_HIGH, .pin = TY_GPIOA_1},
         // 绑定dpid
         .dpid   = 1,
         // 绑定倒计时dpid DPID_NOT_EXIST表示不存在倒计时
@@ -52,7 +52,7 @@ static CTRL_CHANNEL channels[] =
 HW_TABLE g_hw_table = 
 {
     // wifi状态指示灯 有效对应wifi连接 无效对应wifi未连接
-    .wifi_stat_led = {.type = IO_DRIVE_LEVEL_HIGH, .pin = TY_GPIOA_1},
+    .wifi_stat_led = {.type = IO_DRIVE_LEVEL_LOW, .pin = TY_GPIOA_13},
     .rst_button = {TY_GPIOA_0,TRUE,LP_ONCE_TRIG,KEY_RST_TIME,50,key_process},
     .channels = channels
 };
@@ -210,7 +210,7 @@ void hw_set_channel(HW_TABLE *hw_table, INT_T channel_no, BOOL_T is_active)
         }
 
         // 根据状态指示灯 有效电平定义 控制状态指示灯
-        if(IS_CONNECTED) {
+        /*if(IS_CONNECTED)*/ {
             switch(hw_table->channels[channel_no].led.type)
             {
                 case IO_DRIVE_LEVEL_HIGH:

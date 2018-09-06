@@ -557,7 +557,8 @@ OPERATE_RET hwl_wf_ap_start(IN CONST WF_AP_CFG_IF_S *cfg)
 
 	SOFTAP_CUSTOM_CONFIG isoftap_config;
 
-    //cfg->ssid_hidden;
+	hwl_wf_ap_stop();
+	//cfg->ssid_hidden;
 	//isoftap_custom_config.start_ip = ;
 	//isoftap_custom_config.end_ip = ;
 	//isoftap_custom_config.gw = ;
@@ -575,7 +576,7 @@ OPERATE_RET hwl_wf_ap_start(IN CONST WF_AP_CFG_IF_S *cfg)
 	int32_t rlt = softap_set_custom_conf(&isoftap_config);
 	if(rlt == -4) printf("Don't configure SoftAP when SoftAP is running. Please execute AT+AP_EXIT first\n");
 
-	hwl_wf_ap_stop();
+	//hwl_wf_ap_stop();
 
     DUT_wifi_start(DUT_AP);
     return OPRT_OK;
