@@ -1,0 +1,147 @@
+/***********************************************************
+*  File: uni_system.c
+*  Author: nzy
+*  Date: 120427
+***********************************************************/
+#define _UNI_SYSTEM_GLOBAL
+#include "tuya_uni_system.h"
+#include "FreeRTOS.h"
+#include "osal.h"
+#include "wdt/drv_wdt.h"
+#include "uni_log.h"
+//#include "wf_basic_intf.h"
+
+/***********************************************************
+*************************micro define***********************
+***********************************************************/
+#define SERIAL_NUM_LEN 32
+#define UINT UINT_T
+
+/***********************************************************
+*************************variable define********************
+***********************************************************/
+STATIC CHAR_T serial_no[SERIAL_NUM_LEN+1] = {0};
+
+/***********************************************************
+*************************function define********************
+***********************************************************/
+/***********************************************************
+*  Function: GetSystemTickCount 
+*  Input: none
+*  Output: none
+*  Return: system tick count
+***********************************************************/
+UINT_T tuya_GetSystemTickCount(VOID)
+{
+    return (UINT)os_tick2ms(OS_GetSysTick());
+}
+
+/***********************************************************
+*  Function: GetTickRateMs 
+*  Input: none
+*  Output: none
+*  Return: tick rate spend how many ms
+***********************************************************/
+UINT_T tuya_GetTickRateMs(VOID)
+{
+    return (UINT)portTICK_RATE_MS;
+}
+
+/***********************************************************
+*  Function: SystemSleep 
+*  Input: msTime
+*  Output: none 
+*  Return: none
+*  Date: 120427
+***********************************************************/
+VOID tuya_SystemSleep(IN CONST TIME_MS msTime)
+{
+    OS_MsDelay(msTime);
+}
+
+/***********************************************************
+*  Function: SystemIsrStatus->direct system interrupt status
+*  Input: none
+*  Output: none 
+*  Return: BOOL_T
+***********************************************************/
+BOOL_T tuya_SystemIsrStatus(VOID)
+{
+    if(0 != __get_IPSR()) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/***********************************************************
+*  Function: SystemReset 
+*  Input: msTime
+*  Output: none 
+*  Return: none
+*  Date: 120427
+***********************************************************/
+VOID tuya_SystemReset(VOID)
+{
+	drv_wdt_init();
+	drv_wdt_enable(SYS_WDT, 100);
+}
+
+/***********************************************************
+*  Function: SysMalloc 
+*  Input: reqSize
+*  Output: none 
+*  Return: VOID *
+***********************************************************/
+VOID *tuya_SysMalloc(IN CONST DWORD_T reqSize)
+{
+    return OS_MemAlloc(reqSize);
+}
+
+/***********************************************************
+*  Function: SysFree 
+*  Input: msTime
+*  Output: none 
+*  Return: none
+***********************************************************/
+VOID tuya_SysFree(IN PVOID_T pReqMem)
+{
+    return OS_MemFree(pReqMem);
+}
+
+/***********************************************************
+*  Function: SysGetHeapSize 
+*  Input: none
+*  Output: none 
+*  Return: INT_T-> <0 means don't support to get heapsize
+***********************************************************/
+INT_T tuya_SysGetHeapSize(VOID)
+{
+    return (INT_T)OS_MemRemainSize();
+}
+
+/***********************************************************
+*  Function: GetSerialNo 
+*  Input: none
+*  Output: none 
+*  Return: CHAR_T *->serial number
+***********************************************************/
+CHAR_T *tuya_GetSerialNo(VOID)
+{
+	//获取mac地址
+}
+
+/***********************************************************
+*  Function: system_get_rst_info 
+*  Input: none
+*  Output: none 
+*  Return: CHAR_T *->reset reason
+***********************************************************/
+CHAR_T *tuya_system_get_rst_info(VOID)
+{
+	//获取系统重启原因
+	//返回值是字符串：eg：  ”rst reason is ：1“ 
+}
+
+
+
