@@ -23,8 +23,8 @@ typedef enum
 #define DEVICE_CONFIG_START_SEC (0x7C)
 
 
-#define DEVICEID "100003a0d0"
-#define APIKEY "352c0793-94e9-4538-b6d8-7c0d302b6111"
+#define DEVICEID "100003a0dd"
+#define APIKEY "e1e8aa98-e87e-4708-8215-0a9a41a940a8"
 #define MODEL "C01-X01-GL"
 #define VERDION "0.0.1"
 

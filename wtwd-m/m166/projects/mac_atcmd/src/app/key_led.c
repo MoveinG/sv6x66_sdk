@@ -4,13 +4,13 @@
 #include "osal.h"
 #include "gpio/drv_gpio.h"
 
-#define DEVICE_WFLED	GPIO_01 //wifi
-#define DEVICE_PWLED	GPIO_00 //power
+#define DEVICE_WFLED	GPIO_13 //wifi
+#define DEVICE_PWLED	GPIO_01 //power
 
-#define DEVICE_KEY1		GPIO_13
+#define DEVICE_KEY1		GPIO_00
 //#define DEVICE_KEY2		GPIO_02
 
-#define DEVICE_SWITCH1	GPIO_12
+#define DEVICE_SWITCH1	GPIO_11
 //#define DEVICE_SWITCH2	GPIO_11
 
 #define LIGHT_FLASH1	250 //ms for smartconfig
@@ -265,18 +265,13 @@ void TaskKeyLed(void *pdata)
 					if(cloud_task) update_xlink_status();
 					#endif
 					#if defined(CK_CLOUD_EN)
-					colinkSwitchUpdate();
+					if(get_wifi_status() != 0) colinkSwitchUpdate();
 					#endif
 				}
 				//if(msg_evt.MsgData == KEY_KEY2) Shift_Switch2();
 				break;
 
 			case EVENT_CONNECT:
-				if(smarting)
-				{
-					OS_TimerStop(led_flash_timer);
-					smarting = false;
-				}
 				/*if(msg_evt.MsgData == CONNECT_SET)
 				{
 					show_wifi_status(1);
@@ -287,6 +282,11 @@ void TaskKeyLed(void *pdata)
 				}*/
 				if(msg_evt.MsgData == CONNECT_CON)
 				{
+					if(smarting)
+					{
+						OS_TimerStop(led_flash_timer);
+						smarting = false;
+					}
 					show_wifi_status(1);
 
 					#if defined(WT_CLOUD_EN)
@@ -300,7 +300,7 @@ void TaskKeyLed(void *pdata)
 				}
 				if(msg_evt.MsgData == CONNECT_DIS)
 				{
-					show_wifi_status(0);
+					if(smarting == false) show_wifi_status(0);
 				}
 				break;
 

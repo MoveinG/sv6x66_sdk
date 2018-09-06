@@ -15,7 +15,7 @@
 #define uint32				uint32_t
 #define uint16				uint16_t
 #define uint8				uint8_t
-#define SPI_FLASH_SEC_SIZE	FLASH_PAGE_SIZE
+#define SPI_FLASH_SEC_SIZE	(4096)
 
 #define FILE_BUFFER_SIZE            (4096)
 #define HTTP_BUFFER_SIZE            (2048)
@@ -26,6 +26,7 @@
 #define HTTP_206_RETURN		"HTTP/1.1 206 Partial Content"
 #define HTTP_206_RANGES		"Content-Range: bytes "
 #define OTA_BIN_FILENAME	"ota.bin"
+#define OTA_MD5_FILENAME	"ota_info.bin"
 
 #define system_upgrade_userbin_check(void) (0)
 extern spiffs* fs_handle;
@@ -66,6 +67,27 @@ static void cb2UpgradeTimer(void *arg)//
     {
         os_printf("upgrade successfully and reboot now!\n");
         OS_TimerDelete(upgrade_timer);
+
+		/*mbedtls_md5_context ctx;
+		uint8_t output[16], md5_hex[33];
+
+		mbedtls_md5_init(&ctx);
+		mbedtls_md5_starts(&ctx);
+		mbedtls_md5_update(&ctx, 0x30000000, 0x90000);
+		mbedtls_md5_finish(&ctx, output);
+		mbedtls_md5_free(&ctx);
+	    for(int i=0; i<32; i+=2)
+	    {
+	        sprintf((char*)md5_hex+i, "%02x", output[i/2]);
+	    }
+		md5_hex[32] = 0;
+	    printf("md5=%s\n", md5_hex);*/
+
+		SSV_FILE fd = FS_open(fs_handle, OTA_MD5_FILENAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
+		if(fd < 0) return;
+
+		FS_write(fs_handle, fd, (void*)ota_file_info.digest, sizeof(ota_file_info.digest));
+		FS_close(fs_handle, fd);
 
 		ota_set_parameter(OTA_BIN_FILENAME, "");
 		ota_update();
