@@ -343,7 +343,16 @@ OPERATE_RET hwl_wf_get_mac(IN CONST WF_IF_E wf,OUT NW_MAC_S *mac)
 ***********************************************************/
 OPERATE_RET hwl_wf_set_mac(IN CONST WF_IF_E wf,IN CONST NW_MAC_S *mac)
 {
-    return OPRT_NOT_SUPPORTED;
+    uint8_t mac_str[20]; //>17
+    sprintf(mac_str,"%02X:%02X:%02X:%02X:%02X:%02X",mac->mac[0],mac->mac[1],mac->mac[2],mac->mac[3],mac->mac[4],mac->mac[5]);
+
+    void *cfg_handle = wifi_cfg_init();
+    wifi_cfg_replace_mem_addr1(cfg_handle, mac_str);
+    wifi_cfg_write_cfg(cfg_handle);
+    wifi_cfg_deinit(cfg_handle);
+
+    return OPRT_OK;
+    //return OPRT_NOT_SUPPORTED;
 }
 
 /***********************************************************
@@ -558,11 +567,14 @@ OPERATE_RET hwl_wf_ap_start(IN CONST WF_AP_CFG_IF_S *cfg)
 	SOFTAP_CUSTOM_CONFIG isoftap_config;
 
 	hwl_wf_ap_stop();
+
+	memset(&isoftap_config, 0, sizeof(isoftap_config));
 	//cfg->ssid_hidden;
-	//isoftap_custom_config.start_ip = ;
-	//isoftap_custom_config.end_ip = ;
-	//isoftap_custom_config.gw = ;
-	//isoftap_custom_config.subnet = ;
+	isoftap_custom_config.start_ip = 0x0a0a0702; //10, 10, 7, 2
+	isoftap_custom_config.end_ip = 0x0a0a0705;
+	isoftap_custom_config.gw = 0x0a0a0701;
+	isoftap_custom_config.subnet = 0xffffff00;
+
 	isoftap_config.max_sta_num = cfg->max_conn;
 	isoftap_config.encryt_mode = cfg->md;	
 	isoftap_config.keylen = cfg->p_len;
@@ -574,7 +586,7 @@ OPERATE_RET hwl_wf_ap_start(IN CONST WF_AP_CFG_IF_S *cfg)
 	memcpy(isoftap_config.ssid, cfg->ssid, sizeof(isoftap_config.ssid));
 
 	int32_t rlt = softap_set_custom_conf(&isoftap_config);
-	if(rlt == -4) printf("Don't configure SoftAP when SoftAP is running. Please execute AT+AP_EXIT first\n");
+	if(rlt == -4) ty_hwl_printf("Don't configure SoftAP when SoftAP is running\n");
 
 	//hwl_wf_ap_stop();
 

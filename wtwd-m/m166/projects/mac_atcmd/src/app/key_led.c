@@ -24,8 +24,8 @@
 #define SWITCH_PWROFF	0
 
 #define KEY_DEBOUND		10
-#define KEY_LONG_TIME	4500
-//#define KEY_LONG_VAL	1
+#define KEY_CHECK_TIME	100
+#define KEY_LONG_VAL	50
 //#define KEY_NORMAL_VAL	2
 
 #define EVENT_DEV_KEY	1
@@ -35,8 +35,8 @@
 #define KEY_KEY1		0x0001
 #define KEY_KEY2		0x0002
 #define KEY_1LONG		0x0100
-#define KEY_DOWN		0x1000
-#define KEY_TOUP		0x2000
+//#define KEY_DOWN		0x1000
+//#define KEY_TOUP		0x2000
 
 #define CONNECT_DIS		0
 #define CONNECT_CON		1
@@ -78,16 +78,45 @@ static void led_flash_handler(void)
 
 static void key_check_handler(void)
 {
-	int8_t level;
+    static int8_t last_key1=1, conut=0;
+    uint8_t state;
 	OsMsgQEntry msg_evt;
 
-	level = drv_gpio_get_logic(DEVICE_KEY1);
-	if(level == 0)
+	state = drv_gpio_get_logic(DEVICE_KEY1);
+	if(state == 0)
+	{
+		if(conut == KEY_LONG_VAL)
+		{
+			msg_evt.MsgCmd = EVENT_DEV_KEY;
+			msg_evt.MsgData = KEY_1LONG;
+			OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+		}
+		conut++;
+	}
+	else
+	{
+		if(last_key1 == 0 && conut < KEY_LONG_VAL)
+		{
+			msg_evt.MsgCmd = EVENT_DEV_KEY;
+			msg_evt.MsgData = KEY_KEY1;
+			OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+		}
+		conut = 0;
+	}
+	last_key1 = state;
+
+#if defined(DEVICE_KEY2)
+    static int8_t last_key2=1;
+
+	state = drv_gpio_get_logic(DEVICE_KEY2);
+	if(state != 0 && last_key2 == 0)
 	{
 		msg_evt.MsgCmd = EVENT_DEV_KEY;
-		msg_evt.MsgData = KEY_1LONG;
+		msg_evt.MsgData = KEY_KEY2;
 		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 	}
+	last_key2 = state;
+#endif
 }
 
 static void Shift_Switch(void)
@@ -111,28 +140,6 @@ static void Shift_Switch(void)
 	OS_ExitCritical();
 }
 
-static void irq_key1_gpio_ipc(uint32_t irq_num)
-{
-	int8_t level;
-	OsMsgQEntry msg_evt;
-
-	drv_gpio_intc_clear(DEVICE_KEY1);
-	level = drv_gpio_get_logic(DEVICE_KEY1);
-	msg_evt.MsgCmd = EVENT_DEV_KEY;
-	if(level == 0)
-	{
-		drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_RISING_EDGE);
-		msg_evt.MsgData = KEY_KEY1 | KEY_DOWN;
-		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
-	}
-	else
-	{
-		drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_FALLING_EDGE);
-		msg_evt.MsgData = KEY_KEY1 | KEY_TOUP;
-        OS_MsgQEnqueue(keyled_msgq, &msg_evt);
-	}
-}
-
 static void show_wifi_status(int connect)
 {
 	OS_EnterCritical();
@@ -147,9 +154,14 @@ static void KeyLed_Init(void)
 {
 	drv_gpio_set_mode(DEVICE_KEY1, 0);
 	drv_gpio_set_dir(DEVICE_KEY1, 0);
-	drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_FALLING_EDGE);
+	//drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_FALLING_EDGE);
 	//drv_gpio_intc_clear(DEVICE_KEY1);
-	drv_gpio_register_isr(DEVICE_KEY1, irq_key1_gpio_ipc);
+	//drv_gpio_register_isr(DEVICE_KEY1, irq_key1_gpio_ipc);
+
+#if defined(DEVICE_KEY2)
+	drv_gpio_set_mode(DEVICE_KEY1, 0);
+	drv_gpio_set_dir(DEVICE_KEY1, 0);
+#endif
 
 	drv_gpio_set_mode(DEVICE_WFLED, 0);
 	drv_gpio_set_dir(DEVICE_WFLED, 1);
@@ -215,13 +227,15 @@ void TaskKeyLed(void *pdata)
 		return;
 
 	key_check_timer = NULL;
-	if(OS_TimerCreate(&key_check_timer, KEY_LONG_TIME, (u8)FALSE, NULL, (OsTimerHandler)key_check_handler) == OS_FAILED)
+	if(OS_TimerCreate(&key_check_timer, KEY_CHECK_TIME, (u8)TRUE, NULL, (OsTimerHandler)key_check_handler) == OS_FAILED)
 		return;
 
-    if(OS_MsgQCreate(&keyled_msgq, KEYLED_MSGLEN) != OS_SUCCESS)
-        return;
+	if(OS_MsgQCreate(&keyled_msgq, KEYLED_MSGLEN) != OS_SUCCESS)
+		return;
 
 	KeyLed_Init();
+	OS_TimerStart(key_check_timer);
+
 	#if defined(CK_CLOUD_EN)
 	coLinkSetDeviceMode(DEVICE_MODE_START); 
 	#endif
@@ -233,20 +247,6 @@ void TaskKeyLed(void *pdata)
 			switch(msg_evt.MsgCmd) {
 			case EVENT_DEV_KEY:
 				printf("EVENT_DEV_KEY=%x\n", msg_evt.MsgData);
-				if(msg_evt.MsgData == (KEY_KEY1 | KEY_DOWN))
-				{
-					OS_TimerStart(key_check_timer);
-					keydown_time = os_tick2ms(OS_GetSysTick());
-					break;
-				}
-				if(msg_evt.MsgData == (KEY_KEY1 | KEY_TOUP))
-				{
-					OS_TimerStop(key_check_timer);
-					keydown_time = os_tick2ms(OS_GetSysTick()) - keydown_time;
-					if(keydown_time < KEY_DEBOUND || keydown_time > KEY_LONG_TIME)
-						break;
-					msg_evt.MsgData = KEY_KEY1;
-				}
 				if(msg_evt.MsgData == KEY_1LONG)
 				{
 					if(smarting == true)
@@ -293,7 +293,12 @@ void TaskKeyLed(void *pdata)
 					if(get_wifi_status() != 0) colinkSwitchUpdate();
 					#endif
 				}
-				//if(msg_evt.MsgData == KEY_KEY2) Shift_Switch2();
+				#if defined(DEVICE_KEY2)
+				if(msg_evt.MsgData == KEY_KEY2)
+				{
+					Shift_Switch2();
+				}
+				#endif
 				break;
 
 			case EVENT_CONNECT:
