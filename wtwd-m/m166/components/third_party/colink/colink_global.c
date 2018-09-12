@@ -3,7 +3,7 @@
 
 static CoLinkDeviceMode dev_mode = DEVICE_MODE_INVALID;
 
-//CoLinkFlashParam colink_flash_param;
+CoLinkFlashParam colink_flash_param;
 
 void coLinkSetDeviceMode(CoLinkDeviceMode mode)
 {

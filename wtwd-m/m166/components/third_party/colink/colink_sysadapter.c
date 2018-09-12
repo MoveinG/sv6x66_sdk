@@ -129,6 +129,28 @@ int32_t colinkPrintf(const char* format, ...)
     ret = vsnprintf(printf_buffer, PRINTF_BUFFER_SIZE, format, ap);
     va_end(ap);
     
+	/*uint8_t ch; 
+	int i = strlen((char*)printf_buffer);
+
+	ch = printf_buffer[120];
+	printf_buffer[120] = 0;
+	os_printf("%s", printf_buffer);
+	printf_buffer[120] = ch;
+
+	if(i > 240)
+	{
+		ch = printf_buffer[240];
+		printf_buffer[240] = 0;
+	    os_printf("%s", printf_buffer+120);
+		printf_buffer[240] = ch;
+
+	    os_printf("%s", printf_buffer+240);
+	}
+	else if(i > 120)
+	{
+	    os_printf("%s", printf_buffer+120);
+	}*/
+
     os_printf("%s", printf_buffer);
     return ret;
 }

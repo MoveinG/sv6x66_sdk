@@ -290,8 +290,13 @@ static int sendHttpRequest(int sockfd, uint8_t *buffer, uint32_t start, uint32_t
 		buffer[200] = 0;
 	    os_printf("%s", buffer+100);
 		buffer[200] = ch;
+	    os_printf("%s]\n", buffer+200)
 	}
-    os_printf("%s]\n", buffer+200);*/
+	else if(i > 100)
+	{
+		os_printf("%s]\n", buffer+100);
+	}
+	else os_printf("]\n"); */
 
     ret = write(sockfd, buffer, strlen((char*)buffer));
     os_printf("ret=%d\n", ret);

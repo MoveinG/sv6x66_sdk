@@ -4,17 +4,27 @@
 
 //#include "esp_common.h"
 #include "colink_link.h"
+#include "softmac/softap_func.h"
 
-/*
+#define softap_config	SOFTAP_CUSTOM_CONFIG
+//#define ip_info
+
 typedef struct
 {
-    struct station_config sta_config;
-    struct ip_info sap_ip_info;
-    struct softap_config sap_config;
+	uint8_t ssid[33];
+	uint8_t password[65];
+	//uint8_t bssid_set;
+	//uint8_t bssid[7];
+} station_config;
 
-    uint32 __pad;
+typedef struct
+{
+    station_config sta_config;
+    //struct ip_info sap_ip_info;
+    softap_config sap_config;
+
+    uint32_t __pad;
 } CoLinkFlashParam;
-*/
 
 typedef enum 
 {

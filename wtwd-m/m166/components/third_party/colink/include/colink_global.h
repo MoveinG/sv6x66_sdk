@@ -3,8 +3,7 @@
 
 #include "colink_type.h"
 
-
-//extern CoLinkFlashParam colink_flash_param;
+extern CoLinkFlashParam colink_flash_param;
 
 void coLinkSetDeviceMode(CoLinkDeviceMode mode);
 CoLinkDeviceMode coLinkGetDeviceMode(void);

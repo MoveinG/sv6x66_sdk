@@ -1,9 +1,10 @@
 //#include "esp_common.h"
-//#include "freertos/task.h"
+#include <string.h>
 #include "colink_profile.h"
 #include "colink_define.h"
 #include "colink_network.h"
 #include "colink_setting.h"
+#include "colink_sysadapter.h"
 #include "lwip/sockets.h"
 #include "lwip/err.h"
 #include "lwip/dns.h"
@@ -12,95 +13,45 @@
 #include "colink_global.h"
 #include "colink_upgrade.h"
 #include "colink_link.h"
-
+#include "iotapi/wifi_api.h"
 
 //static char test_read_tcp[1024];
 //static int fd;
 static bool esptouch_flag = false;
 static bool task_process_flag = false;
 
-#if 0
+extern int32_t softap_set_custom_conf(CoLinkFlashParam*);
+
 static void colinkSelfAPTask(void* pData)
 {
     os_printf("Enter Self Ap Mode!\n");
 
-    strcpy(colink_flash_param.sap_config.ssid, "ITEAD-");
-    strcat(colink_flash_param.sap_config.ssid, DEVICEID);
-    strcpy(colink_flash_param.sap_config.password, "12345678");
+    softap_exit();
+    if(get_DUT_wifi_mode() != DUT_STA ) DUT_wifi_start(DUT_STA);
+
+    colink_flash_param.sap_config.start_ip = 0x0a0a0702; //10, 10, 7, 2
+    colink_flash_param.sap_config.end_ip   = 0x0a0a0705; //10, 10, 7, 5
+    colink_flash_param.sap_config.gw       = 0x0a0a0701; //10, 10, 7, 1
+    colink_flash_param.sap_config.subnet   = 0xffffff00; //255, 255, 255, 0
+
+    strcpy((char*)colink_flash_param.sap_config.ssid, "ITEAD-");
+    strcat((char*)colink_flash_param.sap_config.ssid, DEVICEID);
+    colink_flash_param.sap_config.ssid_length = 16;
+
+    strcpy((char*)colink_flash_param.sap_config.key, "12345678");
+    colink_flash_param.sap_config.keylen = 8;
+
     colink_flash_param.sap_config.channel = 7;
-    colink_flash_param.sap_config.authmode = 4;
-    colink_flash_param.sap_config.ssid_len = 16;
-    colink_flash_param.sap_config.ssid_hidden = 0;
-    colink_flash_param.sap_config.max_connection = 4;
+    colink_flash_param.sap_config.encryt_mode = 4;
+    //colink_flash_param.ssid_hidden = 0;
+    colink_flash_param.sap_config.max_sta_num = 4;
     colink_flash_param.sap_config.beacon_interval = 100;
-    
-    smartconfig_stop();
+
     coLinkSetDeviceMode(DEVICE_MODE_SETTING_SELFAP);
-    
-    if (wifi_station_disconnect())
-    {
-        os_printf("leave ap ok\n");
-    }
-    else
-    {
-        os_printf("leave ap err!\n");
-    }
 
-    if (STATIONAP_MODE != wifi_get_opmode())
-    {
-        if (wifi_set_opmode(STATIONAP_MODE))
-        {
-            os_printf("Set to STATIONAP_MODE ok\n");
-        }
-        else
-        {
-            os_printf("Set to STATIONAP_MODE err!\n");
-        }
-    }
-    else
-    {
-        os_printf("Already in STATIONAP_MODE!\r\n");
-    }
+	if(softap_set_custom_conf(&colink_flash_param.sap_config) == -4) printf("Don't configure SoftAP when SoftAP is running\n");
 
-    if (wifi_softap_dhcps_stop())
-    {
-        os_printf("wifi_softap_dhcps_stop ok");
-    }
-    else
-    {
-        os_printf("wifi_softap_dhcps_stop err");
-    }
-
-    IP4_ADDR(&colink_flash_param.sap_ip_info.ip,       10, 10, 7, 1);
-    IP4_ADDR(&colink_flash_param.sap_ip_info.gw,       10, 10, 7, 1);
-    IP4_ADDR(&colink_flash_param.sap_ip_info.netmask,  255, 255, 255, 0);
-
-    if (wifi_set_ip_info(SOFTAP_IF, &colink_flash_param.sap_ip_info))
-    {
-        os_printf("set sap ip ok\r\n");
-    }
-    else
-    {
-        os_printf("set sap ip err!\r\n");
-    }
-
-    if (wifi_softap_dhcps_start())
-    {
-        os_printf("wifi_softap_dhcps_start ok");
-    }
-    else
-    {
-        os_printf("wifi_softap_dhcps_start err");
-    }
-
-    if (wifi_softap_set_config(&(colink_flash_param.sap_config)))
-    {
-        os_printf("sap config ok\r\n");
-    }
-    else
-    {
-        os_printf("sap config err!\r\n");
-    }
+    DUT_wifi_start(DUT_AP);
 
     colinkSettingStart();
 
@@ -112,6 +63,7 @@ void enterSettingSelfAPMode(void)
     xTaskCreate(colinkSelfAPTask, "colinkSelfAPTask", 1024, NULL, 3, NULL);
 }
 
+#if 0
 static void testSocketTask(void* pData)
 {
 
@@ -302,9 +254,7 @@ static void colinkRecvUpdate(char* data)
         }
     }
 
-
-
-ExitErr1:
+//ExitErr1:
     cJSON_Delete(json_root);
     return;
 }
@@ -346,7 +296,7 @@ static void colinkProcessTask(void* pData)
     ev.colinkNotifyDevStatusCb = colinkNotifyDevStatus;
     ev.colinkUpgradeRequestCb = colinkUpgradeRequest;/**< 升级通知的回调 */
 
-    system_param_load(/*DEVICE_CONFIG_START_SEC, 0, */&colinkInfoCopy, sizeof(colinkInfoCopy));
+    system_param_load(/*DEVICE_CONFIG_START_SEC, 0, */(char*)&colinkInfoCopy, sizeof(colinkInfoCopy));
     strcpy(dev_data->deviceid, DEVICEID);
     strcpy(dev_data->apikey, APIKEY);
     strcpy(dev_data->model, MODEL);
@@ -369,7 +319,7 @@ static void colinkProcessTask(void* pData)
 
     while(1)
     {
-        if(ret = colinkProcess())
+        if((ret = colinkProcess()) != COLINK_PROCESS_NO_ERROR)
         {
             os_printf("colinkProcess ret=%d\r\n", ret);
         }
@@ -416,6 +366,58 @@ static void colinkSoftapOverLinkApTask(void* pData)
 void colinkSoftOverStart(void)
 {
     xTaskCreate(colinkSoftapOverLinkApTask, "colinkSoftapOverLinkApTask", 512, NULL, 3, NULL);
+}
+#else
+static void colinkwificbfunc(WIFI_RSP *msg)
+{
+    printf("colinkwificbfunc wifistatus = %d\n", msg->wifistatus);
+    
+    uint8_t dhcpen;
+    u8 mac[6];
+    uip_ipaddr_t ipaddr, submask, gateway, dnsserver;
+
+    if(msg->wifistatus == 1)
+    {
+        if(msg->id == 0)
+            get_if_config_2("et0", &dhcpen, (u32*)&ipaddr, (u32*)&submask, (u32*)&gateway, (u32*)&dnsserver, mac, 6);
+        else
+            get_if_config_2("et1", &dhcpen, (u32*)&ipaddr, (u32*)&submask, (u32*)&gateway, (u32*)&dnsserver, mac, 6);
+        printf("Wifi Connect\n");
+        printf("STA%d:\n", msg->id);
+        printf("mac addr        - %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        printf("ip addr         - %d.%d.%d.%d\n", ipaddr.u8[0], ipaddr.u8[1], ipaddr.u8[2], ipaddr.u8[3]);
+        printf("netmask         - %d.%d.%d.%d\n", submask.u8[0], submask.u8[1], submask.u8[2], submask.u8[3]);
+        printf("default gateway - %d.%d.%d.%d\n", gateway.u8[0], gateway.u8[1], gateway.u8[2], gateway.u8[3]);
+        printf("DNS server      - %d.%d.%d.%d\n", dnsserver.u8[0], dnsserver.u8[1], dnsserver.u8[2], dnsserver.u8[3]);
+
+        recordAP();
+    }
+    else
+    {
+        printf("Wifi Disconnect\n");
+    }
+    wifi_status_cb(msg->wifistatus);
+}
+
+static void colink_scan_cbfunc(void *data)
+{
+    printf("scan finish\n");
+
+	int ssid_len = strlen(colink_flash_param.sta_config.ssid);
+	int password_len = strlen(colink_flash_param.sta_config.password);
+
+    int ret = set_wifi_config(colink_flash_param.sta_config.ssid, ssid_len, colink_flash_param.sta_config.password, password_len, NULL, 0);
+
+    if(ret == 0)
+        ret = wifi_connect(colinkwificbfunc);
+}
+
+void colinkSoftOverStart(void)
+{
+    softap_exit();
+    if(get_DUT_wifi_mode() != DUT_STA ) DUT_wifi_start(DUT_STA);
+
+    scan_AP(colink_scan_cbfunc);
 }
 #endif
 

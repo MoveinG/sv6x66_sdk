@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "osal.h"
 #include "gpio/drv_gpio.h"
+#include "colink/include/colink_global.h"
 
 #define DEVICE_WFLED	GPIO_13 //wifi
 #define DEVICE_PWLED	GPIO_01 //power
@@ -23,7 +24,7 @@
 #define SWITCH_PWROFF	0
 
 #define KEY_DEBOUND		10
-#define KEY_LONG_TIME	2000
+#define KEY_LONG_TIME	4500
 //#define KEY_LONG_VAL	1
 //#define KEY_NORMAL_VAL	2
 
@@ -31,9 +32,11 @@
 #define EVENT_CONNECT	2
 #define EVENT_SWITCH	3
 
-#define KEY_1LONG		1
-#define KEY_KEY1		2
-#define KEY_KEY2		3
+#define KEY_KEY1		0x0001
+#define KEY_KEY2		0x0002
+#define KEY_1LONG		0x0100
+#define KEY_DOWN		0x1000
+#define KEY_TOUP		0x2000
 
 #define CONNECT_DIS		0
 #define CONNECT_CON		1
@@ -44,8 +47,7 @@
 
 #define KEYLED_MSGLEN	10
 
-static OsTimer led_flash_timer;
-static u32 keydown_time;
+static OsTimer led_flash_timer, key_check_timer;
 static int led_status, pwr_status;
 
 static OsMsgQ keyled_msgq;
@@ -57,6 +59,7 @@ extern void xlinkProcessEnd(void);
 extern void colinkSwitchUpdate(void);
 extern void colinkSettingStart(void);
 extern void colinkProcessStart(void);
+extern void enterSettingSelfAPMode(void);
 
 extern void esptouch_init(void);
 extern void esptouch_stop(void);
@@ -70,28 +73,21 @@ static void led_flash_handler(void)
 	if(led_status == LED_LIGHT_OFF) led_status = LED_LIGHT_ON;
 	else led_status = LED_LIGHT_OFF;
 
-	/*if(get_wifi_status() == 1)
-	{
-		led_status = LED_LIGHT_ON;
-		OS_TimerStop(led_flash_timer);
-		led_flash_timer = NULL;
-	}*/
 	drv_gpio_set_logic(DEVICE_WFLED, led_status);
 }
 
-static int SmartConfig_Start(void)
+static void key_check_handler(void)
 {
-    printf("%s\n", __func__);
+	int8_t level;
+	OsMsgQEntry msg_evt;
 
-	joylink_stop();
-	//if(led_flash_timer != NULL)
-	//{
-	//	OS_TimerStop(led_flash_timer);
-	//	led_flash_timer = NULL;
-	//}
-	OS_TimerStart(led_flash_timer);
-
-	joylink_init("WATERWORLDA15IOT");
+	level = drv_gpio_get_logic(DEVICE_KEY1);
+	if(level == 0)
+	{
+		msg_evt.MsgCmd = EVENT_DEV_KEY;
+		msg_evt.MsgData = KEY_1LONG;
+		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+	}
 }
 
 static void Shift_Switch(void)
@@ -118,36 +114,22 @@ static void Shift_Switch(void)
 static void irq_key1_gpio_ipc(uint32_t irq_num)
 {
 	int8_t level;
-	u32 key_time;
 	OsMsgQEntry msg_evt;
-
-	//printf("%s\n", __func__);
 
 	drv_gpio_intc_clear(DEVICE_KEY1);
 	level = drv_gpio_get_logic(DEVICE_KEY1);
-
+	msg_evt.MsgCmd = EVENT_DEV_KEY;
 	if(level == 0)
 	{
-		keydown_time = os_tick2ms(OS_GetSysTick());
 		drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_RISING_EDGE);
-
-		//printf("keydown_time=%d\n", keydown_time);
+		msg_evt.MsgData = KEY_KEY1 | KEY_DOWN;
+		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 	}
 	else
 	{
-		key_time = os_tick2ms(OS_GetSysTick()) - keydown_time;
 		drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_FALLING_EDGE);
-
-		if(key_time > KEY_DEBOUND)
-		{
-			msg_evt.MsgCmd = EVENT_DEV_KEY;
-			if(key_time > KEY_LONG_TIME) msg_evt.MsgData = KEY_1LONG;
-			else msg_evt.MsgData = KEY_KEY1;
-
-			//OS_SemSignal(key_led_sem);
-	        OS_MsgQEnqueue(keyled_msgq, &msg_evt);
-		}
-		//printf("key_time=%d, event=%d\n", key_time, msg_evt.MsgData);
+		msg_evt.MsgData = KEY_KEY1 | KEY_TOUP;
+        OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 	}
 }
 
@@ -221,20 +203,28 @@ void TaskKeyLed(void *pdata)
 	OsMsgQEntry msg_evt;
 	bool smarting=false, cloud_task=false;
 	uint8_t ssidlen=32, keylen=64;
+	uint32_t keydown_time=0;
 
 	pwr_status = SWITCH_PWROFF;
-	led_flash_timer = NULL;
 
 	if(get_wifi_status() == 1) led_status = LED_LIGHT_ON;
 	led_status = LED_LIGHT_OFF;
 
-	KeyLed_Init();
+	led_flash_timer = NULL;
 	if(OS_TimerCreate(&led_flash_timer, LIGHT_FLASH1, (u8)FALSE, NULL, (OsTimerHandler)led_flash_handler) == OS_FAILED)
+		return;
+
+	key_check_timer = NULL;
+	if(OS_TimerCreate(&key_check_timer, KEY_LONG_TIME, (u8)FALSE, NULL, (OsTimerHandler)key_check_handler) == OS_FAILED)
 		return;
 
     if(OS_MsgQCreate(&keyled_msgq, KEYLED_MSGLEN) != OS_SUCCESS)
         return;
 
+	KeyLed_Init();
+	#if defined(CK_CLOUD_EN)
+	coLinkSetDeviceMode(DEVICE_MODE_START); 
+	#endif
 	printf("TaskKeyLed Init OK!\n");
 	while(1)
 	{
@@ -242,24 +232,59 @@ void TaskKeyLed(void *pdata)
 		{
 			switch(msg_evt.MsgCmd) {
 			case EVENT_DEV_KEY:
+				printf("EVENT_DEV_KEY=%x\n", msg_evt.MsgData);
+				if(msg_evt.MsgData == (KEY_KEY1 | KEY_DOWN))
+				{
+					OS_TimerStart(key_check_timer);
+					keydown_time = os_tick2ms(OS_GetSysTick());
+					break;
+				}
+				if(msg_evt.MsgData == (KEY_KEY1 | KEY_TOUP))
+				{
+					OS_TimerStop(key_check_timer);
+					keydown_time = os_tick2ms(OS_GetSysTick()) - keydown_time;
+					if(keydown_time < KEY_DEBOUND || keydown_time > KEY_LONG_TIME)
+						break;
+					msg_evt.MsgData = KEY_KEY1;
+				}
 				if(msg_evt.MsgData == KEY_1LONG)
 				{
+					if(smarting == true)
+					{
+						printf("to AP mode config\n");
+						#if defined(CK_CLOUD_EN)
+						OS_TimerSet(led_flash_timer, LIGHT_FLASH2, (u8)FALSE, NULL);
+					    esptouch_stop();
+						//smarting = false;
+						enterSettingSelfAPMode();
+						#endif
+						break;
+					}
+					else printf("to smartconfig\n");
+
 					smarting = true;
 					#if defined(CK_CLOUD_EN)
 					system_param_delete();
 					esptouch_stop();
 					OS_TimerStart(led_flash_timer);
+				    coLinkSetDeviceMode(DEVICE_MODE_SETTING);
 					esptouch_init();
 					#endif
 
 					#if defined(WT_CLOUD_EN)
-					SmartConfig_Start();
+					//SmartConfig_Start();
+					joylink_stop();
+					OS_TimerStart(led_flash_timer);
+					joylink_init("WATERWORLDA15IOT");
+
 					if(cloud_task) xlinkProcessEnd();
 					cloud_task = false;
 					#endif
 				}
 				if(msg_evt.MsgData == KEY_KEY1) 
 				{
+					if(smarting == true) break;
+
 					Shift_Switch();
 					#if defined(WT_CLOUD_EN)
 					if(cloud_task) update_xlink_status();
@@ -319,6 +344,7 @@ void TaskKeyLed(void *pdata)
 
 	OS_MsgQDelete(keyled_msgq);
 	//OS_SemDelete(key_led_sem);
+	OS_TimerDelete(key_check_timer);
 	OS_TimerDelete(led_flash_timer);
 	OS_TaskDelete(NULL);
 }

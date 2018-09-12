@@ -7,7 +7,7 @@
 #include "colink_setting.h"
 #include "colink_network.h"
 #include "colink_type.h"
-//#include "colink_global.h"
+#include "colink_global.h"
 #include "colink_link.h"
 
 #define COLINKFILE_NAME "colink.conf"
@@ -79,8 +79,8 @@ void colinkSettingTask(void* pData)
             vTaskDelay(1000 / portTICK_RATE_MS);
             ret = read(newconn, recv_buffer, 512); 
 
-            ret = colinkLinkParse(recv_buffer, ret, outBuff, 1024, &outLen);
-            os_printf("outBuff %d = %s\r\n", outLen, outBuff);
+            ret = colinkLinkParse((uint8_t*)recv_buffer, ret, (uint8_t*)outBuff, 1024, &outLen);
+            //os_printf("outBuff %d = %s\r\n", outLen, outBuff);
             os_printf("ret = %d\r\n", ret);
 
             if(COLINK_LINK_RES_DEV_INFO_OK == ret)
@@ -107,12 +107,12 @@ void colinkSettingTask(void* pData)
                     //strcpy(colinkInfoSetting.distor_domain, colinkInfo.distor_domain);
                     //colinkInfoSetting.distor_port =  colinkInfo.distor_port;
                     
-                    system_param_save_with_protect(/*DEVICE_CONFIG_START_SEC,*/ &colinkInfo, sizeof(colinkInfo));
+                    system_param_save_with_protect(/*DEVICE_CONFIG_START_SEC,*/(char*)&colinkInfo, sizeof(colinkInfo));
 
                     if(DEVICE_MODE_SETTING_SELFAP == coLinkGetDeviceMode())
                     {
-                        //strcpy(colink_flash_param.sta_config.ssid, colinkInfo.ssid);
-                        //strcpy(colink_flash_param.sta_config.password, colinkInfo.password);
+                        strcpy(colink_flash_param.sta_config.ssid, colinkInfo.ssid);
+                        strcpy(colink_flash_param.sta_config.password, colinkInfo.password);
                     }
                     break;
                 }
@@ -131,7 +131,7 @@ void colinkSettingTask(void* pData)
 
     if(DEVICE_MODE_SETTING_SELFAP == coLinkGetDeviceMode())
     {
-        //colinkSoftOverStart();
+        colinkSoftOverStart();
     }
 
     colinkProcessStart();
