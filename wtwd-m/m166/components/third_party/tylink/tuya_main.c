@@ -174,7 +174,7 @@ void user_main(void)
         __tuya_mf_recv,
         gpio_test,
     };
-    op_ret = mf_init(&intf,APP_BIN_NAME,USER_SW_VER,FALSE);
+    op_ret = mf_init(&intf,APP_BIN_NAME,USER_SW_VER,TRUE); //TRUE: write MAC address
     if(OPRT_OK != op_ret) {
         PR_ERR("mf_init err:%d",op_ret);
         return;

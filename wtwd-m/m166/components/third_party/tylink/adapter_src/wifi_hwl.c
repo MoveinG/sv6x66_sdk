@@ -570,10 +570,10 @@ OPERATE_RET hwl_wf_ap_start(IN CONST WF_AP_CFG_IF_S *cfg)
 
 	memset(&isoftap_config, 0, sizeof(isoftap_config));
 	//cfg->ssid_hidden;
-	isoftap_custom_config.start_ip = 0x0a0a0702; //10, 10, 7, 2
-	isoftap_custom_config.end_ip = 0x0a0a0705;
-	isoftap_custom_config.gw = 0x0a0a0701;
-	isoftap_custom_config.subnet = 0xffffff00;
+	isoftap_config.start_ip = 0x0a0a0702; //10, 10, 7, 2
+	isoftap_config.end_ip = 0x0a0a0705;
+	isoftap_config.gw = 0x0a0a0701;
+	isoftap_config.subnet = 0xffffff00;
 
 	isoftap_config.max_sta_num = cfg->max_conn;
 	isoftap_config.encryt_mode = cfg->md;	
