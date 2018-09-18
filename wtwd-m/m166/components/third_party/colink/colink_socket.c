@@ -14,6 +14,7 @@
 #include "mbedtls/certs.h"
 #include "colink_socket.h"
 #include "colink_sysadapter.h"
+#include "colink_network.h"
 
 #ifdef SSLUSERENABLE
 	#define COLINK_SSL
