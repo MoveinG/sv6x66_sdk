@@ -121,10 +121,17 @@ if [ ! -d "projects/$2" ]; then
 	exit 1
 fi
 
+ext_op=clean
+if [ $# -gt 2 ]; then
+	ext_op=$3;
+fi
+
 backallfiles $1 $2
 cp -af wtwd-m/$1/* ./
 
-make distclean
+if [ $ext_op != remake ]; then
+	make distclean
+fi
 make setup p=$2
 make
 storefiles
