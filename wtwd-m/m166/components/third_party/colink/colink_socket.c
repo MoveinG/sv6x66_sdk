@@ -92,7 +92,6 @@ mbedtls_net_context server_fd;
 mbedtls_x509_crt cacert;
 #endif
 
-
 int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
 {
     int ret, len;
@@ -127,9 +126,17 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
  
     if (ret < 0)
     {
-        printf("\r\n mbedtls_x509_crt_parse returned -0x%x\n\n", -ret);
+        printf("mbedtls_x509_crt_parse returned -0x%x\n\n", -ret);
     }
 #endif
+
+    sprintf((char*)port_str, "%d", port);
+    if( ( ret = mbedtls_net_connect( &server_fd, dst,
+                                         port_str, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
+    {
+        printf("failed! mbedtls_net_connect returned %d\n\n", ret );
+        return COLINK_TCP_CREATE_CONNECT_ERR;
+    }
 
     if ((ret = mbedtls_ssl_config_defaults(&conf,
                                            MBEDTLS_SSL_IS_CLIENT,
@@ -141,7 +148,7 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
     }
 
 #if defined(COLINK_VERIFY)
-    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED/*MBEDTLS_SSL_VERIFY_OPTIONAL*/);
+    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
     mbedtls_ssl_conf_ca_chain( &conf, &cacert, NULL );
 #else
 
@@ -150,7 +157,7 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
 #endif
 
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
-    mbedtls_ssl_conf_read_timeout(&conf, 10);
+    //mbedtls_ssl_conf_read_timeout(&conf, 10);
     mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
 
     if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0)
@@ -159,6 +166,12 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
         return COLINK_TCP_CREATE_CONNECT_ERR;
     }
 
+    if( ( ret = mbedtls_ssl_set_hostname( &ssl, dst ) ) != 0 )
+    {
+        printf("failed! mbedtls_ssl_set_hostname returned %d\n\n", ret );
+        return COLINK_TCP_CREATE_CONNECT_ERR;
+    }
+#if 0
     struct sockaddr_in servaddr;
     int flags;
     int reuse = 1;
@@ -211,7 +224,7 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
             return COLINK_TCP_CREATE_CONNECT_ERR;
         }
     }
-
+#endif
     mbedtls_ssl_set_bio(&ssl, &server_fd, mbedtls_net_send, mbedtls_net_recv, mbedtls_net_recv_timeout);
 
     return (int32_t)&ssl;
@@ -531,7 +544,6 @@ int32_t colinkTcpConnect(const char* dst, uint16_t port)
 #if defined(COLINK_SSL)
     return colinkTcpSslConnect(dst,port);
 #else
-
     struct sockaddr_in servaddr;
     int fd;
     int flags;

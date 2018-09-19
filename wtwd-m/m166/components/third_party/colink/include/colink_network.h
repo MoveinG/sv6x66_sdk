@@ -9,6 +9,6 @@ void enterSettingSelfAPMode(void);
 void colinkSoftOverStart(void);
 
 //#define COLINK_SSL at colink_socket.c
-//#define SSLUSERENABLE
+#define SSLUSERENABLE
 
 #endif /* #ifndef __COLINK_NETWORK_H__ */
