@@ -393,7 +393,6 @@ uint32_t spi_flash_read_jedec()
 }
 #endif
 
-extern void user_main(void);
 void TaskBmp(void *pdata)
 {
     int i = 0;
@@ -504,17 +503,9 @@ void ssvradio_init_task(void *pdata)
 #ifdef TCPIPSTACK_EN
     netstack_init(NULL);
 #endif
-
-    DUT_wifi_start(DUT_STA);
-
-#if defined(TY_CLOUD_EN)
-    user_main();
-#endif
-
     OS_TaskDelete(NULL);
 }
 
-extern void TaskKeyLed(void *pdata);
 extern void drv_uart_init(void);
 void APP_Init(void)
 {
@@ -543,9 +534,8 @@ void APP_Init(void)
 	{
 		FS_remove_prevota(fs_handle);
 	}
-
-#if !defined(TY_CLOUD_EN)
-	OS_TaskCreate(TaskKeyLed, "TaskKeyLed", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
+#if 0	
+	OS_TaskCreate(TaskWav, "TaskWav", 1024, NULL, TaskWav_TASK_PRIORITY, NULL);
 #endif
 
 #if 0
@@ -556,21 +546,20 @@ void APP_Init(void)
 	OS_TaskCreate(Cli_Task, "cli", 1024, NULL, 1, NULL);
 #endif
 
+
+
     OS_TaskCreate(ssvradio_init_task, "ssvradio_init", 512, NULL, TaskBmp_TASK_PRIORITY, NULL);
 
 #if 1
 	OS_TaskCreate(temperature_compensation_task, "rf temperature compensation", 256, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
-#if defined(WT_CLOUD_EN) || defined(CK_CLOUD_EN)
-	init_global_conf();
-	set_auto_connect_flag(1);
-	OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
-#endif
+    init_global_conf();
+    OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
 
-	printf("[%s][%d] string\n", __func__, __LINE__);
+    printf("[%s][%d] string\n", __func__, __LINE__);
 
-	OS_StartScheduler();
+    OS_StartScheduler();
 }
 
 void vAssertCalled( const char *func, int line )

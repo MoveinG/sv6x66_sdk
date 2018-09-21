@@ -518,6 +518,13 @@ extern void TaskKeyLed(void *pdata);
 extern void drv_uart_init(void);
 void APP_Init(void)
 {
+#if 1 //for reg update: rf_calibration_result
+	*(volatile uint32_t*)(0xCCB0A46C) = 0x2CA293D6;
+	*(volatile uint32_t*)(0xCCB0A40C) = 0x44340044;
+	*(volatile uint32_t*)(0xCCB0A474) = 0x04315445;
+	*(volatile uint32_t*)(0xCCB0A468) = 0x05C30386;
+#endif
+
 #ifdef XIP_MODE
 	xip_init();
 	xip_enter();
