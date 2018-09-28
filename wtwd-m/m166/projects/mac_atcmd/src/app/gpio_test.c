@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "osal.h"
 #include "gpio/drv_gpio.h"
 
@@ -35,7 +36,7 @@ static gpio_test_table test_table = {
 
 bool gpio_test(void)
 {
-	int32_t idx,i,j;
+	int idx,i,j;
 
 	for(idx = 0; idx < test_table.group_num; idx++)
 	{

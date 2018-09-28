@@ -221,6 +221,7 @@ unsigned long mbedtls_timing_hardclock( void )
 
 static int hardclock_init = 0;
 static struct timeval tv_init;
+extern int iperf_gettimeofday(struct timeval *tv, void *tz);
 
 unsigned long mbedtls_timing_hardclock( void )
 {

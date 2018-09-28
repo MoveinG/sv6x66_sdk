@@ -139,7 +139,7 @@ static bool verifyFlashData(uint32 start_addr, uint32 size, const uint8 digest_h
         }
         else
         {
-            os_printf("read sector 0x%02X err\n", start_addr / SPI_FLASH_SEC_SIZE + i);
+            os_printf("read sector 0x%02X err\n", (unsigned int)start_addr / SPI_FLASH_SEC_SIZE + i);
         }
     }
 
@@ -184,7 +184,7 @@ static bool flashOneSector(uint16 sector, uint8 *src, uint16 len)//
 	int32_t seek_pos = FS_lseek(fs_handle, fd, offset, SPIFFS_SEEK_SET);
 	if(offset != seek_pos)
 	{
-		printf("seek_pos=%d, offset=%d\n", (int)seek_pos, offset);
+		printf("seek_pos=%d, offset=%d\n", (int)seek_pos, (int)offset);
 		FS_close(fs_handle, fd);
 		return false;
 	}
@@ -247,12 +247,12 @@ static int sendHttpRequest(int sockfd, uint8_t *buffer, uint32_t start, uint32_t
     
     psha256_ctx = (mbedtls_sha256_context *)OS_MemAlloc(sizeof(mbedtls_sha256_context));
     bzero(psha256_ctx, sizeof(mbedtls_sha256_context));
-    sprintf(ts, "%u", OS_Random()+0x80000000);
+    sprintf(ts, "%u", (unsigned int)OS_Random()+0x80000000);
     vTaskSuspendAll();
     mbedtls_sha256_starts(psha256_ctx, 0);
-    mbedtls_sha256_update(psha256_ctx, DEVICEID, strlen(DEVICEID));
-    mbedtls_sha256_update(psha256_ctx, ts, strlen(ts));
-    mbedtls_sha256_update(psha256_ctx, APIKEY, strlen(APIKEY));
+    mbedtls_sha256_update(psha256_ctx, (const unsigned char*)DEVICEID, strlen(DEVICEID));
+    mbedtls_sha256_update(psha256_ctx, (const unsigned char*)ts, strlen(ts));
+    mbedtls_sha256_update(psha256_ctx, (const unsigned char*)APIKEY, strlen(APIKEY));
     mbedtls_sha256_finish(psha256_ctx, digest);
     xTaskResumeAll();
     OS_MemFree(psha256_ctx);
@@ -267,7 +267,7 @@ static int sendHttpRequest(int sockfd, uint8_t *buffer, uint32_t start, uint32_t
 
     bzero(buffer, HTTP_BUFFER_SIZE);
 
-    sprintf((char*)range, "Range: bytes=%d-%d\r\n", start, end);
+    sprintf((char*)range, "Range: bytes=%d-%d\r\n", (int)start, (int)end);
     os_printf("range[%s]\n", range);
 
     sprintf((char*)buffer, "GET %s?deviceid=%s&ts=%s&sign=%s HTTP/1.1\r\n", ota_file_info.path, DEVICEID, ts, digest_hex);
@@ -319,7 +319,7 @@ static int launchUserbinDownload(int sockfd)//
     char *t1 = NULL;
     bool read_http_error_flag = false;
 
-    os_printf("heap size = %u Bytes\n", OS_MemRemainSize());
+    os_printf("heap size = %u Bytes\n", (unsigned int)OS_MemRemainSize());
 
     http_buffer = (char *)OS_MemAlloc(HTTP_BUFFER_SIZE);
     file_buffer = (char *)OS_MemAlloc(FILE_BUFFER_SIZE);
@@ -341,12 +341,12 @@ static int launchUserbinDownload(int sockfd)//
     
     while(1)
     {
-        os_printf("range_start=%d range_end=%d\n", range_start, range_end);
-        os_printf("heap size = %u Bytes\n", OS_MemRemainSize());
+        os_printf("range_start=%d range_end=%d\n", (int)range_start, (int)range_end);
+        os_printf("heap size = %u Bytes\n", (unsigned int)OS_MemRemainSize());
         
-        ret = sendHttpRequest(sockfd, file_buffer, range_start, range_end);
+        ret = sendHttpRequest(sockfd, (uint8_t*)file_buffer, range_start, range_end);
 
-        os_printf("heap size = %u Bytes\n", OS_MemRemainSize());
+        os_printf("heap size = %u Bytes\n", (unsigned int)OS_MemRemainSize());
 
         if(ret <= 0)
         {
@@ -359,7 +359,7 @@ static int launchUserbinDownload(int sockfd)//
 
         vTaskDelay(1 / portTICK_RATE_MS);
         ret = read(sockfd, http_buffer, HTTP_BUFFER_SIZE);
-        os_printf("heap size = %u Bytes\n", OS_MemRemainSize());
+        os_printf("heap size = %u Bytes\n", (unsigned int)OS_MemRemainSize());
         if(ret <= 0)
         {
             os_printf("ret=%d", ret);
@@ -393,7 +393,7 @@ static int launchUserbinDownload(int sockfd)//
         if(!start_download_flag)
         {
             start_download_flag = true;
-            bin_file_size = getUserBinLength(http_buffer, ret);
+            bin_file_size = getUserBinLength((uint8_t*)http_buffer, ret);
         }
 
         if(0 == bin_file_size)
@@ -441,12 +441,12 @@ static int launchUserbinDownload(int sockfd)//
             memcpy(&file_buffer[recv_bin_length], http_buffer, ret);
             recv_bin_length += ret;
             current_bin_length += ret;
-            os_printf("recv_bin_length=%d ret=%d current_bin_length=%d\n", recv_bin_length, ret, current_bin_length);
+            os_printf("recv_bin_length=%d ret=%d current_bin_length=%d\n", (int)recv_bin_length, ret, (int)current_bin_length);
         }while(recv_bin_length < FILE_BUFFER_SIZE && current_bin_length < bin_file_size );
         
         if(!read_http_error_flag)
         {
-            if(!flashOneSector(sector_start + sector_index, file_buffer, recv_bin_length))
+            if(!flashOneSector(sector_start + sector_index, (uint8_t*)file_buffer, recv_bin_length))
             {
                 OS_MemFree(file_buffer);
                 OS_MemFree(http_buffer);
@@ -472,14 +472,14 @@ static int launchUserbinDownload(int sockfd)//
             break;
         }
 
-        os_printf("flashOneSector=%d\n", sector_start + sector_index);
+        os_printf("flashOneSector=%d\n", (int)(sector_start + sector_index));
 
-        os_printf("current=%d, length=%d\n", current_bin_length, bin_file_size);
+        os_printf("current=%d, length=%d\n", (int)current_bin_length, (int)bin_file_size);
         dev_upgrade_state.progress = (current_bin_length*100)/bin_file_size;
         
         if(0 < dev_upgrade_state.progress && dev_upgrade_state.progress <= 99 && DEVICE_ONLINE == colinkGetDevStatus())
         {
-            os_printf("progress=%d\n", dev_upgrade_state.progress);
+            os_printf("progress=%d\n", (int)dev_upgrade_state.progress);
         }
     }
 
@@ -544,7 +544,7 @@ static void upgrade_task(void* pData)//
 
     if(ret == 0)
     {
-        if(verifyFlashData(sector_start * SPI_FLASH_SEC_SIZE, ota_file_info.file_length, ota_file_info.digest))
+        if(verifyFlashData(sector_start * SPI_FLASH_SEC_SIZE, ota_file_info.file_length, (const uint8_t*)ota_file_info.digest))
         {
             //system_upgrade_flag_set(UPGRADE_FLAG_FINISH);
             dev_upgrade_state.progress = 100;
@@ -682,7 +682,7 @@ void colinkUpgradeRequest(char *new_ver, ColinkOtaInfo file_list[], uint8_t file
         }
     }
     
-    os_printf("start download sector is %d\n", sector_start);
+    os_printf("start download sector is %d\n", (int)sector_start);
     iotgoUpgradeModeStart();
 
 }

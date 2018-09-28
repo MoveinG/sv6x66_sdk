@@ -8,6 +8,7 @@
 #include "wifi_api.h"
 #include "esp_touch.h"
 #include "lwip/sockets.h"
+#include "tools/atcmd/sysconf_api.h"
 
 ////////////////////////////
 #define MAC_BROADCAST	"\xFF\xFF\xFF\xFF\xFF\xFF"
@@ -57,7 +58,6 @@ static void esptouch_smnt_muticastadd(uint8* pAddr, int length);
 void esptouch_stop(void);
 
 extern uint8_t getAvailableIndex(void);
-extern void recordAP(void);
 extern void colinkSettingStart(void);
 //------------------------------------
 static uint8 esptouch_smnt_crc(uint8 *ptr, uint8 len)

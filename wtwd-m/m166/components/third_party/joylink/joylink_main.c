@@ -9,6 +9,7 @@
 #include "joylink_smnt.h"
 #include "smart_config.h"
 #include "wifi_api.h"
+#include "tools/atcmd/sysconf_api.h"
 
 static joylink_smnt_result_t joylink_wifi_result;
 static u8 time_interval = 150;

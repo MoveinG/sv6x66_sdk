@@ -74,7 +74,7 @@ void cfg_sa_write_cfg(struct sa_cfg *new_cfg, uint16_t len) {
         memcpy(&(buf[0]), (uint8_t*)new_cfg, len);
         memcpy(&(buf[len]), (((uint8_t *)&g_sa_cfg)+len), FLASH_SECTOR_SIZE-len);
     }
-    else buf = new_cfg;
+    else buf = (uint8_t*)new_cfg;
 
     uint32_t ptr = (uint32_t)((uint32_t)(&g_sa_cfg) & (0xFFFFFF));
     OS_DeclareCritical();

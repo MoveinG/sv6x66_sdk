@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include "osal.h"
 #include "gpio/drv_gpio.h"
+#include "iotapi/wifi_api.h"
 #include "colink/include/colink_global.h"
+#include "colink/include/colink_setting.h"
 
 #define DEVICE_WFLED	GPIO_13 //wifi
 #define DEVICE_PWLED	GPIO_01 //power
@@ -31,6 +33,7 @@
 #define EVENT_DEV_KEY	1
 #define EVENT_CONNECT	2
 #define EVENT_SWITCH	3
+#define EVENT_LED_TIME	4
 
 #define KEY_KEY1		0x0001
 #define KEY_KEY2		0x0002
@@ -51,6 +54,7 @@ static OsTimer led_flash_timer, key_check_timer;
 static int led_status, pwr_status;
 
 static OsMsgQ keyled_msgq;
+//static OsMutex kl_mutex;
 
 extern void update_xlink_status(void);
 extern void xlinkProcessStart(void);
@@ -68,12 +72,19 @@ extern void esptouch_stop(void);
 static void led_flash_handler(void)
 {
 	//printf("%s\n", __func__);
-	OS_TimerStart(led_flash_timer);
+	//OS_TimerStart(led_flash_timer);
 
-	if(led_status == LED_LIGHT_OFF) led_status = LED_LIGHT_ON;
-	else led_status = LED_LIGHT_OFF;
+	//OS_MutexLock(kl_mutex);
+	//if(led_status == LED_LIGHT_OFF) led_status = LED_LIGHT_ON;
+	//else led_status = LED_LIGHT_OFF;
+	//OS_MutexUnLock(kl_mutex);
 
-	drv_gpio_set_logic(DEVICE_WFLED, led_status);
+	//drv_gpio_set_logic(DEVICE_WFLED, led_status);
+	OsMsgQEntry msg_evt;
+
+	msg_evt.MsgCmd = EVENT_LED_TIME;
+	msg_evt.MsgData = (void*)NULL;
+	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
 static void key_check_handler(void)
@@ -88,7 +99,7 @@ static void key_check_handler(void)
 		if(conut == KEY_LONG_VAL)
 		{
 			msg_evt.MsgCmd = EVENT_DEV_KEY;
-			msg_evt.MsgData = KEY_1LONG;
+			msg_evt.MsgData = (void*)KEY_1LONG;
 			OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 		}
 		conut++;
@@ -98,7 +109,7 @@ static void key_check_handler(void)
 		if(last_key1 == 0 && conut < KEY_LONG_VAL)
 		{
 			msg_evt.MsgCmd = EVENT_DEV_KEY;
-			msg_evt.MsgData = KEY_KEY1;
+			msg_evt.MsgData = (void*)KEY_KEY1;
 			OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 		}
 		conut = 0;
@@ -112,7 +123,7 @@ static void key_check_handler(void)
 	if(state != 0 && last_key2 == 0)
 	{
 		msg_evt.MsgCmd = EVENT_DEV_KEY;
-		msg_evt.MsgData = KEY_KEY2;
+		msg_evt.MsgData = (void*)KEY_KEY2;
 		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 	}
 	last_key2 = state;
@@ -123,7 +134,6 @@ static void Shift_Switch(void)
 {
 	int led_pwr;
 
-	OS_EnterCritical();
 	if(pwr_status == SWITCH_PWROFF)
 	{
 		pwr_status = SWITCH_PWRON;
@@ -136,16 +146,14 @@ static void Shift_Switch(void)
 	}
 	drv_gpio_set_logic(DEVICE_SWITCH1, pwr_status);
 	drv_gpio_set_logic(DEVICE_PWLED, led_pwr);
-
-	OS_ExitCritical();
 }
 
 static void show_wifi_status(int connect)
 {
-	OS_EnterCritical();
+	//OS_MutexLock(kl_mutex);
 	if(connect) led_status = LED_LIGHT_ON;
 	else led_status = LED_LIGHT_OFF;
-	OS_ExitCritical();
+	//OS_MutexUnLock(kl_mutex);
 
 	drv_gpio_set_logic(DEVICE_WFLED, led_status);
 }
@@ -192,8 +200,8 @@ void Ctrl_Switch_cb(int open)
 	OsMsgQEntry msg_evt;
 
 	msg_evt.MsgCmd = EVENT_SWITCH;
-	if(open) msg_evt.MsgData = SWITCH_OPEN;
-	else msg_evt.MsgData = SWITCH_CLOSE;
+	if(open) msg_evt.MsgData = (void*)SWITCH_OPEN;
+	else msg_evt.MsgData = (void*)SWITCH_CLOSE;
 
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
@@ -203,9 +211,9 @@ void wifi_status_cb(int connect)
 	OsMsgQEntry msg_evt;
 
 	msg_evt.MsgCmd = EVENT_CONNECT;
-	if(connect) msg_evt.MsgData = CONNECT_CON;
-	else msg_evt.MsgData = CONNECT_DIS;
-	//msg_evt.MsgData = connect;
+	if(connect) msg_evt.MsgData = (void*)CONNECT_CON;
+	else msg_evt.MsgData = (void*)CONNECT_DIS;
+	//msg_evt.MsgData = (void*)connect;
 
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
@@ -218,20 +226,22 @@ void TaskKeyLed(void *pdata)
 	uint32_t keydown_time=0;
 
 	pwr_status = SWITCH_PWROFF;
+	//if(OS_MutexInit(&kl_mutex) != OS_SUCCESS)
+	//	return;
 
 	if(get_wifi_status() == 1) led_status = LED_LIGHT_ON;
 	led_status = LED_LIGHT_OFF;
 
 	led_flash_timer = NULL;
-	if(OS_TimerCreate(&led_flash_timer, LIGHT_FLASH1, (u8)FALSE, NULL, (OsTimerHandler)led_flash_handler) == OS_FAILED)
-		return;
+	if(OS_TimerCreate(&led_flash_timer, LIGHT_FLASH1, (u8)FALSE, NULL, (OsTimerHandler)led_flash_handler) != OS_SUCCESS)
+		goto exit1;
 
 	key_check_timer = NULL;
-	if(OS_TimerCreate(&key_check_timer, KEY_CHECK_TIME, (u8)TRUE, NULL, (OsTimerHandler)key_check_handler) == OS_FAILED)
-		return;
+	if(OS_TimerCreate(&key_check_timer, KEY_CHECK_TIME, (u8)TRUE, NULL, (OsTimerHandler)key_check_handler) != OS_SUCCESS)
+		goto exit2;
 
 	if(OS_MsgQCreate(&keyled_msgq, KEYLED_MSGLEN) != OS_SUCCESS)
-		return;
+		goto exit3;
 
 	KeyLed_Init();
 	OS_TimerStart(key_check_timer);
@@ -245,16 +255,25 @@ void TaskKeyLed(void *pdata)
         if(OS_MsgQDequeue(keyled_msgq, &msg_evt, portMAX_DELAY) == OS_SUCCESS)
 		{
 			switch(msg_evt.MsgCmd) {
+			case EVENT_LED_TIME:
+				OS_TimerStart(led_flash_timer);
+				show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
+				break;
+
 			case EVENT_DEV_KEY:
-				printf("EVENT_DEV_KEY=%x\n", msg_evt.MsgData);
-				if(msg_evt.MsgData == KEY_1LONG)
+				printf("EVENT_DEV_KEY=%x\n", (int)msg_evt.MsgData);
+				if(msg_evt.MsgData == (void*)KEY_1LONG)
 				{
 					if(smarting == true)
 					{
 						printf("to AP mode config\n");
 						#if defined(CK_CLOUD_EN)
 						OS_TimerSet(led_flash_timer, LIGHT_FLASH2, (u8)FALSE, NULL);
-					    esptouch_stop();
+						OS_TimerStart(led_flash_timer);
+
+						show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
+
+						esptouch_stop();
 						//smarting = false;
 						enterSettingSelfAPMode();
 						#endif
@@ -264,10 +283,13 @@ void TaskKeyLed(void *pdata)
 
 					smarting = true;
 					#if defined(CK_CLOUD_EN)
+					OS_TimerSet(led_flash_timer, LIGHT_FLASH1, (u8)FALSE, NULL);
+					OS_TimerStart(led_flash_timer);
+					show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
+
 					system_param_delete();
 					esptouch_stop();
-					OS_TimerStart(led_flash_timer);
-				    coLinkSetDeviceMode(DEVICE_MODE_SETTING);
+					coLinkSetDeviceMode(DEVICE_MODE_SETTING);
 					esptouch_init();
 					#endif
 
@@ -281,7 +303,7 @@ void TaskKeyLed(void *pdata)
 					cloud_task = false;
 					#endif
 				}
-				if(msg_evt.MsgData == KEY_KEY1) 
+				if(msg_evt.MsgData == (void*)KEY_KEY1)
 				{
 					if(smarting == true) break;
 
@@ -290,11 +312,11 @@ void TaskKeyLed(void *pdata)
 					if(cloud_task) update_xlink_status();
 					#endif
 					#if defined(CK_CLOUD_EN)
-					if(get_wifi_status() != 0) colinkSwitchUpdate();
+					if(DEVICE_MODE_WORK_NORMAL == coLinkGetDeviceMode()) colinkSwitchUpdate();
 					#endif
 				}
 				#if defined(DEVICE_KEY2)
-				if(msg_evt.MsgData == KEY_KEY2)
+				if(msg_evt.MsgData == (void*)KEY_KEY2)
 				{
 					Shift_Switch2();
 				}
@@ -302,7 +324,7 @@ void TaskKeyLed(void *pdata)
 				break;
 
 			case EVENT_CONNECT:
-				/*if(msg_evt.MsgData == CONNECT_SET)
+				/*if(msg_evt.MsgData == (void*)CONNECT_SET)
 				{
 					show_wifi_status(1);
 
@@ -310,7 +332,7 @@ void TaskKeyLed(void *pdata)
 					colinkSettingStart();
 					#endif
 				}*/
-				if(msg_evt.MsgData == CONNECT_CON)
+				if(msg_evt.MsgData == (void*)CONNECT_CON)
 				{
 					if(smarting)
 					{
@@ -328,15 +350,15 @@ void TaskKeyLed(void *pdata)
 					if(system_param_load(NULL, 0) == 0) colinkProcessStart();
 					#endif
 				}
-				if(msg_evt.MsgData == CONNECT_DIS)
+				if(msg_evt.MsgData == (void*)CONNECT_DIS)
 				{
 					if(smarting == false) show_wifi_status(0);
 				}
 				break;
 
 			case EVENT_SWITCH:
-				if((msg_evt.MsgData == SWITCH_OPEN && pwr_status == SWITCH_PWROFF)
-					|| (msg_evt.MsgData == SWITCH_CLOSE && pwr_status == SWITCH_PWRON))
+				if((msg_evt.MsgData == (void*)SWITCH_OPEN && pwr_status == SWITCH_PWROFF)
+					|| (msg_evt.MsgData == (void*)SWITCH_CLOSE && pwr_status == SWITCH_PWRON))
 				{
 					Shift_Switch();
 				}
@@ -348,9 +370,12 @@ void TaskKeyLed(void *pdata)
 	}
 
 	OS_MsgQDelete(keyled_msgq);
-	//OS_SemDelete(key_led_sem);
+exit3:
 	OS_TimerDelete(key_check_timer);
+exit2:
 	OS_TimerDelete(led_flash_timer);
+exit1:
+	//OS_MutexDelete(kl_mutex);
 	OS_TaskDelete(NULL);
 }
 

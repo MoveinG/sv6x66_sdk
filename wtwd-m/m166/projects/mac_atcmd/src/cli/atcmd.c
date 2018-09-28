@@ -17,8 +17,8 @@
 
 #include "cli.h"
 //#include "../../common/drv/flash/drv_flash.h"	//FIXEDME for -I definition!!
-//#include "drv_flash.h"	//FIXEDME for -I definition!!
-//#include "drv_timer.h"    
+#include "drv/hwmac/drv_mac.h"	//FIXEDME for -I definition!!
+#include "bsp/soc/efuseapi/efuse_api.h"
 
 #include "ieee80211_mgmt.h"
 #include "softap_func.h"
@@ -221,6 +221,8 @@ const char *securitySubString(u8 ver)
     }
     return NULL;
 }
+
+extern int32_t softap_set_custom_conf(SOFTAP_CUSTOM_CONFIG*);
 int At_HKAP(stParam *param)
 {
 //    atcmdprintf("[At_HKAP] : +++\n");
@@ -254,9 +256,9 @@ int At_HKAP(stParam *param)
 	
 	softap_set_custom_conf(&isoftap_custom_config);
 
-	homekit_softap_start( &hk_value_56byte_bin[0], sizeof(hk_value_56byte_bin));
+	homekit_softap_start((u8*)&hk_value_56byte_bin[0], sizeof(hk_value_56byte_bin));
 
-    return ERROR_SUCCESS_NO_RSP;
+	return ERROR_SUCCESS_NO_RSP;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -276,7 +278,9 @@ uint32_t htonlx(uint32_t x)
 
 int At_SET_APCONFIG (stParam *param)
 {
-    int32_t rlt = ERROR_INVALID_PARAMETER;
+	extern void dbg_dump_ip(char *msg,u8 *p_ip);
+
+	int32_t rlt = ERROR_INVALID_PARAMETER;
 	SOFTAP_CUSTOM_CONFIG isoftap_custom_config;
 	int loop_i;
 	uint32_t tmp_ip0=0;
@@ -311,7 +315,9 @@ int At_SET_APCONFIG (stParam *param)
 		tmp_ip0 = isoftap_custom_config.end_ip;
 		isoftap_custom_config.end_ip = isoftap_custom_config.start_ip + isoftap_custom_config.max_sta_num;
 		tmp_ip1 = isoftap_custom_config.end_ip;
-		printf("\n<Error> end_ip = %d.%d.%d.%d  over start_ip+max_stanum -----> new end_ip=%d.%d.%d.%d\n\n",(tmp_ip0>>24)&0xff,(tmp_ip0>>16)&0xff,(tmp_ip0>>8)&0xff,(tmp_ip0>>0)&0xff,(tmp_ip1>>24)&0xff,(tmp_ip1>>16)&0xff,(tmp_ip1>>8)&0xff,(tmp_ip1>>0)&0xff);
+		printf("\n<Error> end_ip = %d.%d.%d.%d  over start_ip+max_stanum -----> new end_ip=%d.%d.%d.%d\n\n",
+				(int)(tmp_ip0>>24)&0xff, (int)(tmp_ip0>>16)&0xff, (int)(tmp_ip0>>8)&0xff, (int)(tmp_ip0>>0)&0xff, (int)(tmp_ip1>>24)&0xff,
+				(int)(tmp_ip1>>16)&0xff, (int)(tmp_ip1>>8)&0xff, (int)(tmp_ip1>>0)&0xff);
 	}
 	
     isoftap_custom_config.encryt_mode = strtoul(param->argv[5], NULL, 10);
@@ -340,10 +346,10 @@ int At_SET_APCONFIG (stParam *param)
 	tmp_ip2 = htonlx(isoftap_custom_config.gw);
 	tmp_ip3 = htonlx(isoftap_custom_config.subnet);
 	
-	dbg_dump_ip("start_ip",&tmp_ip0);
-	dbg_dump_ip("end_ip",&tmp_ip1);
-	dbg_dump_ip("gateway",&tmp_ip2);
-	dbg_dump_ip("netmask",&tmp_ip3);
+	dbg_dump_ip("start_ip", (u8*)&tmp_ip0);
+	dbg_dump_ip("end_ip", (u8*)&tmp_ip1);
+	dbg_dump_ip("gateway", (u8*)&tmp_ip2);
+	dbg_dump_ip("netmask", (u8*)&tmp_ip3);
 	
     printf("(max_sta_num,encryt_mode,channel,hk_support)=(%d,%d,%d)\n",isoftap_custom_config.max_sta_num,isoftap_custom_config.encryt_mode,isoftap_custom_config.channel);
 	printf("(keylen,key)=(%d,%s)\n",isoftap_custom_config.keylen,isoftap_custom_config.key);
@@ -361,7 +367,7 @@ error_exit:
 	for(loop_i=0;loop_i<param->argc;loop_i++){
 		printf("argv[%d]=%s\n",loop_i,param->argv[loop_i]);
 	}
-    printf("<Error>At_SET_APCONFIG rlt = %d\n", rlt);
+    printf("<Error>At_SET_APCONFIG rlt = %d\n", (int)rlt);
     return rlt;
 }
 
@@ -1653,9 +1659,9 @@ int At_Rf5GTableBIAS1(stParam *param)
 
     if(strcmp("?" , param->argv[0])==0)
     {
-        printf("%s=0x%x,0x%x,0x%x\n", ATCMD_RF_5GTABLE_BIAS1, ssv_rf_table.rt_5g_config.bias1
-                                                                                           , ssv_rf_table.ht_5g_config.bias1
-                                                                                           , ssv_rf_table.lt_5g_config.bias1);
+        printf("%s=0x%x,0x%x,0x%x\n", ATCMD_RF_5GTABLE_BIAS1, (unsigned int)ssv_rf_table.rt_5g_config.bias1
+									, (unsigned int)ssv_rf_table.ht_5g_config.bias1
+									, (unsigned int)ssv_rf_table.lt_5g_config.bias1);
         return ret;
     }
     
@@ -1687,9 +1693,9 @@ int At_Rf5GTableBIAS2(stParam *param)
 
     if(strcmp("?" , param->argv[0])==0)
     {
-        printf("%s=0x%x,0x%x,0x%x\n", ATCMD_RF_5GTABLE_BIAS2, ssv_rf_table.rt_5g_config.bias2
-                                                                                           , ssv_rf_table.ht_5g_config.bias2
-                                                                                           , ssv_rf_table.lt_5g_config.bias2);
+        printf("%s=0x%x,0x%x,0x%x\n", ATCMD_RF_5GTABLE_BIAS2, (unsigned int)ssv_rf_table.rt_5g_config.bias2
+									, (unsigned int)ssv_rf_table.ht_5g_config.bias2
+									, (unsigned int)ssv_rf_table.lt_5g_config.bias2);
         return ret;
     }
     
@@ -1748,7 +1754,7 @@ int At_Rf5GBandThreshold(stParam *param)
     return ret; 
 }
 
-void At_RfSingleTone(stParam *param)
+int At_RfSingleTone(stParam *param)
 {
     printf("\n");
     int ret = ERROR_SUCCESS;
@@ -1888,7 +1894,7 @@ int At_ConnectActive (stParam *param)
     if(pWebkey)
         keylen = strlen(pWebkey);
 
-    ret = wifi_connect_active ( pSsid, ssid_len, pWebkey, keylen, atwificbfunc);
+    ret = wifi_connect_active ((u8*)pSsid, ssid_len, (u8*)pWebkey, keylen, atwificbfunc);
 
     return ret;
 }
@@ -2001,18 +2007,18 @@ int At_SetWifiConfig (stParam *param)
 #if 1    
     for(i = 0; i < getAvailableIndex(); i++)
     {
-        if( strcmp(ap_list[i].name, pSsid) == 0 )
+        if( strcmp((const char*)ap_list[i].name, pSsid) == 0 )
         {
             if(ap_list[i].security_type == 0 && keylen==0)
             {
                 memcpy(mac, ap_list[i].mac, 6);
-                pMac = mac;
+                pMac = (char*)mac;
                 break;
             }
             else if(ap_list[i].security_type =! 0 && keylen > 0)
             {
                 memcpy(mac, ap_list[i].mac, 6);
-                pMac = mac;
+                pMac = (char*)mac;
                 break;
             }
             
@@ -2147,7 +2153,7 @@ int At_SetIfConfigure2 (stParam *param)
 
     id = *pid - 0x30;
     dhcpen = *pdhcp - 0x30;
-    if(dhcpen == 0 && param->argc < 5 || (id != 0 && id != 1))
+    if((dhcpen == 0 && param->argc < 5) || (id != 0 && id != 1))
     {
         return ERROR_INVALID_PARAMETER;
     }
@@ -3024,6 +3030,10 @@ const at_cmd_info atcmdicomm_info_tbl[] =
 /*---------------------------------------------------------------------------*/
 int At_Gpio_Test(stParam *param)
 {
+	//printf("Total=%d, Remain=%d, MaxFreeBlock=%d\n", (int)OS_MemTotalSize(), (int)OS_MemRemainSize(), (int)OS_MemMaxFreeBlockSize());
+	//vOSMemInfo(); //for test heap
+
+	extern bool gpio_test(void);
 	if(gpio_test()) return ERROR_SUCCESS;
 	return -11;
 }

@@ -129,7 +129,7 @@ void wifirspcbfunc(WIFI_RSP *msg)
     if(msg->wifistatus == 1)
     {
         printf("wifi connected\n");
-        get_if_config(&dhcpen, &ipaddr, &submask, &gateway, &dnsserver);
+        get_if_config(&dhcpen, (u32*)&ipaddr, (u32*)&submask, (u32*)&gateway, (u32*)&dnsserver);
         //get_local_mac(mac, 6);
         memcpy(mac, gwifistatus.local_mac, ETH_ALEN);
         printf("mac             - %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
@@ -219,7 +219,7 @@ int At_TCPConnect (stParam *param)
 }
 #endif
 
-//void iperf_task(void *args)
+extern int iperf(int argc, char **argv);
 void iperf_test()
 {
 		//OS_MsDelay(10000);
@@ -449,6 +449,7 @@ void TaskBmp(void *pdata)
     }
 }
 
+#include "tools/atcmd/sysconf_api.h"
 void wifi_auto_connect_task(void *pdata)
 {  
     if( get_auto_connect_flag() == 1 )

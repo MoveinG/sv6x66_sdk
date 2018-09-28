@@ -5,5 +5,6 @@ void colinkSettingStart(void);
 
 int system_param_save_with_protect(char *domain, int size);
 int system_param_load(char *domain, int size);
+void system_param_delete(void);
 
 #endif /* __COLINK_SETTING_H__ */

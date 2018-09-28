@@ -1,4 +1,4 @@
-//#include "esp_common.h"
+#include <string.h>
 #include "lwip/sockets.h"
 #include "lwip/err.h"
 #include "lwip/dns.h"
@@ -319,7 +319,7 @@ ColinkTcpErrorCode colinkTcpSslState(int32_t fd)
         {
             int len = (int) sizeof(int);;
 
-            if (0 != getsockopt(tcp_fd, SOL_SOCKET, SO_ERROR, &ret, &len))
+            if (0 != getsockopt(tcp_fd, SOL_SOCKET, SO_ERROR, &ret, (socklen_t*)&len))
             {
                 errcode = COLINK_TCP_CONNECT_ERR;
             }

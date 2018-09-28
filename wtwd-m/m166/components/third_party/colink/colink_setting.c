@@ -111,14 +111,14 @@ void colinkSettingTask(void* pData)
 
                     if(DEVICE_MODE_SETTING_SELFAP == coLinkGetDeviceMode())
                     {
-                        strcpy(colink_flash_param.sta_config.ssid, colinkInfo.ssid);
-                        strcpy(colink_flash_param.sta_config.password, colinkInfo.password);
+                        strcpy((char*)colink_flash_param.sta_config.ssid, colinkInfo.ssid);
+                        strcpy((char*)colink_flash_param.sta_config.password, colinkInfo.password);
                     }
                     break;
                 }
                 else
                 {
-                    colinkPrintf("error %d\r\n", ret);
+                    os_printf("error %d\r\n", ret);
                 }
             }
             close(newconn);

@@ -14,6 +14,7 @@
 #include "colink_upgrade.h"
 #include "colink_link.h"
 #include "iotapi/wifi_api.h"
+#include "tools/atcmd/sysconf_api.h"
 
 //static char test_read_tcp[1024];
 //static int fd;
@@ -49,7 +50,7 @@ static void colinkSelfAPTask(void* pData)
 
     coLinkSetDeviceMode(DEVICE_MODE_SETTING_SELFAP);
 
-	if(softap_set_custom_conf(&colink_flash_param.sap_config) == -4) printf("Don't configure SoftAP when SoftAP is running\n");
+    if(softap_set_custom_conf((void*)&colink_flash_param.sap_config) == -4) printf("Don't configure SoftAP when SoftAP is running\n");
 
     DUT_wifi_start(DUT_AP);
 
@@ -370,8 +371,8 @@ void colinkSoftOverStart(void)
 #else
 static void colinkwificbfunc(WIFI_RSP *msg)
 {
-    printf("colinkwificbfunc wifistatus = %d\n", msg->wifistatus);
-    
+    extern void wifi_status_cb(int connect);
+
     uint8_t dhcpen;
     u8 mac[6];
     uip_ipaddr_t ipaddr, submask, gateway, dnsserver;
@@ -403,8 +404,8 @@ static void colink_scan_cbfunc(void *data)
 {
     printf("scan finish\n");
 
-	int ssid_len = strlen(colink_flash_param.sta_config.ssid);
-	int password_len = strlen(colink_flash_param.sta_config.password);
+    int ssid_len = strlen((char*)colink_flash_param.sta_config.ssid);
+    int password_len = strlen((char*)colink_flash_param.sta_config.password);
 
     int ret = set_wifi_config(colink_flash_param.sta_config.ssid, ssid_len, colink_flash_param.sta_config.password, password_len, NULL, 0);
 

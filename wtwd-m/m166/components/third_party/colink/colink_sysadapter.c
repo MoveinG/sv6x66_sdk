@@ -1,10 +1,15 @@
 #include "colink_define.h"
 #include "colink_sysadapter.h"
 #include "osal.h"
+#include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
+#include "uart/drv_uart.h"
+#include "lwip/def.h"
+#include "iotapi/wifi_api.h"
 
-#define PRINTF_BUFFER_SIZE (512)
+#define PRINTF_BUFFER_SIZE (128) //becase printf(libc_path.c) is 128
 static char printf_buffer[PRINTF_BUFFER_SIZE];
 
 int32_t colinkGettime(uint32_t* ms)
@@ -122,37 +127,29 @@ int32_t colinkSnprintf(char* buf, uint32_t size, const char* format, ...)
 int32_t colinkPrintf(const char* format, ...)
 {
     va_list ap;
-    int32_t ret;
+    int32_t i, j, ret;
 
     va_start(ap, format);
     //ret = vprintf(format, ap);
     ret = vsnprintf(printf_buffer, PRINTF_BUFFER_SIZE, format, ap);
     va_end(ap);
     
-	/*uint8_t ch; 
-	int i = strlen((char*)printf_buffer);
+	if(ret > PRINTF_BUFFER_SIZE) return 0;
 
-	ch = printf_buffer[120];
-	printf_buffer[120] = 0;
-	os_printf("%s", printf_buffer);
-	printf_buffer[120] = ch;
-
-	if(i > 240)
+	j = 0;
+	for (i=0; i<ret; ++i)
 	{
-		ch = printf_buffer[240];
-		printf_buffer[240] = 0;
-	    os_printf("%s", printf_buffer+120);
-		printf_buffer[240] = ch;
-
-	    os_printf("%s", printf_buffer+240);
+		if(printf_buffer[i] == '\n')
+		{
+			if(i>j) drv_uart_write_fifo((unsigned char*)printf_buffer+j, i-j, UART_BLOCKING);
+			j = i+1;
+			drv_uart_write_fifo((const uint8_t*)"\r\n", 2, UART_BLOCKING);
+		}
 	}
-	else if(i > 120)
-	{
-	    os_printf("%s", printf_buffer+120);
-	}*/
+	if(j < ret)
+		drv_uart_write_fifo((unsigned char*)printf_buffer+j, ret-j, UART_BLOCKING);
 
-    os_printf("%s", printf_buffer);
-    return ret;
+	return ret;
 }
 
 void* colinkMemset(void* dst, int32_t c, uint32_t len)
