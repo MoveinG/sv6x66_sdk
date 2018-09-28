@@ -11,7 +11,7 @@
 #include "uni_log.h"
 #include "mem_pool.h"
 
-#define uart_printf
+#define uart_printf(...)
 
 /***********************************************************
 *************************micro define***********************

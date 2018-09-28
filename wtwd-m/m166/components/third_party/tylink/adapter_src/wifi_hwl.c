@@ -15,11 +15,12 @@
 #include "tuya_uni_semaphore.h"
 #include "tuya_uni_thread.h"
 #include "uni_log.h"
+#include "mac_cfg.h"
 
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
-#define ty_hwl_printf
+#define ty_hwl_printf(...)
 #define SCAN_MAX_AP 64
 typedef struct {
     AP_IF_S *ap_if;
@@ -44,8 +45,8 @@ static SEM_HANDLE scan_sem;
 static UINT_T *wifi_ap_num;
 static AP_IF_S *wifi_ap_ary;
 //static uint8_t sniffer_ch;
-static CHAR_T *hwl_ssid;
-static CHAR_T *hwl_passwd;
+static const CHAR_T *hwl_ssid;
+static const CHAR_T *hwl_passwd;
 
 /***********************************************************
 *************************function define********************
@@ -293,7 +294,7 @@ OPERATE_RET hwl_wf_get_ip(IN CONST WF_IF_E wf,OUT NW_IP_S *ip)
     uint8_t dhcpen;
     uip_ipaddr_t ipaddr, submask, gateway, dnsserver;
 
-	if(get_if_config(&dhcpen, &ipaddr, &submask, &gateway, &dnsserver) != 0)
+	if(get_if_config(&dhcpen, (u32*)&ipaddr, (u32*)&submask, (u32*)&gateway, (u32*)&dnsserver) != 0)
 		return OPRT_COM_ERROR;
     // ip
     sprintf(ip->ip,"%d.%d.%d.%d",ipaddr.u8[0],ipaddr.u8[1],ipaddr.u8[2],ipaddr.u8[3]);
@@ -329,7 +330,7 @@ OPERATE_RET hwl_wf_get_mac(IN CONST WF_IF_E wf,OUT NW_MAC_S *mac)
 	}
 
 	void *cfg_handle = wifi_cfg_init();
-	wifi_cfg_get_addr1(cfg_handle, mac->mac);
+	wifi_cfg_get_addr1(cfg_handle, (char*)mac->mac);
 	wifi_cfg_deinit(cfg_handle);
 
     return OPRT_OK;
@@ -344,10 +345,10 @@ OPERATE_RET hwl_wf_get_mac(IN CONST WF_IF_E wf,OUT NW_MAC_S *mac)
 OPERATE_RET hwl_wf_set_mac(IN CONST WF_IF_E wf,IN CONST NW_MAC_S *mac)
 {
     uint8_t mac_str[20]; //>17
-    sprintf(mac_str,"%02X:%02X:%02X:%02X:%02X:%02X",mac->mac[0],mac->mac[1],mac->mac[2],mac->mac[3],mac->mac[4],mac->mac[5]);
+    sprintf((char*)mac_str,"%02X:%02X:%02X:%02X:%02X:%02X",mac->mac[0],mac->mac[1],mac->mac[2],mac->mac[3],mac->mac[4],mac->mac[5]);
 
     void *cfg_handle = wifi_cfg_init();
-    wifi_cfg_replace_mem_addr1(cfg_handle, mac_str);
+    wifi_cfg_replace_mem_addr1(cfg_handle, (char*)mac_str);
     wifi_cfg_write_cfg(cfg_handle);
     wifi_cfg_deinit(cfg_handle);
 
@@ -560,6 +561,8 @@ OPERATE_RET hwl_wf_station_stat_get(OUT WF_STATION_STAT_E *stat)
 ***********************************************************/
 OPERATE_RET hwl_wf_ap_start(IN CONST WF_AP_CFG_IF_S *cfg)
 {
+    extern int32_t softap_set_custom_conf(void*);
+
     if(NULL == cfg) {
         return OPRT_INVALID_PARM;
     }

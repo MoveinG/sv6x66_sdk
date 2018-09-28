@@ -16,7 +16,7 @@
 #include "gw_intf.h"
 #include "uni_log.h"
 #include "uni_thread.h"
-//#include "sys_api.h"
+#include "smart_frame.h"
 
 /***********************************************************
 *************************micro define***********************

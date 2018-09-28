@@ -4,12 +4,14 @@
 *  Date: 120427
 ***********************************************************/
 #define _UNI_SYSTEM_GLOBAL
+#include <stdio.h>
 #include "tuya_uni_system.h"
 #include "FreeRTOS.h"
 #include "osal.h"
 #include "wdt/drv_wdt.h"
 #include "uni_log.h"
-//#include "wf_basic_intf.h"
+#include "wifi_api.h"
+#include "sys/intc.h"
 
 /***********************************************************
 *************************micro define***********************
@@ -67,7 +69,7 @@ VOID tuya_SystemSleep(IN CONST TIME_MS msTime)
 ***********************************************************/
 BOOL_T tuya_SystemIsrStatus(VOID)
 {
-    if(0 != __get_IPSR()) {
+    if(0 != intc_irq_status()) {
         return TRUE;
     }
 
@@ -129,6 +131,15 @@ INT_T tuya_SysGetHeapSize(VOID)
 CHAR_T *tuya_GetSerialNo(VOID)
 {
 	//获取mac地址
+	static CHAR_T serno[14];
+    uint8_t ssid[33], ssidlen, key[65], keylen, mac[6];
+
+	serno[0] = 0;
+    if(get_wifi_config(ssid, &ssidlen, key, &keylen, mac, 6) == 0)
+    {
+        sprintf((char*)serno, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    }
+    return serno;
 }
 
 /***********************************************************
@@ -141,6 +152,7 @@ CHAR_T *tuya_system_get_rst_info(VOID)
 {
 	//获取系统重启原因
 	//返回值是字符串：eg：  ”rst reason is ：1“ 
+	return "NOT_SUPPORTED";
 }
 
 

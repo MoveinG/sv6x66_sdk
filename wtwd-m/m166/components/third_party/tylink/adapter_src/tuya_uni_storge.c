@@ -20,7 +20,7 @@
 #define SIMPLE_FLASH_SWAP_START (SIMPLE_FLASH_START+SIMPLE_FLASH_SIZE)
 #define SIMPLE_FLASH_SWAP_SIZE 0x2000 // 8K
 
-#define ty_spi_printf
+#define ty_spi_printf(...)
 #define TY_USE_SPIFFS
 
 #ifdef TY_USE_SPIFFS
@@ -125,7 +125,7 @@ OPERATE_RET tuya_uni_flash_write(IN CONST UINT_T addr, IN CONST BYTE_T *src, IN 
 		ty_spi_printf("write 0x%x lseek=0x%x\n", pos1, pos2);
 
 		if(pos1 == pos2) {
-			FS_write(fs_handle, fd, src, size);
+			FS_write(fs_handle, fd, (void*)src, size);
 		}
 		//FS_flush(fs_handle, fd);
 		FS_close(fs_handle, fd);

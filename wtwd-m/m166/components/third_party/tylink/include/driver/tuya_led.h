@@ -61,7 +61,7 @@ OPERATE_RET tuya_create_led_handle(IN CONST TY_GPIO_PORT_E port,IN CONST BOOL_T 
 ***********************************************************/
 __TUYA_LED_EXT \
 VOID tuya_set_led_light_type(IN CONST LED_HANDLE handle,IN CONST LED_LT_E type,\
-                                        IN CONST USHORT_T flh_mstime,IN CONST flh_ms_sumtime);
+                                        IN CONST USHORT_T flh_mstime,IN CONST INT_T flh_ms_sumtime);
 
 
 
