@@ -68,6 +68,8 @@ extern void enterSettingSelfAPMode(void);
 extern void esptouch_init(void);
 extern void esptouch_stop(void);
 
+extern void wifi_auto_connect_start(void);
+
 ///////////////////////////////////////////
 static void led_flash_handler(void)
 {
@@ -247,7 +249,15 @@ void TaskKeyLed(void *pdata)
 	OS_TimerStart(key_check_timer);
 
 	#if defined(CK_CLOUD_EN)
-	coLinkSetDeviceMode(DEVICE_MODE_START); 
+	coLinkSetDeviceMode(DEVICE_MODE_START);
+	if(system_param_load(NULL, 0) != 0) //to enter smartconfig
+	{
+		OS_MsDelay(3000);
+		msg_evt.MsgCmd = EVENT_DEV_KEY;
+		msg_evt.MsgData = (void*)KEY_1LONG;
+		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+	}
+	else wifi_auto_connect_start();
 	#endif
 	printf("TaskKeyLed Init OK!\n");
 	while(1)
@@ -287,7 +297,7 @@ void TaskKeyLed(void *pdata)
 					OS_TimerStart(led_flash_timer);
 					show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
 
-					system_param_delete();
+					//system_param_delete();
 					esptouch_stop();
 					coLinkSetDeviceMode(DEVICE_MODE_SETTING);
 					esptouch_init();

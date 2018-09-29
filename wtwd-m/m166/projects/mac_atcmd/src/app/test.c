@@ -515,6 +515,15 @@ void ssvradio_init_task(void *pdata)
     OS_TaskDelete(NULL);
 }
 
+#if defined(WT_CLOUD_EN) || defined(CK_CLOUD_EN)
+void wifi_auto_connect_start(void)
+{
+	init_global_conf();
+	set_auto_connect_flag(1);
+	OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
+}
+#endif
+
 extern void TaskKeyLed(void *pdata);
 extern void drv_uart_init(void);
 void APP_Init(void)
@@ -563,10 +572,8 @@ void APP_Init(void)
 	OS_TaskCreate(temperature_compensation_task, "rf temperature compensation", 256, NULL, TaskBmp_TASK_PRIORITY, NULL);
 #endif
 
-#if defined(WT_CLOUD_EN) || defined(CK_CLOUD_EN)
-	init_global_conf();
-	set_auto_connect_flag(1);
-	OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, TaskBmp_TASK_PRIORITY, NULL);
+#if defined(WT_CLOUD_EN)
+	wifi_auto_connect_start();
 #endif
 
 	printf("[%s][%d] string\n", __func__, __LINE__);

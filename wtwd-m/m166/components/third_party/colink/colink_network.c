@@ -18,7 +18,7 @@
 
 //static char test_read_tcp[1024];
 //static int fd;
-static bool esptouch_flag = false;
+//static bool esptouch_flag = false;
 static bool task_process_flag = false;
 
 extern int32_t softap_set_custom_conf(CoLinkFlashParam*);
@@ -424,6 +424,9 @@ void colinkSoftOverStart(void)
 
 void colinkProcessStart(void)
 {
+    if(task_process_flag) return;
+
+    task_process_flag = true;
     xTaskCreate(colinkProcessTask, "colinkProcessTask", 2048, NULL, 4, NULL);
 }
 
