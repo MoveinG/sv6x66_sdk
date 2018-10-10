@@ -15,6 +15,7 @@
 #include "colink_link.h"
 #include "iotapi/wifi_api.h"
 #include "tools/atcmd/sysconf_api.h"
+#include "mytime.h"
 
 //static char test_read_tcp[1024];
 //static int fd;
@@ -218,9 +219,23 @@ static void colinkEsptouchTask(void* pData)
 }
 #endif
 
+static uint16_t mytime_str_duration(const char *str)
+{
+	while(*str != 0)
+	{
+		if(*str == 0x20)
+		{
+			return (uint16_t)atoi(str+1);
+		}
+		str++;
+	}
+	return 0;
+}
+
 static void colinkRecvUpdate(char* data)
 {
     extern void Ctrl_Switch_cb(int open);
+    extern void Timer_update_time(void);
 
     os_printf("colinkRecvUpdate [%s]\r\n", data);
 
@@ -236,7 +251,6 @@ static void colinkRecvUpdate(char* data)
     }
 
     switch_p = cJSON_GetObjectItem(json_root, "switch");
-
     if (switch_p)
     {
         if(0 == colinkStrcmp(switch_p->valuestring, "on"))
@@ -253,11 +267,96 @@ static void colinkRecvUpdate(char* data)
         {
             os_printf("err net switch info...\n");
         }
+
+        cJSON_Delete(json_root);
+        return;
     }
 
-//ExitErr1:
-    cJSON_Delete(json_root);
-    return;
+	cJSON *timers_p;
+	cJSON *one_timer_p;
+	cJSON *timer_do_p;
+	cJSON *timer_startDo_p;
+	cJSON *timer_endDo_p;
+	cJSON *json_temp_p;
+	uint8_t i, timer_num;
+	colink_app_timer *app_timer, *buffer=NULL;
+
+	timers_p = cJSON_GetObjectItem(json_root, "timers");
+	if (timers_p)
+	{
+		timer_num = cJSON_GetArraySize(timers_p);
+
+		if(timer_num > 0) buffer = mytime_get_buffer(timer_num * sizeof(colink_app_timer));
+		else colink_delete_timer();
+
+		app_timer = buffer;
+		for (i = 0; i < timer_num; i++)
+		{
+			if(app_timer) memset((char*)app_timer, 0, sizeof(colink_app_timer));
+
+			one_timer_p = cJSON_GetArrayItem(timers_p, i);
+			json_temp_p = cJSON_GetObjectItem(one_timer_p, "type");
+			if (!colinkStrcmp(json_temp_p->valuestring, "once"))
+			{
+				app_timer->type = COLINK_TYPE_ONCE;
+				json_temp_p = cJSON_GetObjectItem(one_timer_p, "enabled");
+				if(json_temp_p->valueint != 0) app_timer->enable = 1;
+
+				json_temp_p = cJSON_GetObjectItem(one_timer_p, "at");
+				app_timer->at_time = mytime_str_to_time(json_temp_p->valuestring);
+
+				timer_do_p = cJSON_GetObjectItem(one_timer_p, "do");
+				json_temp_p = cJSON_GetObjectItem(timer_do_p, "switch");
+				if(!colinkStrcmp(json_temp_p->valuestring, "on")) app_timer->start_do = 1;
+			}
+			else if (!colinkStrcmp(json_temp_p->valuestring, "repeat"))
+			{
+				app_timer->type = COLINK_TYPE_REPEAT;
+				json_temp_p = cJSON_GetObjectItem(one_timer_p, "enabled");
+				if(json_temp_p->valueint != 0) app_timer->enable = 1;
+
+				json_temp_p = cJSON_GetObjectItem(one_timer_p, "at");
+				app_timer->cron = mytime_str_repeat(json_temp_p->valuestring);
+
+				timer_do_p = cJSON_GetObjectItem(one_timer_p, "do");
+				json_temp_p = cJSON_GetObjectItem(timer_do_p, "switch");
+				if(!colinkStrcmp(json_temp_p->valuestring, "on")) app_timer->start_do = 1;
+			}
+			else if (!colinkStrcmp(json_temp_p->valuestring, "duration"))
+			{
+				app_timer->type = COLINK_TYPE_DURATION;
+				json_temp_p = cJSON_GetObjectItem(one_timer_p, "enabled");
+				if(json_temp_p->valueint != 0) app_timer->enable = 1;
+
+				json_temp_p = cJSON_GetObjectItem(one_timer_p, "at");
+				app_timer->at_time = mytime_str_to_time(json_temp_p->valuestring);
+				app_timer->min_b = atoi(json_temp_p->valuestring+25);
+				app_timer->min_c = mytime_str_duration(json_temp_p->valuestring+25);
+
+				timer_startDo_p = cJSON_GetObjectItem(one_timer_p, "startDo");
+				json_temp_p = cJSON_GetObjectItem(timer_startDo_p, "switch");
+				if(!colinkStrcmp(json_temp_p->valuestring, "on")) app_timer->start_do = 1;
+
+				timer_endDo_p = cJSON_GetObjectItem(one_timer_p, "endDo");
+				json_temp_p = cJSON_GetObjectItem(timer_endDo_p, "switch");
+				if(!colinkStrcmp(json_temp_p->valuestring, "on")) app_timer->end_do = 1;
+			}
+			//os_printf("type=%d, do1=%d, do2=%d, time=%u, min_b=%d, min_c=%d\n",
+			//			app_timer->type, app_timer->start_do, app_timer->end_do, app_timer->at_time, app_timer->min_b, app_timer->min_c);
+			if(app_timer)
+			{
+				if(app_timer->type != 0) app_timer++;
+			}
+		}
+		if(buffer)
+		{
+			//mytime_set_delay(buffer, timer_num);
+			colink_save_timer((char*)buffer, timer_num * sizeof(colink_app_timer));
+			Timer_update_time();
+			//OS_MemFree(buffer);
+		}
+	}
+	cJSON_Delete(json_root);
 }
 
 static void colinkNotifyDevStatus(ColinkDevStatus status)
@@ -461,6 +560,9 @@ void colinkSwitchUpdate(void)
     cJSON *params = NULL;
     char *raw = NULL;
     char *switch_value = NULL;
+
+	if(DEVICE_MODE_WORK_NORMAL != coLinkGetDeviceMode())
+		return;
 
     params = cJSON_CreateObject();
 

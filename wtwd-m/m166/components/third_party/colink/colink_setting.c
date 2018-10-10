@@ -9,8 +9,10 @@
 #include "colink_type.h"
 #include "colink_global.h"
 #include "colink_link.h"
+#include "colink_sysadapter.h"
 
 #define COLINKFILE_NAME "colink.conf"
+#define COLINKTIME_NAME "colink.time"
 extern spiffs* fs_handle;
 
 /////////////////////////////////////////////////
@@ -146,13 +148,13 @@ void colinkSettingStart(void)
 //////////////////////////////////////////////
 int system_param_save_with_protect(char *domain, int size)
 {
-	SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_RDWR, 0);
+	SSV_FILE fd = FS_open(fs_handle, COLINKFILE_NAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
 	printf("%s fd=%d\n", __func__, fd);
 	if(fd >= 0)
 	{
-		if(domain && size>0) FS_write(fs_handle, fd, domain, size);
+		if(domain && size>0) size = FS_write(fs_handle, fd, domain, size);
 		FS_close(fs_handle, fd);
-		return 0;
+		return size;
 	}
 	return -1;
 }
@@ -163,9 +165,9 @@ int system_param_load(char *domain, int size)
 	printf("%s fd=%d\n", __func__, fd);
 	if(fd >= 0)
 	{
-		if(domain && size>0) FS_read(fs_handle, fd, domain, size);
+		if(domain && size>0) size = FS_read(fs_handle, fd, domain, size);
 		FS_close(fs_handle, fd);
-		return 0;
+		return size;
 	}
 	return -1;
 }
@@ -173,5 +175,45 @@ int system_param_load(char *domain, int size)
 void system_param_delete(void)
 {
 	FS_remove(fs_handle, COLINKFILE_NAME);
+}
+
+//////////////////////////////////////////////
+int colink_save_timer(char *buffer, int size)
+{
+	SSV_FILE fd = FS_open(fs_handle, COLINKTIME_NAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
+	printf("%s fd=%d\n", __func__, fd);
+	if(fd >= 0)
+	{
+		if(buffer && size>0) size = FS_write(fs_handle, fd, buffer, size);
+		FS_close(fs_handle, fd);
+		return size;
+	}
+	return -1;
+}
+
+int colink_load_timer(char **buffer)
+{
+	SSV_FILE fd = FS_open(fs_handle, COLINKTIME_NAME, SPIFFS_RDWR, 0);
+	printf("%s fd=%d\n", __func__, fd);
+	if(fd >= 0)
+	{
+		extern void *mytime_get_buffer(int size);
+		int size;
+
+		size = FS_lseek(fs_handle, fd, 0, SPIFFS_SEEK_END);
+		*buffer = mytime_get_buffer(size);
+
+		FS_lseek(fs_handle, fd, 0, SPIFFS_SEEK_SET);
+		if(*buffer && size>0) size = FS_read(fs_handle, fd, *buffer, size);
+
+		FS_close(fs_handle, fd);
+		return size;
+	}
+	return -1;
+}
+
+void colink_delete_timer(void)
+{
+	FS_remove(fs_handle, COLINKTIME_NAME);
 }
 

@@ -35,7 +35,7 @@ STATIC CHAR_T serial_no[SERIAL_NUM_LEN+1] = {0};
 ***********************************************************/
 UINT_T tuya_GetSystemTickCount(VOID)
 {
-    return (UINT)os_tick2ms(OS_GetSysTick());
+    return (UINT)OS_GetSysTick();
 }
 
 /***********************************************************
@@ -131,10 +131,10 @@ INT_T tuya_SysGetHeapSize(VOID)
 CHAR_T *tuya_GetSerialNo(VOID)
 {
 	//获取mac地址
-	static CHAR_T serno[14];
+    static CHAR_T serno[14];
     uint8_t ssid[33], ssidlen, key[65], keylen, mac[6];
 
-	serno[0] = 0;
+    serno[0] = 0;
     if(get_wifi_config(ssid, &ssidlen, key, &keylen, mac, 6) == 0)
     {
         sprintf((char*)serno, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);

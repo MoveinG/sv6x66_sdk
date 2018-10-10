@@ -34,6 +34,8 @@
 #define EVENT_CONNECT	2
 #define EVENT_SWITCH	3
 #define EVENT_LED_TIME	4
+#define EVENT_SW_TIMER	5
+#define EVENT_UP_TIMER	6
 
 #define KEY_KEY1		0x0001
 #define KEY_KEY2		0x0002
@@ -69,6 +71,10 @@ extern void esptouch_init(void);
 extern void esptouch_stop(void);
 
 extern void wifi_auto_connect_start(void);
+
+extern void mytime_start(void);
+extern void mytime_stop(void);
+extern int mytime_update_delay(void);
 
 ///////////////////////////////////////////
 static void led_flash_handler(void)
@@ -208,6 +214,27 @@ void Ctrl_Switch_cb(int open)
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
+void Timer_Switch_cb(int open)
+{
+	OsMsgQEntry msg_evt;
+
+	msg_evt.MsgCmd = EVENT_SW_TIMER;
+	if(open) msg_evt.MsgData = (void*)SWITCH_OPEN;
+	else msg_evt.MsgData = (void*)SWITCH_CLOSE;
+
+	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+}
+
+void Timer_update_time(void)
+{
+	OsMsgQEntry msg_evt;
+
+	msg_evt.MsgCmd = EVENT_UP_TIMER;
+	msg_evt.MsgData = (void*)0;
+
+	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+}
+
 void wifi_status_cb(int connect)
 {
 	OsMsgQEntry msg_evt;
@@ -250,7 +277,7 @@ void TaskKeyLed(void *pdata)
 
 	#if defined(CK_CLOUD_EN)
 	coLinkSetDeviceMode(DEVICE_MODE_START);
-	if(system_param_load(NULL, 0) != 0) //to enter smartconfig
+	if(system_param_load(NULL, 0) < 0) //to enter smartconfig
 	{
 		OS_MsDelay(3000);
 		msg_evt.MsgCmd = EVENT_DEV_KEY;
@@ -322,7 +349,7 @@ void TaskKeyLed(void *pdata)
 					if(cloud_task) update_xlink_status();
 					#endif
 					#if defined(CK_CLOUD_EN)
-					if(DEVICE_MODE_WORK_NORMAL == coLinkGetDeviceMode()) colinkSwitchUpdate();
+					/*if(DEVICE_MODE_WORK_NORMAL == coLinkGetDeviceMode()) */colinkSwitchUpdate();
 					#endif
 				}
 				#if defined(DEVICE_KEY2)
@@ -357,7 +384,8 @@ void TaskKeyLed(void *pdata)
 					#endif
 
 					#if defined(CK_CLOUD_EN)
-					if(system_param_load(NULL, 0) == 0) colinkProcessStart();
+					mytime_start();
+					if(system_param_load(NULL, 0) >= 0) colinkProcessStart();
 					#endif
 				}
 				if(msg_evt.MsgData == (void*)CONNECT_DIS)
@@ -373,12 +401,27 @@ void TaskKeyLed(void *pdata)
 					Shift_Switch();
 				}
 				break;
+
+			case EVENT_SW_TIMER:
+				if((msg_evt.MsgData == (void*)SWITCH_OPEN && pwr_status == SWITCH_PWROFF)
+					|| (msg_evt.MsgData == (void*)SWITCH_CLOSE && pwr_status == SWITCH_PWRON))
+				{
+					Shift_Switch();
+					colinkSwitchUpdate();
+				}
+				break;
+
+			case EVENT_UP_TIMER:
+				if(mytime_update_delay()) colink_delete_timer();
+				break;
+
 			default:
 				break;
 			}
 		}
 	}
 
+	mytime_stop();
 	OS_MsgQDelete(keyled_msgq);
 exit3:
 	OS_TimerDelete(key_check_timer);

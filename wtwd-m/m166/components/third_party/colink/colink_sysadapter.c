@@ -124,6 +124,21 @@ int32_t colinkSnprintf(char* buf, uint32_t size, const char* format, ...)
     return ret;
 }
 
+static void out_timestamp(void)
+{
+	extern uint32_t mytime_get_time(void *ptime);
+	int32_t i, j, k;
+
+	k = mytime_get_time(NULL);
+	if(k >= 24*3600) k += 8 * 3600; //to beijing time
+	k = k % (24 * 3600); //sec in day
+	i = k / 3600; //hour
+	k = k % 3600;
+	j = k / 60; //min
+	k = k % 60; //sec
+	printf("[%02d:%02d:%02d]", (int)i, (int)j, (int)k);
+}
+
 int32_t colinkPrintf(const char* format, ...)
 {
     va_list ap;
@@ -144,6 +159,7 @@ int32_t colinkPrintf(const char* format, ...)
 			if(i>j) drv_uart_write_fifo((unsigned char*)printf_buffer+j, i-j, UART_BLOCKING);
 			j = i+1;
 			drv_uart_write_fifo((const uint8_t*)"\r\n", 2, UART_BLOCKING);
+			out_timestamp();
 		}
 	}
 	if(j < ret)

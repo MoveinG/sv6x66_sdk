@@ -11,6 +11,7 @@
 //#include "upgrade.h"
 #include "wdt/drv_wdt.h"
 #include "ota_api.h"
+#include "colink_sysadapter.h"
 
 #define uint32				uint32_t
 #define uint16				uint16_t

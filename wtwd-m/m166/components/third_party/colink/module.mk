@@ -7,6 +7,7 @@ LIB_SRC += colink_upgrade.c
 LIB_SRC += colink_global.c
 
 LIB_SRC += esp_touch.c
+LIB_SRC += mytime.c
 
 STATIC_LIB += $(MYDIR)/libcolink.a
 STATIC_LIB += $(MYDIR)/libcolinkcJSON.a
@@ -22,6 +23,7 @@ LOCAL_INC += -I$(TOPDIR)/components/osal
 LOCAL_INC += -I$(TOPDIR)/components/third_party/mbedtls/include
 LOCAL_INC += -I$(TOPDIR)/components/net/tcpip/lwip-1.4.0/src/include
 LOCAL_INC += -I$(TOPDIR)/components/tools/ota_api
+LOCAL_INC += -I$(TOPDIR)/components/third_party
 
 RELEASE_SRC := 2
 $(eval $(call build-lib,$(LIBRARY_NAME),$(LIB_SRC),$(LIB_ASRC),$(LOCAL_CFLAGS),$(LOCAL_INC),$(LOCAL_AFLAGS),$(MYDIR)))

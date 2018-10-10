@@ -1,7 +1,7 @@
 #ifndef __COLINK_DEFINE_H__
 #define __COLINK_DEFINE_H__
 
-#define os_printf	printf
+#define os_printf	colinkPrintf
 #define os_malloc	OS_MemAlloc
 #define os_free		OS_MemFree
 #define vTaskDelay	OS_MsDelay
