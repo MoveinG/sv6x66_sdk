@@ -1,7 +1,9 @@
 #include <stdint.h>
 #include <cJSON.h>
 #include <string.h>
+#include <stdio.h>
 #include "sys/flash.h"
+
 struct wifi_cfg {
     char mac_string[4096];
 };
@@ -88,15 +90,15 @@ void wifi_cfg_get_addr2(const cJSON *handle, char addr[6]) {
 }
 
 void wifi_cfg_replace_mem_addr1(const cJSON *handle, char *str) {
-    cJSON_ReplaceItemInObject(handle, "addr1", cJSON_CreateString(str));
+    cJSON_ReplaceItemInObject((cJSON*)handle, "addr1", cJSON_CreateString(str));
 }
 
 void wifi_cfg_replace_mem_addr2(const cJSON *handle, char *str) {
-    cJSON_ReplaceItemInObject(handle, "addr2", cJSON_CreateString(str));
+    cJSON_ReplaceItemInObject((cJSON*)handle, "addr2", cJSON_CreateString(str));
 }
 
 void wifi_cfg_write_cfg(struct cJSON *handle) {
-    char *buf = sg_basic_mac;
+    char *buf = (char*)sg_basic_mac;
     if (handle != NULL) {
         buf = cJSON_Print(handle);
     }
@@ -109,7 +111,7 @@ void wifi_cfg_write_cfg(struct cJSON *handle) {
     int i;
     
     for (i = 0; i < FLASH_SECTOR_SIZE; i+=FLASH_PAGE_SIZE) {
-        flash_page_program(ptr+i, FLASH_PAGE_SIZE, &(buf[i]));
+        flash_page_program(ptr+i, FLASH_PAGE_SIZE, (unsigned char*)&(buf[i]));
     }
     OS_ExitCritical();
     if (handle != NULL) {

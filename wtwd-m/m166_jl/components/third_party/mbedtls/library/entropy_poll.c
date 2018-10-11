@@ -189,6 +189,7 @@ int mbedtls_platform_entropy_poll( void *data,
 	unsigned long rand;
 	for(i=0; i+3<len; i+=sizeof(unsigned long))
 	{
+		extern unsigned long OS_Random(void);
 		rand = OS_Random();
 		memcpy(output+i, &rand, sizeof(unsigned long));
 	}

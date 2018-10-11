@@ -6,7 +6,7 @@
 #include "adapter_platform.h"
 #include "tuya_iot_wifi_api.h"
 //#include "flash_api.h"
-//#include <device_lock.h>
+#include "tuya_ws_db.h"
 #include "tuya_device.h"
 #include "mf_test.h"
 #include "tuya_uart.h"
@@ -174,7 +174,7 @@ void user_main(void)
         __tuya_mf_recv,
         gpio_test,
     };
-    op_ret = mf_init(&intf,APP_BIN_NAME,USER_SW_VER,FALSE);
+    op_ret = mf_init(&intf,APP_BIN_NAME,USER_SW_VER,FALSE); //TRUE: write MAC address
     if(OPRT_OK != op_ret) {
         PR_ERR("mf_init err:%d",op_ret);
         return;
@@ -308,7 +308,7 @@ STATIC VOID __gw_upgrade_notify_cb(IN CONST FW_UG_S *fw, IN CONST INT_T download
 		SSV_FILE fd = FS_open(fs_handle, OTA_MD5_FILENAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
 		if(fd < 0) return;
 
-		uint32_t write_len = FS_write(fs_handle, fd, fw->fw_md5, sizeof(fw->fw_md5));
+		uint32_t write_len = FS_write(fs_handle, fd, (void*)fw->fw_md5, sizeof(fw->fw_md5));
 		FS_close(fs_handle, fd);
 		//if(write_len == sizeof(fw->fw_md5))
 		{

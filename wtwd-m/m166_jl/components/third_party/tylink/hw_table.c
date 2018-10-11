@@ -14,6 +14,7 @@ Description:
             
 ***********************************************************/
 #include <mem_pool.h> // 编译器非标准，在使用下面方法初始化结构体时依赖此头文件
+#include <stdio.h>
 #include "hw_table.h"
 #include "uni_log.h"
 

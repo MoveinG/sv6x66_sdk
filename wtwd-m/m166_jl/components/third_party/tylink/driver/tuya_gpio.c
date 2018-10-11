@@ -11,7 +11,7 @@
 #include "mem_pool.h"
 #include "uni_log.h"
 
-#define gpio_printf
+#define gpio_printf(...)
 #if 0
 /***********************************************************
 *************************micro define***********************

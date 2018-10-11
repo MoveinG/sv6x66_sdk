@@ -1,10 +1,11 @@
-//#include <config.h>
+#include <stdio.h>
+#include <string.h>
 #include "soc_types.h"
 
 #include "cli.h"
 #include "osal.h"
 #include "net_types.h"
-
+#include "atcmd.h"
 #include "uart/drv_uart.h"
 
 static OsSemaphore cli_rx_sem = NULL;
@@ -94,7 +95,7 @@ void drv_uart_tx_0(s8 ch);
 
 static inline void __put_char (char c)
 {
-	drv_uart_write_fifo(&c,1,UART_BLOCKING);
+	drv_uart_write_fifo((const uint8_t*)&c,1,UART_BLOCKING);
 }
 
 #if (CLI_HISTORY_ENABLE==1)

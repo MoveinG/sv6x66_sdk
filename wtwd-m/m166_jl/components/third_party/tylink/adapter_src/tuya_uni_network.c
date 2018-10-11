@@ -1,8 +1,9 @@
 #define __UNI_NETWORK_GLOBALS
-#include "tuya_uni_network.h"
-//#include "uni_system.h"
+#include <string.h>
+#include "uni_network.h"
+#include "uni_system.h"
 
-#define ty_net_printf
+#define ty_net_printf(...)
 #define CANONNAME_MAX 128
 
 typedef struct NETWORK_ERRNO_TRANS {

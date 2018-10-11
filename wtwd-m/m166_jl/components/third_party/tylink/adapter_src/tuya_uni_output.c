@@ -4,6 +4,7 @@
 *  Date: 20170921
 ***********************************************************/
 #define _UNI_OUTPUT_GLOBAL
+#include <stdio.h>
 #include "tuya_uni_output.h"
 
 //#include "dbg_8195.h"

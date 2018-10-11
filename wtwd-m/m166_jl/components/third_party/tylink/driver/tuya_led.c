@@ -133,7 +133,7 @@ STATIC VOID __set_led_light_type(IN CONST LED_HANDLE handle,IN CONST LED_LT_E ty
 *  note: if(OL_FLASH == type) then flh_mstime and flh_ms_sumtime is valid
 ***********************************************************/
 VOID tuya_set_led_light_type(IN CONST LED_HANDLE handle,IN CONST LED_LT_E type,\
-                                        IN CONST USHORT flh_mstime,IN CONST flh_ms_sumtime)
+                                        IN CONST USHORT flh_mstime,IN CONST INT_T flh_ms_sumtime)
 {
     MutexLock(mutex);
     __set_led_light_type(handle,type,flh_mstime,flh_ms_sumtime);

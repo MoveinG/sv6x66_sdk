@@ -4,6 +4,8 @@
 *  Date: 120427
 ***********************************************************/
 #define _UNI_THREAD_GLOBAL
+#include <string.h>
+#include <stdio.h>
 #include "tuya_uni_thread.h"
 #include "uni_mutex.h"
 #include "uni_pointer.h"
@@ -11,7 +13,7 @@
 #include "FreeRTOS.h"
 #include "mem_pool.h"
 #include "osal.h"
-#include <string.h>
+#include "uni_system.h"
 
 /***********************************************************
 *************************micro define***********************
@@ -163,7 +165,7 @@ OPERATE_RET tuya_CreateAndStart(OUT THRD_HANDLE *pThrdHandle,\
         PR_ERR("Malloc Thread Mgr Fails");
         return OPRT_MALLOC_FAILED;
     }
-    printf("%s thrdname=%s, enter=0x%x, exit=0x%x\n", __func__, thrd_param->thrdname, enter, exit);//fixed shutdown?????
+    printf("%s thrdname=%s, enter=0x%x, exit=0x%x\n", __func__, thrd_param->thrdname, (int)enter, (int)exit);//fixed shutdown?????
 
     INIT_LIST_HEAD(&(pMgr->node));
 
