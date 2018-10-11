@@ -359,9 +359,47 @@ static void colinkRecvUpdate(char* data)
 	cJSON_Delete(json_root);
 }
 
+extern int get_Switch_status(void);
+void colinkSwitchUpdate(void)
+{
+    cJSON *params = NULL;
+    char *raw = NULL;
+    char *switch_value = NULL;
+
+	if(DEVICE_MODE_WORK_NORMAL != coLinkGetDeviceMode())
+		return;
+
+    params = cJSON_CreateObject();
+
+    if(get_Switch_status() == 0)
+    {
+        switch_value = "off";
+    }
+    else
+    {
+        switch_value = "on";
+    }
+
+    cJSON_AddStringToObject(params, "switch", switch_value);
+
+    raw = cJSON_PrintUnformatted(params);
+
+    if (!raw)
+    {
+        os_printf("cJSON_PrintUnformatted failed");
+        cJSON_Delete(params);
+        return;
+    }
+
+    colinkSendUpdate(raw);
+    cJSON_Delete(params);
+    cJSON_free(raw);
+}
+
 static void colinkNotifyDevStatus(ColinkDevStatus status)
 {
     os_printf("colinkNotifyDevStatus %d\r\n", status);
+    if(status == DEVICE_ONLINE) colinkSwitchUpdate();
 }
 /*
 static void colinkUpgradeRequest(char *new_ver, ColinkOtaInfo file_list[], uint8_t file_num)
@@ -553,41 +591,4 @@ void network_init(void)
     }
 }
 #endif
-
-extern int get_Switch_status(void);
-void colinkSwitchUpdate(void)
-{
-    cJSON *params = NULL;
-    char *raw = NULL;
-    char *switch_value = NULL;
-
-	if(DEVICE_MODE_WORK_NORMAL != coLinkGetDeviceMode())
-		return;
-
-    params = cJSON_CreateObject();
-
-    if(get_Switch_status() == 0)
-    {
-        switch_value = "off";
-    }
-    else
-    {
-        switch_value = "on";
-    }
-
-    cJSON_AddStringToObject(params, "switch", switch_value);
-
-    raw = cJSON_PrintUnformatted(params);
-
-    if (!raw)
-    {
-        os_printf("cJSON_PrintUnformatted failed");
-        cJSON_Delete(params);
-        return;
-    }
-
-    colinkSendUpdate(raw); 
-    cJSON_Delete(params);
-    cJSON_free(raw);
-}
 

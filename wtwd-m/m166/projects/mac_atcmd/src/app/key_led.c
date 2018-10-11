@@ -349,7 +349,7 @@ void TaskKeyLed(void *pdata)
 					if(cloud_task) update_xlink_status();
 					#endif
 					#if defined(CK_CLOUD_EN)
-					/*if(DEVICE_MODE_WORK_NORMAL == coLinkGetDeviceMode()) */colinkSwitchUpdate();
+					colinkSwitchUpdate();
 					#endif
 				}
 				#if defined(DEVICE_KEY2)
@@ -395,19 +395,12 @@ void TaskKeyLed(void *pdata)
 				break;
 
 			case EVENT_SWITCH:
-				if((msg_evt.MsgData == (void*)SWITCH_OPEN && pwr_status == SWITCH_PWROFF)
-					|| (msg_evt.MsgData == (void*)SWITCH_CLOSE && pwr_status == SWITCH_PWRON))
-				{
-					Shift_Switch();
-				}
-				break;
-
 			case EVENT_SW_TIMER:
 				if((msg_evt.MsgData == (void*)SWITCH_OPEN && pwr_status == SWITCH_PWROFF)
 					|| (msg_evt.MsgData == (void*)SWITCH_CLOSE && pwr_status == SWITCH_PWRON))
 				{
 					Shift_Switch();
-					colinkSwitchUpdate();
+					if(msg_evt.MsgCmd == EVENT_SW_TIMER) colinkSwitchUpdate();
 				}
 				break;
 

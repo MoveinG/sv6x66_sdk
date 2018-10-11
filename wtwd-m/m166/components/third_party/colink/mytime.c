@@ -134,7 +134,7 @@ static void sntp_update_handler(void)
 
 			Timer_update_time();
 
-			OS_TimerSet(sntp_update_timer, DAY_SECOND*1000, (u8)FALSE, NULL);
+			OS_TimerSet(sntp_update_timer, 3600*1000, (unsigned char)FALSE, NULL);
 		}
 	}
 	else
@@ -296,16 +296,17 @@ static unsigned int get_min_time(colink_app_timer *timer, int num)
 		{
 			if(timer->cron.week_bit)
 			{
-				int value, i, wday;
+				int value, i, wday, cur_day;
 
-				value = cur_time / DAY_SECOND; //day
-				wday = (value + WEEK_197011) % 7; //today at week?
+				cur_day = cur_time / DAY_SECOND; //day
+				wday = (cur_day + WEEK_197011) % 7; //today at week?
 				i = wday;
 				while((i - wday) < 8)
 				{
 					if(timer->cron.week_bit & (1 << (i % 7)))
 					{
-						value = DAY_SECOND * (value + i - wday) + timer->cron.hour * 3600 + timer->cron.min * 60;
+						value = DAY_SECOND * (cur_day + i - wday) + timer->cron.hour * 3600 + timer->cron.min * 60;
+						printf("%s %d, value=%d, hour=%d, min=%d\n", __func__, i, value, timer->cron.hour, timer->cron.min);
 						if(value > cur_time)
 						{
 						 	if(off_time > value)
@@ -359,12 +360,12 @@ int mytime_update_delay(void)
 	if(diff_time > 10 * DAY_SECOND)
 	{
 		mytime_state = MYTIME_1WEEK;
-		OS_TimerSet(mytime_delay_timer, 7*24*3600*1000, (u8)FALSE, NULL);
+		OS_TimerSet(mytime_delay_timer, 7*24*3600*1000, (unsigned char)FALSE, NULL);
 	}
 	else
 	{
 		mytime_state = MYTIME_DELAY;
-		OS_TimerSet(mytime_delay_timer, diff_time*1000, (u8)FALSE, NULL); //ms
+		OS_TimerSet(mytime_delay_timer, diff_time*1000, (unsigned char)FALSE, NULL); //ms
 	}
 	OS_TimerStart(mytime_delay_timer);
 	return 0;
