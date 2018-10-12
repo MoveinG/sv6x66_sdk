@@ -235,6 +235,8 @@ static uint16_t mytime_str_duration(const char *str)
 static void colinkRecvUpdate(char* data)
 {
     extern void Ctrl_Switch_cb(int open);
+    extern void Ctrl_bright_cb(int bright);
+    extern void Ctrl_flashmode_cb(int mode);
     extern void Timer_update_time(void);
 
     os_printf("colinkRecvUpdate [%s]\r\n", data);
@@ -255,17 +257,45 @@ static void colinkRecvUpdate(char* data)
     {
         if(0 == colinkStrcmp(switch_p->valuestring, "on"))
         {
-            os_printf("sever on instruction");
+            os_printf("sever on instruction\n");
             Ctrl_Switch_cb(1); //switchON();
         }
         else if(0 == colinkStrcmp(switch_p->valuestring, "off"))
         {
-            os_printf("sever off instruction");
+            os_printf("sever off instruction\n");
             Ctrl_Switch_cb(0); //switchOFF();
         }
         else
         {
             os_printf("err net switch info...\n");
+        }
+
+        cJSON_Delete(json_root);
+        return;
+    }
+
+    switch_p = cJSON_GetObjectItem(json_root, "mode");
+    if (switch_p)
+    {
+        if(1 == switch_p->valueint)
+        {
+            switch_p = cJSON_GetObjectItem(json_root, "bright");
+            if(switch_p)
+            {
+                os_printf("instruction bright:%d\n", switch_p->valueint);
+                Ctrl_bright_cb(switch_p->valueint);
+            }
+        }
+        else if(2 == switch_p->valueint || 3 == switch_p->valueint)
+        {
+            Ctrl_flashmode_cb(switch_p->valueint);
+
+            switch_p = cJSON_GetObjectItem(json_root, "speed");
+            if(switch_p) os_printf("instruction speed:%d\n", switch_p->valueint);
+        }
+		else
+        {
+            os_printf("err net mode info...\n");
         }
 
         cJSON_Delete(json_root);

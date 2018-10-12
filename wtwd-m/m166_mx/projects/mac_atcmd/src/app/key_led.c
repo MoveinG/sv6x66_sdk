@@ -36,6 +36,8 @@
 #define EVENT_LED_TIME	4
 #define EVENT_SW_TIMER	5
 #define EVENT_UP_TIMER	6
+#define EVENT_BRIGHT	7
+#define EVENT_FLHMODE	8
 
 #define KEY_KEY1		0x0001
 #define KEY_KEY2		0x0002
@@ -79,6 +81,7 @@ extern void mytime_stop(void);
 extern int mytime_update_delay(void);
 
 extern int maoxin_uart_init(uint32_t baud, uint32_t bufsize);
+extern int uart_data_free(void);
 extern void maoxin_light_switch(int open);
 extern void maoxin_set_light(int level);
 extern void maoxin_light_flash(int value);
@@ -242,6 +245,26 @@ void Timer_update_time(void)
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
+void Ctrl_bright_cb(int bright)
+{
+	OsMsgQEntry msg_evt;
+
+	msg_evt.MsgCmd = EVENT_BRIGHT;
+	msg_evt.MsgData = (void*)bright;
+
+	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+}
+
+void Ctrl_flashmode_cb(int mode)
+{
+	OsMsgQEntry msg_evt;
+
+	msg_evt.MsgCmd = EVENT_FLHMODE;
+	msg_evt.MsgData = (void*)mode;
+
+	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+}
+
 void wifi_status_cb(int connect)
 {
 	OsMsgQEntry msg_evt;
@@ -258,8 +281,7 @@ void TaskKeyLed(void *pdata)
 {
 	OsMsgQEntry msg_evt;
 	bool smarting=false, cloud_task=false;
-	uint8_t ssidlen=32, keylen=64;
-	uint32_t keydown_time=0;
+	int value;
 
 	pwr_status = SWITCH_PWROFF;
 	//if(OS_MutexInit(&kl_mutex) != OS_SUCCESS)
@@ -417,19 +439,31 @@ void TaskKeyLed(void *pdata)
 				}
 				break;
 
+			#if defined(CK_CLOUD_EN)
 			case EVENT_UP_TIMER:
-				#if defined(CK_CLOUD_EN)
 				if(mytime_update_delay()) mytime_clean_delay();
-				#endif
 				break;
+
+			case EVENT_BRIGHT:
+				value = msg_evt.MsgData;
+				if(value > 6 && value < 100) maoxin_set_light(value / 6); //10-100 -> 1-16
+				break;
+
+			case EVENT_FLHMODE:
+				value = msg_evt.MsgData;
+				if(value == 2 || value == 3) maoxin_light_flash(value-1);
+				break;
+			#endif
 
 			default:
 				break;
 			}
 		}
 	}
-
+	#if defined(CK_CLOUD_EN)
+	uart_data_free();
 	mytime_stop();
+	#endif
 	OS_MsgQDelete(keyled_msgq);
 exit3:
 	OS_TimerDelete(key_check_timer);

@@ -212,3 +212,30 @@ void maoxin_light_flash(int value)
 	uart_data_send_data(command_str, UART_COMMAND_LEN);
 }
 
+//cammand low 16bits, param high 16bits
+uint32_t maoxin_get_command(void)
+{
+	static uint8_t command_buffer[UART_COMMAND_LEN];
+	static uint8_t off=0;
+
+	off += uart_data_read_data(command_buffer+off, UART_COMMAND_LEN-off);
+	if(off == UART_COMMAND_LEN)
+	{
+		if(command_buffer[0] == 0xA0)
+		{
+			if(command_buffer[1] == 0xFA && command_buffer[4] == 0xA5)
+			{
+				off = 0;
+				return command_buffer[2] | (command_buffer[3] << 16);
+			}
+		}
+		for(off=1; off<UART_COMMAND_LEN; off++)
+		{
+			if(command_buffer[off] == 0xA0) break;
+		}
+		if(off < UART_COMMAND_LEN) memcpy(command_buffer, command_buffer+off, UART_COMMAND_LEN-off);
+		off = UART_COMMAND_LEN - off;
+	}
+	return 0;
+}
+
