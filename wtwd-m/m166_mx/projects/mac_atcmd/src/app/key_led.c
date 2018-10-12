@@ -70,6 +70,8 @@ extern void enterSettingSelfAPMode(void);
 extern void esptouch_init(void);
 extern void esptouch_stop(void);
 
+extern void joylink_init(char *key);
+extern void joylink_stop(void);
 extern void wifi_auto_connect_start(void);
 
 extern void mytime_start(void);
@@ -417,7 +419,7 @@ void TaskKeyLed(void *pdata)
 
 			case EVENT_UP_TIMER:
 				#if defined(CK_CLOUD_EN)
-				if(mytime_update_delay()) colink_delete_timer();
+				if(mytime_update_delay()) mytime_clean_delay();
 				#endif
 				break;
 

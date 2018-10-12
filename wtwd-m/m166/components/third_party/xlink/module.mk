@@ -39,6 +39,7 @@ LOCAL_AFLAGS +=
 
 LOCAL_INC := -I$(TOPDIR)/components/third_party/xlink
 LOCAL_INC += -I$(TOPDIR)/components/net/tcpip/lwip-1.4.0/src/include/lwip
+LOCAL_INC += -I$(PROJ_DIR)/src/cfg
 
 RELEASE_SRC := 2
 $(eval $(call build-lib,$(LIBRARY_NAME),$(LIB_SRC),$(LIB_ASRC),$(LOCAL_CFLAGS),$(LOCAL_INC),$(LOCAL_AFLAGS),$(MYDIR)))

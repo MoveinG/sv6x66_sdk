@@ -136,6 +136,9 @@ void colinkSettingTask(void* pData)
         colinkSoftOverStart();
     }
 
+    extern void mytime_clean_delay(void);
+    mytime_clean_delay();
+
     colinkProcessStart();
     vTaskDelete(NULL);
 }

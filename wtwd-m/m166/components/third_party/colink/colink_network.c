@@ -287,7 +287,7 @@ static void colinkRecvUpdate(char* data)
 		timer_num = cJSON_GetArraySize(timers_p);
 
 		if(timer_num > 0) buffer = mytime_get_buffer(timer_num * sizeof(colink_app_timer));
-		else colink_delete_timer();
+		else mytime_clean_delay();
 
 		app_timer = buffer;
 		for (i = 0; i < timer_num; i++)

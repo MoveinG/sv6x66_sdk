@@ -5,9 +5,9 @@
 #include<stdio.h>
 #include<netdb.h>
 #include<unistd.h>
-//#include<arpa/inet.h>
 #include <pthread.h>
 //#include <sys/time.h>
+#include "mac_cfg.h"
 
 #include "xlink_sdk.h"
 #include "linux_flash.h"
@@ -75,7 +75,7 @@ void xlink_get_mac_addr(xlink_uint8 *mac_addr, int len)
 	if(mac_addr && len >= 6) 
 	{
     	void *cfg_handle = wifi_cfg_init();
-	    wifi_cfg_get_addr1(cfg_handle, mac_addr);
+	    wifi_cfg_get_addr1(cfg_handle, (char*)mac_addr);
 	    wifi_cfg_deinit(cfg_handle);
 	}
 }
@@ -455,7 +455,7 @@ void xlink_sdk_thread(void *var) {
     xlink_memcpy((void *) g_sdk_instance_t.dev_name, "xlink_dev", xlink_sizeof("xlink_dev"));
     g_sdk_instance_t.dev_mac_length = 6;
     //xlink_memcpy((void *) g_sdk_instance_t.dev_mac, xlink_mac, g_sdk_instance_t.dev_mac_length);
-	xlink_get_mac_addr(g_sdk_instance_t.dev_mac, g_sdk_instance_t.dev_mac_length);
+	xlink_get_mac_addr((xlink_uint8*)g_sdk_instance_t.dev_mac, g_sdk_instance_t.dev_mac_length);
     g_sdk_instance_t.dev_firmware_version = 1;
     g_sdk_instance_t.cloud_enable = 1;
     g_sdk_instance_t.local_enable = 1;

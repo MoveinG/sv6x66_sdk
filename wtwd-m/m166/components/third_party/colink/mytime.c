@@ -163,15 +163,10 @@ static void mytime_delay_handler(void)
 
 void mytime_start(void)
 {
-	if(app_timer)
-	{
-		OS_MemFree(app_timer);
-		app_timer = NULL;
-	}
-	colink_load_timer((char**)&app_timer);
-
 	if(mytime_state != MYTIME_IS_IDLE)
 		return;
+
+	colink_load_timer((char**)&app_timer);
 
 	sntp_init();
 	mytime_state = MYTIME_SNTPING;
@@ -348,11 +343,7 @@ int mytime_update_delay(void)
 	unsigned int diff_time = get_min_time(app_timer, timer_num);
 	if(diff_time == 0xFFFFFFFF)
 	{
-		OS_MemFree(app_timer);
-		app_timer = NULL;
-
 		mytime_state = MYTIME_SNTPED;
-		OS_TimerStop(mytime_delay_timer);
 		return -1;
 	}
 
@@ -369,5 +360,18 @@ int mytime_update_delay(void)
 	}
 	OS_TimerStart(mytime_delay_timer);
 	return 0;
+}
+
+void mytime_clean_delay(void)
+{
+	if(app_timer)
+	{
+		OS_MemFree(app_timer);
+		app_timer = NULL;
+	}
+
+	OS_TimerStop(mytime_delay_timer);
+
+	colink_delete_timer();
 }
 

@@ -23,5 +23,6 @@ cron_lite mytime_str_repeat(const char *cronstr);
 
 void *mytime_get_buffer(int size);
 int mytime_update_delay(void);
+void mytime_clean_delay(void);
 
 #endif
