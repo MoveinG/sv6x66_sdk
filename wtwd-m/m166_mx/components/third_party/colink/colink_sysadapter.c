@@ -128,6 +128,7 @@ static void out_timestamp(void)
 {
 	extern uint32_t mytime_get_time(void *ptime);
 	int32_t i, j, k;
+	char timestr[16];
 
 	k = mytime_get_time(NULL);
 	if(k >= 24*3600) k += 8 * 3600; //to beijing time
@@ -136,7 +137,8 @@ static void out_timestamp(void)
 	k = k % 3600;
 	j = k / 60; //min
 	k = k % 60; //sec
-	printf("[%02d:%02d:%02d]", (int)i, (int)j, (int)k);
+	sprintf(timestr, "[%02d:%02d:%02d.%03d]", (int)i, (int)j, (int)k, (int)(OS_GetSysTick()%1000));
+	drv_uart_write_fifo((unsigned char*)timestr, 14, UART_BLOCKING);
 }
 
 int32_t colinkPrintf(const char* format, ...)
