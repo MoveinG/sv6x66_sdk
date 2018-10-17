@@ -17,12 +17,14 @@ static const signed short day_month[13] = {0, 31, 59, 90, 120,151,181,212,243,27
 
 #define SNTP_TIME_MS	(1000)
 #define SNTP_UPDATE_MS	(24*3600*1000) //1-day
+#define TICK_OVER_SEC	(4294967) //0x100000000/1000(s) + 296(ms)
 
 #define MYTIME_IS_IDLE	0
 #define MYTIME_SNTPING	1
 #define MYTIME_SNTPED	2
-#define MYTIME_DELAY	3
-#define MYTIME_1WEEK	4
+#define MYTIME_UPDATE	4
+#define MYTIME_DELAY	16
+#define MYTIME_1WEEK	32
 
 static OsTimer sntp_update_timer=NULL;
 static OsTimer mytime_delay_timer=NULL;
@@ -30,7 +32,8 @@ static OsTimer mytime_delay_timer=NULL;
 static colink_app_timer *app_timer=NULL;
 static int timer_num;
 
-static unsigned int realtime_offset=0;
+static unsigned int prev_tick=0;
+static unsigned int realtime_offset=0; //unit:second
 static unsigned char mytime_state=MYTIME_IS_IDLE;
 static unsigned char do_switch;
 
@@ -128,23 +131,26 @@ static void sntp_update_handler(void)
 		realtime_offset = psGetTime(NULL, NULL);
 		if(realtime_offset != 0)
 		{
-			realtime_offset -= os_tick2ms(OS_GetSysTick()) / 1000;
+			prev_tick = OS_GetSysTick();
+			realtime_offset -= os_tick2ms(prev_tick) / 1000;
 			mytime_state = MYTIME_SNTPED;
+
 			printf("%s realtime_offset=%d\n", __func__, realtime_offset);
 
 			Timer_update_time();
-
-			OS_TimerSet(sntp_update_timer, 3600*1000, (unsigned char)FALSE, NULL);
+			OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
 		}
 	}
 	else
 	{
-		unsigned int realtime = psGetTime(NULL, NULL);
+		unsigned int tick = OS_GetSysTick();
+		if(prev_tick > tick) realtime_offset += os_tick2ms(TICK_OVER_SEC);
+		prev_tick = tick;
 
-		realtime -= realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
-
-		printf("%s offset=%d\n", __func__, realtime);
-	}
+		tick = psGetTime(NULL, NULL);
+		tick -= realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
+		printf("%s offset=%d\n", __func__, tick);
+ 	}
 
 	OS_TimerStart(sntp_update_timer);
 }
@@ -207,6 +213,10 @@ void mytime_stop(void)
 unsigned int mytime_get_time(struct mydatetime *ptime)
 {
 	unsigned int value;
+
+	value = OS_GetSysTick();
+	if(prev_tick > value) realtime_offset += os_tick2ms(TICK_OVER_SEC);
+	prev_tick = value;
 
 	value = realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
 	if(ptime)
@@ -274,13 +284,18 @@ cron_lite mytime_str_repeat(const char *cronstr)
 static unsigned int get_min_time(colink_app_timer *timer, int num)
 {
 	unsigned int cur_time, off_time;
+	unsigned char cur_switch;
 
+	cur_switch = 0xFF;
 	off_time = 0xFFFFFFFF; //max time
 	cur_time = mytime_get_time(NULL);
 	for(int i=0; i<num; i++)
 	{
 		if(timer->type == COLINK_TYPE_ONCE)
 		{
+			if(timer->at_time == cur_time)
+				cur_switch = timer->start_do;
+
 			if(timer->at_time > cur_time && off_time > timer->at_time) 
 			{
 				off_time = timer->at_time;
@@ -302,6 +317,8 @@ static unsigned int get_min_time(colink_app_timer *timer, int num)
 					{
 						value = DAY_SECOND * (cur_day + i - wday) + timer->cron.hour * 3600 + timer->cron.min * 60;
 						printf("%s %d, value=%d, hour=%d, min=%d\n", __func__, i, value, timer->cron.hour, timer->cron.min);
+
+						if(value == cur_time) cur_switch = timer->start_do;
 						if(value > cur_time)
 						{
 						 	if(off_time > value)
@@ -318,6 +335,9 @@ static unsigned int get_min_time(colink_app_timer *timer, int num)
 		}
 		timer++;
 	}
+
+	if(cur_switch != 0xFF) Timer_Switch_cb(cur_switch ? 1 : 0);
+
 	printf("%s time=%d - %d\n", __func__, off_time, cur_time);
 	return off_time;
 }
