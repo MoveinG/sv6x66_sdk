@@ -291,11 +291,11 @@ void TaskKeyLed(void *pdata)
 	led_status = LED_LIGHT_OFF;
 
 	led_flash_timer = NULL;
-	if(OS_TimerCreate(&led_flash_timer, LIGHT_FLASH1, (u8)FALSE, NULL, (OsTimerHandler)led_flash_handler) != OS_SUCCESS)
+	if(OS_TimerCreate(&led_flash_timer, LIGHT_FLASH1, (uint8_t)FALSE, NULL, (OsTimerHandler)led_flash_handler) != OS_SUCCESS)
 		goto exit1;
 
 	key_check_timer = NULL;
-	if(OS_TimerCreate(&key_check_timer, KEY_CHECK_TIME, (u8)TRUE, NULL, (OsTimerHandler)key_check_handler) != OS_SUCCESS)
+	if(OS_TimerCreate(&key_check_timer, KEY_CHECK_TIME, (uint8_t)TRUE, NULL, (OsTimerHandler)key_check_handler) != OS_SUCCESS)
 		goto exit2;
 
 	if(OS_MsgQCreate(&keyled_msgq, KEYLED_MSGLEN) != OS_SUCCESS)
@@ -336,7 +336,7 @@ void TaskKeyLed(void *pdata)
 					{
 						printf("to AP mode config\n");
 						#if defined(CK_CLOUD_EN)
-						OS_TimerSet(led_flash_timer, LIGHT_FLASH2, (u8)FALSE, NULL);
+						OS_TimerSet(led_flash_timer, LIGHT_FLASH2, (uint8_t)FALSE, NULL);
 						OS_TimerStart(led_flash_timer);
 
 						show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
@@ -349,9 +349,12 @@ void TaskKeyLed(void *pdata)
 					}
 					else printf("to smartconfig\n");
 
+					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
+						break;
+
 					smarting = true;
 					#if defined(CK_CLOUD_EN)
-					OS_TimerSet(led_flash_timer, LIGHT_FLASH1, (u8)FALSE, NULL);
+					OS_TimerSet(led_flash_timer, LIGHT_FLASH1, (uint8_t)FALSE, NULL);
 					OS_TimerStart(led_flash_timer);
 					show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
 

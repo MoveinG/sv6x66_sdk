@@ -487,9 +487,12 @@ static void colinkProcessTask(void* pData)
 
     while(1)
     {
-        if((ret = colinkProcess()) != COLINK_PROCESS_NO_ERROR)
+        if(DEVICE_MODE_SETTING != coLinkGetDeviceMode())
         {
-            os_printf("colinkProcess ret=%d\r\n", ret);
+            if((ret = colinkProcess()) != COLINK_PROCESS_NO_ERROR)
+            {
+                os_printf("colinkProcess ret=%d\r\n", ret);
+            }
         }
         vTaskDelay(50 / portTICK_RATE_MS);
     }
@@ -591,8 +594,11 @@ void colinkSoftOverStart(void)
 
 void colinkProcessStart(void)
 {
-    if(task_process_flag) return;
-
+    if(task_process_flag)
+    {
+        coLinkSetDeviceMode(DEVICE_MODE_WORK_NORMAL);
+        return;
+    }
     task_process_flag = true;
     xTaskCreate(colinkProcessTask, "colinkProcessTask", 2048, NULL, 4, NULL);
 }

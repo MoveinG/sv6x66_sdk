@@ -390,7 +390,7 @@ void mytime_clean_delay(void)
 		app_timer = NULL;
 	}
 
-	OS_TimerStop(mytime_delay_timer);
+	if(mytime_delay_timer) OS_TimerStop(mytime_delay_timer);
 
 	colink_delete_timer();
 }

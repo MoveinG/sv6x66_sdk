@@ -389,14 +389,16 @@ static void esptouch_ack_app(uint8_t *ipaddr, uint8_t *mac)
     sock_addr.sin_len = sizeof(sock_addr);
     sock_addr.sin_addr.s_addr = *(uint32_t*)esptouch_wifi_result.esp_src_ip;
 	
-    for(int i=0; i<10 ;i++)
+    for(int i=0; i<300; i++)
     {
+		//if(DEVICE_MODE_SETTING != coLinkGetDeviceMode())
+		//	break;
         if(sendto(sockfd, pdata, sizeof(pdata), 0, (struct sockaddr*)&sock_addr, sizeof(sock_addr)) < 0)
         {
             printf("Failed to create socket:%d\n", sockfd);
             return;
         }
-        OS_MsDelay(50);
+        OS_MsDelay(20);
     }
 }
 
@@ -426,8 +428,8 @@ static void esptouchwificbfunc(WIFI_RSP *msg)
         printf("DNS server      - %d.%d.%d.%d\n", dnsserver.u8[0], dnsserver.u8[1], dnsserver.u8[2], dnsserver.u8[3]);
 
         recordAP();
-        esptouch_ack_app(ipaddr.u8, mac);
         colinkSettingStart();
+        esptouch_ack_app(ipaddr.u8, mac);
     }
     else
     {
