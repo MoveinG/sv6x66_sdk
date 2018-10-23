@@ -300,14 +300,9 @@ void TaskKeyLed(void *pdata)
 
 	#if defined(CK_CLOUD_EN)
 	coLinkSetDeviceMode(DEVICE_MODE_START);
-	if(system_param_load(NULL, 0) < 0) //to enter smartconfig
-	{
-		OS_MsDelay(3000);
-		msg_evt.MsgCmd = EVENT_DEV_KEY;
-		msg_evt.MsgData = (void*)KEY_1LONG;
-		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
-	}
-	else wifi_auto_connect_start();
+	colink_Init_Device();
+	colink_dl_deviceid_start();
+	wifi_auto_connect_start();
 	#endif
 	printf("TaskKeyLed Init OK!\n");
 	while(1)

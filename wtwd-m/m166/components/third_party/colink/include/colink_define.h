@@ -22,9 +22,21 @@ typedef enum
 
 #define DEVICE_CONFIG_START_SEC (0x7C)
 
+#define CK_DEVICE_LEN	10
+#define CK_APIKEY_LEN	36
+#define CK_MODEL_LEN	10
 
-#define DEVICEID "100003a0dd"
-#define APIKEY "e1e8aa98-e87e-4708-8215-0a9a41a940a8"
+typedef struct
+{
+	char			deviceid[10+1];
+	char			apikey[36+1];
+	unsigned char	sta_mac[6];
+	unsigned char	sap_mac[6];
+	char			model[10+1];
+} ColinkDevice;
+
+#define DEVICEID "100059f78c"
+#define APIKEY "27d89262-c7e8-4c63-912e-80dfc2e98a57"
 #define MODEL "C01-X01-GL"
 #define VERDION "0.0.1"
 

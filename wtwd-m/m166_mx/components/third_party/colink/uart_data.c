@@ -138,7 +138,7 @@ static void hsuart_isr(void)
 }
 
 /***********************************************************
-*  Function: uart_data_send_data 
+*  Function: uart_data_read_data 
 *  Input: len->data buf len
 *  Output: buf->read data buf
 *  Return: actual read data size

@@ -7,7 +7,7 @@ LIB_SRC += colink_upgrade.c
 LIB_SRC += colink_global.c
 
 LIB_SRC += esp_touch.c
-LIB_SRC += mytime.c
+LIB_SRC += mytime.c uart_data.c
 
 STATIC_LIB += $(MYDIR)/libcolink.a
 STATIC_LIB += $(MYDIR)/libcolinkcJSON.a

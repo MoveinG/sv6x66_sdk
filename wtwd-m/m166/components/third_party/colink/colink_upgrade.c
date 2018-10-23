@@ -31,6 +31,7 @@
 
 #define system_upgrade_userbin_check(void) (0)
 extern spiffs* fs_handle;
+extern ColinkDevice colink_dev;
 
 typedef struct
 {
@@ -251,9 +252,9 @@ static int sendHttpRequest(int sockfd, uint8_t *buffer, uint32_t start, uint32_t
     sprintf(ts, "%u", (unsigned int)OS_Random()+0x80000000);
     vTaskSuspendAll();
     mbedtls_sha256_starts(psha256_ctx, 0);
-    mbedtls_sha256_update(psha256_ctx, (const unsigned char*)DEVICEID, strlen(DEVICEID));
+    mbedtls_sha256_update(psha256_ctx, (const unsigned char*)colink_dev.deviceid, CK_DEVICE_LEN);
     mbedtls_sha256_update(psha256_ctx, (const unsigned char*)ts, strlen(ts));
-    mbedtls_sha256_update(psha256_ctx, (const unsigned char*)APIKEY, strlen(APIKEY));
+    mbedtls_sha256_update(psha256_ctx, (const unsigned char*)colink_dev.apikey, CK_APIKEY_LEN);
     mbedtls_sha256_finish(psha256_ctx, digest);
     xTaskResumeAll();
     OS_MemFree(psha256_ctx);
@@ -271,7 +272,7 @@ static int sendHttpRequest(int sockfd, uint8_t *buffer, uint32_t start, uint32_t
     sprintf((char*)range, "Range: bytes=%d-%d\r\n", (int)start, (int)end);
     os_printf("range[%s]\n", range);
 
-    sprintf((char*)buffer, "GET %s?deviceid=%s&ts=%s&sign=%s HTTP/1.1\r\n", ota_file_info.path, DEVICEID, ts, digest_hex);
+    sprintf((char*)buffer, "GET %s?deviceid=%s&ts=%s&sign=%s HTTP/1.1\r\n", ota_file_info.path, colink_dev.deviceid, ts, digest_hex);
     sprintf((char*)buffer+strlen((char*)buffer), "Host: %s:%d\r\n", ota_file_info.ip, ota_file_info.port);
     strcat((char*)buffer, "User-Agent: itead-device\r\n");
     strcat((char*)buffer, (char*)range);

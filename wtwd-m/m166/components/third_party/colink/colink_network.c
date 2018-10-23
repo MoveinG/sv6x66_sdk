@@ -21,6 +21,7 @@
 //static int fd;
 //static bool esptouch_flag = false;
 static bool task_process_flag = false;
+ColinkDevice colink_dev;
 
 extern int32_t softap_set_custom_conf(CoLinkFlashParam*);
 
@@ -37,7 +38,7 @@ static void colinkSelfAPTask(void* pData)
     colink_flash_param.sap_config.subnet   = 0xffffff00; //255, 255, 255, 0
 
     strcpy((char*)colink_flash_param.sap_config.ssid, "ITEAD-");
-    strcat((char*)colink_flash_param.sap_config.ssid, DEVICEID);
+    strcat((char*)colink_flash_param.sap_config.ssid, colink_dev.deviceid);
     colink_flash_param.sap_config.ssid_length = 16;
 
     strcpy((char*)colink_flash_param.sap_config.key, "12345678");
@@ -465,9 +466,9 @@ static void colinkProcessTask(void* pData)
     ev.colinkUpgradeRequestCb = colinkUpgradeRequest;/**< 升级通知的回调 */
 
     system_param_load(/*DEVICE_CONFIG_START_SEC, 0, */(char*)&colinkInfoCopy, sizeof(colinkInfoCopy));
-    strcpy(dev_data->deviceid, DEVICEID);
-    strcpy(dev_data->apikey, APIKEY);
-    strcpy(dev_data->model, MODEL);
+    strcpy(dev_data->deviceid, colink_dev.deviceid);
+    strcpy(dev_data->apikey, colink_dev.apikey);
+    strcpy(dev_data->model, colink_dev.model);
     strcpy(dev_data->version, VERDION);
     dev_data->dev_type = COLINK_SINGLE;
 #ifdef SSLUSERENABLE
