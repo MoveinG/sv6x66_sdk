@@ -353,7 +353,7 @@ void dl_deviceid_task(void *pdata)
 
 	if(colink_dl_check(&dev))
 	{
-		if(colink_save_deviceid((char*)&colink_dev, sizeof(ColinkDevice)) == sizeof(ColinkDevice))
+		if(colink_save_deviceid((char*)&dev, sizeof(ColinkDevice)) == sizeof(ColinkDevice))
 		{
 			if(coLinkGetDeviceMode() != DEVICE_MODE_START)
 			{
