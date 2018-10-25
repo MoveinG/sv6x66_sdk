@@ -133,6 +133,7 @@
 #define ATCMD_CLEAN_LISTS           "AT+CLEAN_LISTS"
 #define ATCMD_MAC_HW_QUEUE          "q"
 #define ATCMD_MAC_HW_MIB            "mib"
-#define ATCMD_FIXRATE               "AT+FR"
+#define ATCMD_FIXRATE               "fixrate"
+#define ATCMD_RC_MASK               "rc_mask"
 #define ATCMD_MAC_DBG               "AT+MACDBG"
 #endif

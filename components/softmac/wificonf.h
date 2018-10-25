@@ -244,7 +244,7 @@ typedef enum _ssv_rc_rate_type {
 typedef struct t_DATARATE_INFO
 {
 	ssv_rc_rate_type ratetype;
-	u8 datarate;
+    u8 datarate;
     u8 m1datarate;
     u8 m2datarate;
 	u8 index;
@@ -291,6 +291,11 @@ typedef struct _AT_SCAN_CUSTOM_ARGS {
     u32 channel5Gindex;
     u16 channel2Gindex;
     u16 scantime_in_ms;
+    /*
+     * Specific a SSID during scanning
+     */
+    char  ssid[32];
+    u8 ssid_len;
 } AT_SCAN_CUSTOM_ARGS;
 
 typedef struct _WIFI_RSP {
@@ -401,7 +406,8 @@ typedef struct t_AP_DETAIL_INFO
 	u8                    	      cci_start;
 	u8		              cci_gate;    
 	u8		              rssi;
-    u8                    configen;
+	u8                            txnullcnt;
+        u8                            configen;
 	u8		              pmk[32];
 //	u8		              ratetbl[16];
 //	u8		              ratetblnum;
@@ -528,6 +534,7 @@ typedef struct t_IEEE80211STATUS
     u32 snifferfilter;   
     
     DATARATE_INFO		  rateinfo[5];
+    u16                   rc_mask;
 
     bool mac_debug_en;
     void (*mac_send_debug_cb)(void *data);
@@ -549,6 +556,7 @@ typedef struct t_IEEE80211STATUS
         bit4:RADIO_BAND_5900,
     */
     u8 dpd_disable_mask;
+    u8 dcdc_disable;
 }IEEE80211STATUS;
 
 /*int remove_sysconfig(void);

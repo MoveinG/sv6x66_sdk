@@ -2,6 +2,13 @@
 #define _WIFI_API_H_
 
 #include "wificonf.h"
+
+typedef struct CONNSTAINFO
+{
+    u8 mac[6];
+    u8 ipaddr[4];
+}CONNSTAINFO;
+
 /**
  * @brief Get DUT current operation mode.
  * @return operation mode.
@@ -34,14 +41,23 @@ int homekit_softap_stop();
 int scan_AP(void (*callbackfn)(void *));
 
 /**
+ * @brief Start scan task, only scan channel in 2.4G band. THe callback function will be excuted when scan task is ended.
+ * @param ssid         [IN] Assign a specific ssid, the maximum length of ssid is 32, the maximum length doesn't include the terminal character 
+ * @param callbackfn   [IN] callback function.
+ * @return none.
+ */
+int scan_AP_ex(char *ssid, void (*callbackfn)(void *));
+
+/**
  * @brief Start scan task. THe callback function will be excuted when scan task is ended.
+ * @param ssid            [IN] Assign a specific ssid, the max length of ssid is 32 
  * @param callbackfn      [IN] callback function.
  * @param channelindex    [IN] Set the specific 2.4G channels to scan.
  * @param channel5Gindex  [IN] Set the specific 5G channels to scan.
  * @param scantime_in_ms  [IN] Scan time for each channel.
  * @return none.
  */
-int scan_AP_custom(void (*callbackfn)(void *), u16 channelindex, u32 channel5Gindex, u16 scantime_in_ms);
+int scan_AP_custom(char *ssid, void (*callbackfn)(void *), u16 channelindex, u32 channel5Gindex, u16 scantime_in_ms);
 
 /**
  * @brief Start connect to AP. This API is used for connect to the AP with hidden SSID.
@@ -251,6 +267,16 @@ int wifi_softap_get_sta_idx_by_mac(u8 *mac);
 int wifi_register_softap_cb(void (*callbackfn)(STAINFO*));
 
 int get_connectap_info(u8 staid, u8 *pssid, u8 *pssidlen, u8 *pmac, u8 maclen, u8 *prssi, u8 *pch);
+
+/**
+ * @brief Get the mac and ip address of connected STAs.
+ * @param info		   [OUT] The array storage mac and ip address of connected STAs.
+ * @param number	   [INOUT] IN : The amount of array - info. 
+                               OUT : the avaiable number of sta information.
+ * @return the result. 0 : Successful, -1 : Failed.
+ */
+int get_connectsta_info(CONNSTAINFO *info, u8 *number);
+
 /**
  * @brief Configures the settings of sniffer mode. 
  * @param index	         [IN] set which kind of frame would like to receive.
@@ -322,4 +348,28 @@ int wifi_set_low_rate_rts_cts(bool en);
 */
 int wifi_padpd_on_off(RADIO_BAND band,bool benable);
 
+/**
+ *@ on/off dcdc. on is default value. 
+ *@ This function should be called before NETSTACK_RADIO.init()
+ */
+int wifi_dcdc_on_off(bool on);
+
+/**
+ * bit[0]=1M
+ * bit[1]=2M
+ * bit[2]=5.5M
+ * bit[3]=11M
+ * bit[4]=MCSO or 6M
+ * bit[5]=MCS1 or 9M
+ * bit[6]=MCS2 or 12M
+ * bit[7]=MCS3 or 18M
+ * bit[8]=MCS4 or 24M
+ * bit[9]=MCS5 or 34M
+ * bit[10]=MCS6 or 48M
+ * bit[11]=MCS7 or 54M
+ * If HT, rc_mask=0x2B1, it means that DUT only tx packets by MCS5, MCS3, MCS1, MCS0 and 1M
+ * If Legacy, rc_mask=0x2B1, it means that DUT only tx packets by 34M, 18M, 9M, 6M and 1M
+ * This function should be called before connect to AP or STA connect to SoftAP
+ */
+int wifi_set_rc_mask(u16 rc_mask);
 #endif
