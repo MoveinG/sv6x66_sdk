@@ -1,0 +1,45 @@
+Requirements for Python Automation
+-------------------------------------------
+1. Following is python home directory structure:
+
+lib    - device automation libraries
+ada    - ADA white box test scripts
+
+2. Add the following lines to your ~/.bashrc:
+
+#
+# Go to automation_apptest_script
+#
+export PYTHONPATH=''
+export GIT_HOME=${HOME}/automation_pda
+export AUTOMOD=${GIT_HOME}/automation/automation_apptest_script
+. $AUTOMOD/rc.sh
+
+where:
+
+GIT_HOME       - path to your your automation_pda directory
+AUTOMOD        - path to automation_apptest_script
+
+3. Review your automation configuration in automation_apptest_script/rc.sh, where:
+
+PYHOME - is your python automation home directory
+PYLIB  - python device automation library
+
+4. PYLIB has to be defined, otherwise the following exception is thrown:
+
+for evar in 'PYLIB':
+        try:
+                os.environ[evar]
+        except KeyError:
+                print "Please set environment variable %s" % evar
+                sys.exit(1)
+
+5. Add the library paths to your python test scripts:
+
+	sys.path.append(os.environ["PYLIB"])
+
+6. Import the required libraries to your test scripts, e.g.:
+
+	from cCmdAda import *
+	from cLog import *
+

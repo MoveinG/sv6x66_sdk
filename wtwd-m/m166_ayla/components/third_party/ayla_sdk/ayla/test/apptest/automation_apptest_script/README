@@ -1,0 +1,26 @@
+Requirements for Device Automation Libraries
+--------------------------------------------
+
+	1. Point $AUTOMOD to 'automation_apptest_script' directory
+		Example:
+			# Do not put anything before these lines
+			export GIT_HOME=${HOME}/automation_pda
+			export AUTOMOD=${GIT_HOME}/automation_apptest_script
+
+	2. Source $AUTOMOD/rc.sh
+		Example: 
+		. $AUTOMOD/rc.sh
+
+	NOTE: Make sure to put 1 and 2 in the end of the .bashrc file.
+	
+	Example:
+		vi .bashrc
+
+		>>> Add these lines at the top of the file and save it.
+		 
+		 #----
+		export GIT_HOME=${HOME}/automation_pda
+		export AUTOMOD=${GIT_HOME}/automation_apptest_script
+		. $AUTOMOD/rc.sh
+		 #-----
+

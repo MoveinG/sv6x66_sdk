@@ -8,6 +8,7 @@ projects/gpio/src/libc_patch.o
 projects/hsuart/src/libc_patch.o
 projects/i2c_master/src/libc_patch.o
 projects/i2s/src/libc_patch.o
+projects/lite_mac/src/libc_patch.o
 projects/lmdma/src/libc_patch.o
 projects/mac_atcmd/src/libc_patch.o
 projects/pwm/src/libc_patch.o
