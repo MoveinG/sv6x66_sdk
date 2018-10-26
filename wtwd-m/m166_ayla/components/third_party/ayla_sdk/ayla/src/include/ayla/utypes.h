@@ -55,8 +55,8 @@ typedef u32		be32;
 #define TSTAMP_LEQ(a, b)	((s32)((a) - (b)) <= 0)
 #define TSTAMP_GEQ(a, b)	((s32)((a) - (b)) >= 0)
 
-#ifndef ABS
-#define ABS(a)			(((s32)(a) < 0) ? -(a) : (a))
-#endif /* ABS */
+//#ifndef ABS
+//#define ABS(a)			(((s32)(a) < 0) ? -(a) : (a))
+//#endif /* ABS */
 
 #endif /* __AYLA_UTYPES_H__ */
