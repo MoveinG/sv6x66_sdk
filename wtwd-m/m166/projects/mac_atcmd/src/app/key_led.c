@@ -79,6 +79,9 @@ extern void wifi_auto_connect_start(void);
 extern void mytime_start(void);
 extern void mytime_stop(void);
 extern int mytime_update_delay(void);
+extern void mytime_clean_delay(void);
+
+extern void colink_dl_deviceid_start(void);
 
 ///////////////////////////////////////////
 static void led_flash_handler(void)
@@ -433,12 +436,12 @@ void TaskKeyLed(void *pdata)
 				break;
 
 			case EVENT_BRIGHT:
-				value = msg_evt.MsgData;
+				value = (int)msg_evt.MsgData;
 				//if(value > 6 && value < 100) maoxin_set_light(value / 6); //10-100 -> 1-16
 				break;
 
 			case EVENT_FLHMODE:
-				value = msg_evt.MsgData;
+				value = (int)msg_evt.MsgData;
 				//if(value == 2 || value == 3) maoxin_light_flash(value-1);
 				break;
 			#endif

@@ -79,9 +79,11 @@ extern void wifi_auto_connect_start(void);
 extern void mytime_start(void);
 extern void mytime_stop(void);
 extern int mytime_update_delay(void);
+extern void mytime_clean_delay(void);
 
-extern int maoxin_uart_init(uint32_t baud, uint32_t bufsize);
+extern void colink_dl_deviceid_start(void);
 extern int uart_data_free(void);
+
 extern void maoxin_light_switch(int open);
 extern void maoxin_set_light(int level);
 extern void maoxin_light_flash(int value);
@@ -305,17 +307,10 @@ void TaskKeyLed(void *pdata)
 	OS_TimerStart(key_check_timer);
 
 	#if defined(CK_CLOUD_EN)
-	maoxin_uart_init(9600, 0x400);
-
 	coLinkSetDeviceMode(DEVICE_MODE_START);
-	if(system_param_load(NULL, 0) < 0) //to enter smartconfig
-	{
-		OS_MsDelay(3000);
-		msg_evt.MsgCmd = EVENT_DEV_KEY;
-		msg_evt.MsgData = (void*)KEY_1LONG;
-		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
-	}
-	else wifi_auto_connect_start();
+	colink_Init_Device();
+	colink_dl_deviceid_start();
+	wifi_auto_connect_start();
 	#endif
 	printf("TaskKeyLed Init OK!\n");
 	while(1)
@@ -448,12 +443,12 @@ void TaskKeyLed(void *pdata)
 				break;
 
 			case EVENT_BRIGHT:
-				value = msg_evt.MsgData;
+				value = (int)msg_evt.MsgData;
 				if(value > 6 && value < 100) maoxin_set_light(value / 6); //10-100 -> 1-16
 				break;
 
 			case EVENT_FLHMODE:
-				value = msg_evt.MsgData;
+				value = (int)msg_evt.MsgData;
 				if(value == 2 || value == 3) maoxin_light_flash(value-1);
 				break;
 			#endif

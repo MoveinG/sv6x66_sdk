@@ -2,6 +2,7 @@
 //#include "freertos/task.h"
 #include "fsal.h"
 #include "lwip/sockets.h"
+#include "mbedtls/sha256.h"
 #include "cJSON.h"
 #include "colink_define.h"
 #include "colink_setting.h"
@@ -13,7 +14,10 @@
 
 #define COLINKFILE_NAME "colink.conf"
 #define COLINKTIME_NAME "colink.time"
+#define COLINK_DEV_NAME "colink.dev"
+
 extern spiffs* fs_handle;
+extern ColinkDevice colink_dev;
 
 /////////////////////////////////////////////////
 void colinkSettingTask(void* pData)
@@ -34,7 +38,7 @@ void colinkSettingTask(void* pData)
 
     os_printf("colinkSettingTask\r\n");
 
-    colinkLinkInit(DEVICEID, APIKEY);
+    colinkLinkInit(colink_dev.deviceid, colink_dev.apikey);
     colinkLinkReset();
 
     recv_buffer = (char *)os_malloc(512);
@@ -148,6 +152,53 @@ void colinkSettingStart(void)
     xTaskCreate(colinkSettingTask, "colinkSettingTask", 512, NULL, 2, NULL);
 }
 
+void colink_Init_Device(void)
+{
+	//int size = colink_load_deviceid((char*)&colink_dev, sizeof(ColinkDevice));
+	//if(sizeof(ColinkDevice) != size)
+	{
+		//printf("%s size=%d\n", __func__, size);
+		memset(&colink_dev, 0, sizeof(ColinkDevice));
+		memcpy(colink_dev.deviceid, DEVICEID, sizeof(colink_dev.deviceid));
+		memcpy(colink_dev.apikey, APIKEY, sizeof(colink_dev.apikey));
+		memcpy(colink_dev.model, MODEL, sizeof(colink_dev.model));
+	}
+}
+
+int colink_deviceid_sha256(ColinkDevice *pdev, uint8_t digest_hex[65])
+{
+	mbedtls_sha256_context *psha256_ctx;
+	uint8_t digest[32];
+	uint8_t *pMac;
+	int i;
+
+	psha256_ctx = (mbedtls_sha256_context *)OS_MemAlloc(sizeof(mbedtls_sha256_context));
+	if(psha256_ctx == NULL) return -1;
+
+	pMac = pdev->sta_mac;
+	sprintf((char*)digest, "%02x:%02x:%02x:%02x:%02x:%02x", pMac[0], pMac[1], pMac[2], pMac[3], pMac[4], pMac[5]);
+	pMac = pdev->sap_mac;
+	sprintf((char*)digest_hex, "%02x:%02x:%02x:%02x:%02x:%02x", pMac[0], pMac[1], pMac[2], pMac[3], pMac[4], pMac[5]);
+
+	bzero(psha256_ctx, sizeof(mbedtls_sha256_context));
+	vTaskSuspendAll();
+	mbedtls_sha256_starts(psha256_ctx, 0);
+	mbedtls_sha256_update(psha256_ctx, (const unsigned char*)pdev->deviceid, CK_DEVICE_LEN);
+	mbedtls_sha256_update(psha256_ctx, (const unsigned char*)pdev->apikey, CK_APIKEY_LEN);
+	mbedtls_sha256_update(psha256_ctx, (const unsigned char*)digest, 17);
+	mbedtls_sha256_update(psha256_ctx, (const unsigned char*)digest_hex, 17);
+	mbedtls_sha256_update(psha256_ctx, (const unsigned char*)pdev->model, CK_MODEL_LEN);
+	mbedtls_sha256_finish(psha256_ctx, digest);
+	xTaskResumeAll();
+	OS_MemFree(psha256_ctx);
+
+	for(i=0; i<64; i+=2)
+		sprintf((char*)digest_hex+i, "%02x", digest[i/2]);
+	digest_hex[64] = 0;
+
+	return 0;
+}
+
 //////////////////////////////////////////////
 int system_param_save_with_protect(char *domain, int size)
 {
@@ -175,12 +226,39 @@ int system_param_load(char *domain, int size)
 	return -1;
 }
 
-void system_param_delete(void)
+/*void system_param_delete(void)
 {
 	FS_remove(fs_handle, COLINKFILE_NAME);
+}*/
+
+///////////////////////////////////////////////
+int colink_save_deviceid(char *deviceid, int size)
+{
+	SSV_FILE fd = FS_open(fs_handle, COLINK_DEV_NAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);
+	printf("%s fd=%d\n", __func__, fd);
+	if(fd >= 0)
+	{
+		if(deviceid && size>0) size = FS_write(fs_handle, fd, deviceid, size);
+		FS_close(fs_handle, fd);
+		return size;
+	}
+	return -1;
 }
 
-//////////////////////////////////////////////
+int colink_load_deviceid(char *deviceid, int size)
+{
+	SSV_FILE fd = FS_open(fs_handle, COLINK_DEV_NAME, SPIFFS_RDWR, 0);
+	printf("%s fd=%d\n", __func__, fd);
+	if(fd >= 0)
+	{
+		if(deviceid && size>0) size = FS_read(fs_handle, fd, deviceid, size);
+		FS_close(fs_handle, fd);
+		return size;
+	}
+	return -1;
+}
+
+/////////////////////////////////////////////
 int colink_save_timer(char *buffer, int size)
 {
 	SSV_FILE fd = FS_open(fs_handle, COLINKTIME_NAME, SPIFFS_CREAT | SPIFFS_TRUNC | SPIFFS_RDWR, 0);

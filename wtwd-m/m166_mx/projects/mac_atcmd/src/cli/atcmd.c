@@ -986,7 +986,8 @@ int At_RfTableRT(stParam *param)
         tempe_config.pa_cap = atoi(param->argv[16]);
         tempe_config.padpd_cali = atoi(param->argv[17]);
 
-        ret = write_reg_tempe_table(tempe_config);
+        if( get_current_tempe_state( ssv_rf_table.low_boundary, ssv_rf_table.high_boundary ) == 0 )
+            ret = write_reg_tempe_table(tempe_config);
 
         if(ret != 0)
             return ret;
@@ -1054,7 +1055,8 @@ int At_RfTableHT(stParam *param)
         tempe_config.pa_cap = atoi(param->argv[16]);
         tempe_config.padpd_cali = atoi(param->argv[17]);
 
-        ret = write_reg_tempe_table(tempe_config);
+        if( get_current_tempe_state( ssv_rf_table.low_boundary, ssv_rf_table.high_boundary ) == 1 )
+            ret = write_reg_tempe_table(tempe_config);
 
         if(ret != 0)
             return ret;
@@ -1121,7 +1123,8 @@ int At_RfTableLT(stParam *param)
         tempe_config.pa_cap = atoi(param->argv[16]);
         tempe_config.padpd_cali = atoi(param->argv[17]);
 
-        ret = write_reg_tempe_table(tempe_config);
+        if( get_current_tempe_state( ssv_rf_table.low_boundary, ssv_rf_table.high_boundary ) == 2 )
+            ret = write_reg_tempe_table(tempe_config);
 
         if(ret != 0)
             return ret;
@@ -1568,8 +1571,9 @@ int At_Rf5GTableRT(stParam *param)
     tempe_config.bbscale_band3 = atoi(param->argv[3]);
     tempe_config.bias1 = ssv_rf_table.rt_5g_config.bias1;
     tempe_config.bias2 = ssv_rf_table.rt_5g_config.bias2;
-    
-    ret = write_reg_tempe_5g_table(tempe_config);
+
+    if( get_current_tempe_state( ssv_rf_table.low_boundary, ssv_rf_table.high_boundary ) == 0 )
+        ret = write_reg_tempe_5g_table(tempe_config);
 
     if(ret != 0)
         return ret;
@@ -1605,7 +1609,8 @@ int At_Rf5GTableHT(stParam *param)
     tempe_config.bias1 = ssv_rf_table.ht_5g_config.bias1;
     tempe_config.bias2 = ssv_rf_table.ht_5g_config.bias2;
 
-    ret = write_reg_tempe_5g_table(tempe_config);
+    if( get_current_tempe_state( ssv_rf_table.low_boundary, ssv_rf_table.high_boundary ) == 1 )
+        ret = write_reg_tempe_5g_table(tempe_config);
 
     if(ret != 0)
         return ret;
@@ -1641,7 +1646,8 @@ int At_Rf5GTableLT(stParam *param)
     tempe_config.bias1 = ssv_rf_table.lt_5g_config.bias1;
     tempe_config.bias2 = ssv_rf_table.lt_5g_config.bias2;
 
-    ret = write_reg_tempe_5g_table(tempe_config);
+    if( get_current_tempe_state( ssv_rf_table.low_boundary, ssv_rf_table.high_boundary ) == 2 )
+        ret = write_reg_tempe_5g_table(tempe_config);
 
     if(ret != 0)
         return ret;
@@ -1894,6 +1900,7 @@ int At_ConnectActive (stParam *param)
     if(pWebkey)
         keylen = strlen(pWebkey);
 
+    DUT_wifi_start(DUT_STA);
     ret = wifi_connect_active ((u8*)pSsid, ssid_len, (u8*)pWebkey, keylen, atwificbfunc);
 
     return ret;
@@ -2740,6 +2747,51 @@ int At_CmdSetCountryCode(stParam *param)
     return ret;
 }
 
+int At_FIXRATE(stParam *param)
+{
+    int rate;
+    u8 wsid=0;
+
+    
+    if(param->argc!=2)
+    {
+        printf("usage:\n");
+        printf("AT+FR=[wsid] [rate]\n");
+        return ERROR_SUCCESS;    
+    }
+    
+    wsid = atoi(param->argv[0]);
+
+    rate = atoi(param->argv[1]);
+
+
+    wifi_set_fix_drate(wsid, (u8)rate);
+    
+	return ERROR_SUCCESS;
+}
+
+int At_RCMASK(stParam *param)
+{
+    u16 rc_mask=0;
+
+    
+    if(param->argc!=1)
+    {
+        printf("usage:\n");
+        printf("rc_mask=[rate mask]\n");
+        return ERROR_SUCCESS;    
+    }
+    
+    rc_mask = strtoul(param->argv[0], NULL, 16);;
+
+
+
+    wifi_set_rc_mask(rc_mask);
+    
+	return ERROR_SUCCESS;
+}
+
+
 int At_MacHWQueue(stParam *param) 
 {
     drv_mac_hw_queue_status();
@@ -3017,6 +3069,8 @@ const at_cmd_info atcmdicomm_info_tbl[] =
     {ATCMD_SET_PWM_DISABLE    ,At_SetPWMDisable     ,0},
     {ATCMD_SET_PWM_ENABLE     ,At_SetPWMEnable      ,0},
     {ATCMD_SET_PWM_RECONFIG   ,At_SetPWMReconfig    ,0},
+    {ATCMD_FIXRATE            ,At_FIXRATE            ,0},   
+    {ATCMD_RC_MASK            ,At_RCMASK           ,0},   
     {ATCMD_SET_COUNTRY_CODE   ,At_CmdSetCountryCode ,0},
     {ATCMD_MAC_HW_QUEUE       ,At_MacHWQueue        ,0},
     {ATCMD_MAC_HW_MIB         ,At_MacHWMIB          ,0},

@@ -1,5 +1,5 @@
 
-LIB_SRC := test.c
+LIB_SRC := main.c
 LIB_SRC += ssv_lib.c key_led.c
 
 LIB_ASRC :=

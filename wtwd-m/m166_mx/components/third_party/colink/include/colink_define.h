@@ -22,9 +22,43 @@ typedef enum
 
 #define DEVICE_CONFIG_START_SEC (0x7C)
 
+#define CK_DEVICE_LEN	10
+#define CK_APIKEY_LEN	36
+#define CK_MODEL_LEN	10
+
+typedef struct
+{
+	char			deviceid[10+1];
+	char			apikey[36+1];
+	unsigned char	sta_mac[6];
+	unsigned char	sap_mac[6];
+	char			model[10+1];
+} ColinkDevice;
 
 #define DEVICEID "10005807e9"
 #define APIKEY "cf761fd6-5195-4b32-92f5-e1c166c5bcd7"
+
+//#define DEVICEID "10005807ea"
+//#define APIKEY "7e4041d8-67b4-4d95-b9f4-d6c18b3df5a2"
+
+//#define DEVICEID "10005807eb"
+//#define APIKEY "fc88f17f-d75f-4c93-a48c-9847ca9e1b66"
+
+//#define DEVICEID "10005807ec"
+//#define APIKEY "a1418d58-76e9-4c0c-8fc2-d1a024aacd09"
+
+//#define DEVICEID "10005807ed"
+//#define APIKEY "e3e1f18d-1eff-411d-954e-8b2b3e614b45"
+
+//#define DEVICEID "10005807ee"
+//#define APIKEY "113035d6-38aa-4a0a-910d-1ecf28263e95"
+
+//#define DEVICEID "10005807ef"
+//#define APIKEY "4d63eba7-a484-4227-8bcd-07879e55e0ec"
+
+//#define DEVICEID "10005807f0"
+//#define APIKEY "bed8363a-c717-400a-8cad-75bb7d04734f"
+
 #define MODEL "PSF-BTA-GL"
 #define VERDION "0.0.1"
 

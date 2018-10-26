@@ -6,9 +6,9 @@
 #include "colink_setting.h"
 #include "mytime.h"
 
-//#define SEC_TO201811	1514764800 //second count 1970-01-01 00:00:00 to 2018-01-01 00:00:00
-#define WEEK_197011	4 //0-sunday(0--6)	
-#define DAY_SECOND	(24*60*60) //second count for 1 DAY
+#define SEC_TO201811	(1514764800) //second count 1970-01-01 00:00:00 to 2018-01-01 00:00:00
+#define WEEK_197011		4 //0-sunday(0--6)
+#define DAY_SECOND		(24*60*60) //second count for 1 DAY
 #define IS_MON2DAY(n)	((n%4) ? 0 : ((n%100) ? 1 : ((n%400) ? 0 : 1)))
 #define YEAR366NUM(n)	(((n - 1968) / 4) - ((n - 1900) / 100) + ((n - 1600) / 400)) //y2000 is 366, y2100, y2200, y2300 is 365
 
@@ -33,7 +33,7 @@ static colink_app_timer *app_timer=NULL;
 static int timer_num;
 
 static unsigned int prev_tick=0;
-static unsigned int realtime_offset=0; //unit:second
+static unsigned int realtime_offset=SEC_TO201811; //2018-01-01 00:00:00
 static unsigned char mytime_state=MYTIME_IS_IDLE;
 static unsigned char do_switch;
 
@@ -128,11 +128,11 @@ static void sntp_update_handler(void)
 {
 	if(mytime_state == MYTIME_SNTPING)
 	{
-		realtime_offset = psGetTime(NULL, NULL);
-		if(realtime_offset != 0)
+		unsigned int offset = psGetTime(NULL, NULL);
+		if(offset != 0)
 		{
 			prev_tick = OS_GetSysTick();
-			realtime_offset -= os_tick2ms(prev_tick) / 1000;
+			realtime_offset = offset - os_tick2ms(prev_tick) / 1000;
 			mytime_state = MYTIME_SNTPED;
 
 			printf("%s realtime_offset=%d\n", __func__, realtime_offset);
@@ -175,10 +175,8 @@ void mytime_start(void)
 	colink_load_timer((char**)&app_timer);
 
 	sntp_init();
+	//realtime_offset = SEC_TO201811;
 	mytime_state = MYTIME_SNTPING;
-
-	realtime_offset = psGetTime(NULL, NULL);
-	printf("psGetTime=%d\n", realtime_offset);
 
 	OS_TimerCreate(&sntp_update_timer, SNTP_TIME_MS, (signed char)FALSE, NULL, (OsTimerHandler)sntp_update_handler);
 	if(sntp_update_timer) OS_TimerStart(sntp_update_timer);
@@ -190,7 +188,7 @@ void mytime_start(void)
 
 void mytime_stop(void)
 {
-	realtime_offset =0;
+	//realtime_offset = SEC_TO201811;
 	mytime_state = MYTIME_IS_IDLE;
 
 	if(app_timer)

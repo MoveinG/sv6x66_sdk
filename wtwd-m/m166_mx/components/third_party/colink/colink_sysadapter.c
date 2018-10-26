@@ -131,7 +131,7 @@ static void out_timestamp(void)
 	char timestr[16];
 
 	k = mytime_get_time(NULL);
-	if(k >= 24*3600) k += 8 * 3600; //to beijing time
+	k += 8 * 3600; //to beijing time
 	k = k % (24 * 3600); //sec in day
 	i = k / 3600; //hour
 	k = k % 3600;

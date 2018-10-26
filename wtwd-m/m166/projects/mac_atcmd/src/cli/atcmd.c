@@ -1901,7 +1901,7 @@ int At_ConnectActive (stParam *param)
         keylen = strlen(pWebkey);
 
     DUT_wifi_start(DUT_STA);
-    ret = wifi_connect_active ( pSsid, ssid_len, pWebkey, keylen, atwificbfunc);
+    ret = wifi_connect_active ((u8*)pSsid, ssid_len, (u8*)pWebkey, keylen, atwificbfunc);
 
     return ret;
 }

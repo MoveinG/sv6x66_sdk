@@ -2,8 +2,13 @@
 #include <string.h>
 #include "osal.h"
 #include "hsuart/drv_hsuart.h"
+#include "wdt/drv_wdt.h"
+#include "colink_type.h"
+#include "colink_define.h"
+#include "colink_global.h"
+#include "cJSON.h"
 
-#define uart_printf printf
+#define uart_printf(...)
 
 /***********************************************************
 *************************micro define***********************
@@ -170,6 +175,212 @@ uint32_t uart_data_read_data(uint8_t *buf, uint32_t len)
 	return actual_size;
 }
 
+/////////////////////////////////////
+extern int colink_save_deviceid(char *deviceid, int size);
+extern int colink_load_deviceid(char *deviceid, int size);
+extern int colink_deviceid_sha256(ColinkDevice *pdev, char digest_hex[65]);
+
+static int macaddress_conver(unsigned char mac[6], char *macstr)
+{
+	int i;
+	char *endptr;
+
+	for(i=0; i<6; i++)//d0:27:00:07:40:2c
+	{
+		mac[i] = (unsigned char)strtol(macstr, &endptr, 16);
+		if(*endptr != ':') break;
+		macstr = endptr + 1;
+	}
+	//printf("%02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	if(i == 5) return 0;
+	return -1;
+}
+
+//工具发送：AT+SEND=<十进制字符串表示的数据长度>\r\n
+//设备返回：>\r\n
+//工具发送：<JSON格式的数据内容>
+//"deviceid":"1000003192",
+//"factory_apikey":"76eaabdc-5157-4d7a-a619-1794afe8120d",
+//"sta_mac":"d0:27:00:00:60:74",
+//"sap_mac":"d0:27:00:00:60:75",
+//"device_model":"ITA-GZ1-GL"
+//设备返回，成功：<16进制小写字母表示的64字节的sha256校验值>\r\nOK\r\n
+//其中，校验内容为 deviceid值 + factory_apikey值 + sta_mac值 + sap_mac值 + device_model值 
+
+const char *uart_request_s  = "AT+SEND=";
+const char *uart_response_s = ">\r\n";
+const char *uart_return_ok  = "OK\r\n";
+const char *uart_format_str = "\r\nERROR FORMAT:fields lost\r\nOK\r\n";
+const char *uart_iofail_str = "\r\nFLASH FAILED: IO ERROR\r\nOK\r\n";
+const char *uart_exist_str  = "\r\nFLASH FAILED: FLASHED ALREADY\r\nOK\r\n";
+extern ColinkDevice colink_dev;
+
+//cammand low 16bits, param high 16bits
+uint32_t colink_dl_check(ColinkDevice *pdev)
+{
+	char ch, state, buffer[65];
+	uint32_t n, off, start_systick;
+
+	state = 0;
+	off = 0;
+	start_systick = OS_GetSysTick();
+	while(OS_GetSysTick() < start_systick + 10000) //10-second
+	{
+		off += uart_data_read_data((uint8_t*)buffer+off, 8-off);
+		if(off == 8)
+		{
+			if(memcmp(buffer, uart_request_s, 8) == 0)
+			{
+				state = 1;
+				break;
+			}
+		}
+		for(off=1; off<8; off++)
+		{
+			if(buffer[off] == 'A') break;
+		}
+		if(off < 8) memcpy(buffer, buffer+off, 8-off);
+		off = 8 - off;
+
+		OS_MsDelay(100);
+	}
+	if(state == 0) return 0;
+
+	off = 0;
+	start_systick = OS_GetSysTick();
+	while(OS_GetSysTick() < start_systick + 200)
+	{
+		n = uart_data_read_data((uint8_t*)&ch, 1);
+		if(n)
+		{
+			buffer[off++] = ch;
+			if(ch == '\n')
+			{
+				state = 2;
+				off = 0;
+				n = atoi(buffer);
+				uart_data_send_data((uint8_t*)uart_response_s, 3);
+				break;
+			}
+		}
+
+		OS_MsDelay(5);
+	}
+	if(state != 2 || n < 100) return 0;
+
+	char *pbuf = OS_MemAlloc(n+1);
+	if(pbuf)
+	{
+		off = 0;
+		start_systick = OS_GetSysTick();
+		while(OS_GetSysTick() < start_systick + 500)
+		{
+			off += uart_data_read_data((uint8_t*)pbuf+off, n-off);
+			if(off == n)
+			{
+				state = 3;
+				break;
+			}
+			OS_MsDelay(5);
+		}
+	}
+	if(state != 3)
+	{
+		if(pbuf) OS_MemFree(pbuf);
+		return 0;
+	}
+	pbuf[n] = 0;
+
+	/*if(colink_load_deviceid(NULL, 0) >= 0)
+	{
+		if(pbuf) OS_MemFree(pbuf);
+		uart_data_send_data((uint8_t*)uart_exist_str, strlen(uart_exist_str));
+		return 0;
+	}*/
+
+	cJSON *json_root;
+	cJSON *json_temp_p;
+
+	json_root = cJSON_Parse(pbuf);
+	if (!json_root)
+	{
+		uart_printf("[%s]parse json failed", pbuf);
+		goto exit1;
+	}
+
+	json_temp_p = cJSON_GetObjectItem(json_root, "deviceid");
+	if(!json_temp_p) goto exit2;
+	strcpy(pdev->deviceid, json_temp_p->valuestring);
+
+	json_temp_p = cJSON_GetObjectItem(json_root, "factory_apikey");
+	if(!json_temp_p) goto exit2;
+	strcpy(pdev->apikey, json_temp_p->valuestring);
+
+	json_temp_p = cJSON_GetObjectItem(json_root, "sta_mac");
+	if(!json_temp_p) goto exit2;
+	macaddress_conver(pdev->sta_mac, json_temp_p->valuestring);
+
+	json_temp_p = cJSON_GetObjectItem(json_root, "sap_mac");
+	if(!json_temp_p) goto exit2;
+	macaddress_conver(pdev->sap_mac, json_temp_p->valuestring);
+
+	json_temp_p = cJSON_GetObjectItem(json_root, "device_model");
+	if(!json_temp_p) goto exit2;
+	strcpy(pdev->model, json_temp_p->valuestring);
+
+	if(colink_deviceid_sha256(pdev, buffer)) goto exit2;
+	printf("sha256:[%s]\n", buffer);
+
+	cJSON_Delete(json_root);
+	OS_MemFree(pbuf);
+
+	uart_data_send_data((uint8_t*)buffer, 64);
+	uart_data_send_data((uint8_t*)&uart_response_s[1], 2);
+	uart_data_send_data((uint8_t*)uart_return_ok, 4);
+	return 1;
+
+exit2:
+	cJSON_Delete(json_root);
+exit1:
+	OS_MemFree(pbuf);
+	uart_data_send_data((uint8_t*)uart_format_str, strlen(uart_format_str));
+	return 0;
+}
+
+void dl_deviceid_task(void *pdata)
+{
+	ColinkDevice dev;
+
+	if(colink_dl_check(&dev))
+	{
+		if(colink_save_deviceid((char*)&dev, sizeof(ColinkDevice)) == sizeof(ColinkDevice))
+		{
+			if(coLinkGetDeviceMode() != DEVICE_MODE_START)
+			{
+				drv_wdt_init();
+				drv_wdt_enable(SYS_WDT, 100);
+			}
+			else memcpy(&colink_dev, &dev, sizeof(ColinkDevice));
+		}
+		else uart_data_send_data((uint8_t*)uart_iofail_str, strlen(uart_iofail_str));
+	}
+	uart_data_free();
+
+	uart_data_init(9200, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, 0x200);
+	OS_TaskDelete(NULL);
+}
+
+void colink_dl_deviceid_start(void)
+{
+#if 0
+	//19200，1起始位，8数据位，无校验位，1停止位
+	uart_data_init(19200, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, 0x200);
+	OS_TaskCreate(dl_deviceid_task, "dl_deviceid", 512, NULL, 2, NULL);
+#else
+	uart_data_init(9200, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, 0x200);
+#endif
+}
+
 ///////////////////////////////////////////
 //1. A0 FA 01 00 A5;  开
 //2. A0 FA 02 00 A5;  关
@@ -177,11 +388,6 @@ uint32_t uart_data_read_data(uint8_t *buf, uint32_t len)
 //4. A0 FA 04 XX A5;  XX 取值 1 ~ 2， 1 表示 快闪，2 表示慢闪
 #define UART_COMMAND_LEN	5
 static const uint8_t light_common_str[] = "\xA0\xFA\x01\x00\xA5";
-
-int maoxin_uart_init(uint32_t baud, uint32_t bufsize)
-{
-    return uart_data_init(baud, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, bufsize);
-}
 
 void maoxin_light_switch(int open)
 {
