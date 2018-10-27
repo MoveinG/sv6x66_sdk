@@ -61,7 +61,7 @@ OPERATE_RET ty_uart_init(IN CONST TY_UART_PORT_E port,IN CONST TY_UART_BAUD_E ba
             return OPRT_MALLOC_FAILED;
         }
         ty_uart.buf_len = bufsz;
-        PR_DEBUG("uart buf size : %d",bufsz);
+        uart_printf("uart buf size : %d",bufsz);
     }else {
         return OPRT_COM_ERROR;
     }
@@ -86,7 +86,7 @@ OPERATE_RET ty_uart_init(IN CONST TY_UART_PORT_E port,IN CONST TY_UART_BAUD_E ba
     {
         Free(ty_uart.buf);
         ty_uart.buf = NULL;
-        uart_printf("%s retval=%d\n", retval);
+        uart_printf("retval=%d\n", retval);
         return OPRT_COM_ERROR;
     }
     drv_hsuart_register_isr(HSUART_RX_DATA_READY_IE, hsuart_isr);
@@ -191,7 +191,7 @@ UINT_T ty_uart_read_data(IN CONST TY_UART_PORT_E port,OUT BYTE_T *buf,IN CONST U
     UINT_T actual_size = 0;
     UINT_T cur_num = __ty_uart_read_data_size(port);
     if(cur_num > ty_uart.buf_len - 1) {
-        PR_DEBUG("uart fifo is full! buf_zize:%d  len:%d",cur_num,len);
+        uart_printf("uart fifo is full! buf_zize:%d  len:%d",cur_num,len);
     }
 
     if(len > cur_num) {
