@@ -177,6 +177,7 @@ static void KeyLed_Init(void)
 {
 	drv_gpio_set_mode(DEVICE_KEY1, 0);
 	drv_gpio_set_dir(DEVICE_KEY1, 0);
+	drv_gpio_set_pull(DEVICE_KEY1, GPIO_PULL_UP);
 	//drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_FALLING_EDGE);
 	//drv_gpio_intc_clear(DEVICE_KEY1);
 	//drv_gpio_register_isr(DEVICE_KEY1, irq_key1_gpio_ipc);
@@ -274,9 +275,20 @@ void wifi_status_cb(int connect)
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
+static void exit_link_config(unsigned short state)
+{
+	if(state)
+	{
+		if(state == 1) esptouch_stop();
+		if(state == 2) softap_exit();
+		wifi_auto_connect_start();
+	}
+}
+
 void TaskKeyLed(void *pdata)
 {
 	static unsigned int start_smart_t;
+	static CoLinkDeviceMode save_mode;
 	OsMsgQEntry msg_evt;
 	#if defined(WT_CLOUD_EN)
 	bool cloud_task=false;
@@ -325,8 +337,8 @@ void TaskKeyLed(void *pdata)
 					OS_TimerStart(led_flash_timer);
 					break;
 				}
-				if(smarting == 1) esptouch_stop();
-				if(smarting == 2) ;//????????????
+				coLinkSetDeviceMode(save_mode);
+				exit_link_config(smarting);
 				smarting = 0;
 				//show_wifi_status(get_wifi_status());
 				break;
@@ -354,7 +366,11 @@ void TaskKeyLed(void *pdata)
 						#endif
 						break;
 					}
-					else printf("to smartconfig\n");
+					else
+					{
+						printf("to smartconfig\n");
+						save_mode = coLinkGetDeviceMode();
+					}
 
 					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
 						break;
@@ -388,8 +404,8 @@ void TaskKeyLed(void *pdata)
 					if(smarting)
 					{
 						OS_TimerStop(led_flash_timer);
-						if(smarting == 1) esptouch_stop();
-						if(smarting == 2) ;//????????????
+						coLinkSetDeviceMode(save_mode);
+						exit_link_config(smarting);
 						smarting = 0;
 						//show_wifi_status(get_wifi_status());
 						break;
@@ -411,14 +427,8 @@ void TaskKeyLed(void *pdata)
 				break;
 
 			case EVENT_CONNECT:
-				/*if(msg_evt.MsgData == (void*)CONNECT_SET)
-				{
-					show_wifi_status(1);
+				//write_localhost("exit colinkSetting task", 24);
 
-					#if defined(CK_CLOUD_EN)
-					colinkSettingStart();
-					#endif
-				}*/
 				if(msg_evt.MsgData == (void*)CONNECT_CON)
 				{
 					if(smarting)
