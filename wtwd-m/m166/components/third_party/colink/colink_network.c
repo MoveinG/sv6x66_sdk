@@ -32,9 +32,9 @@ static void colinkSelfAPTask(void* pData)
     softap_exit();
     if(get_DUT_wifi_mode() != DUT_STA ) DUT_wifi_start(DUT_STA);
 
-    colink_flash_param.sap_config.start_ip = 0x0a0a0702; //10, 10, 7, 2
-    colink_flash_param.sap_config.end_ip   = 0x0a0a0705; //10, 10, 7, 5
-    colink_flash_param.sap_config.gw       = 0x0a0a0701; //10, 10, 7, 1
+    colink_flash_param.sap_config.start_ip = 0x0a0a0701; //10, 10, 7, 1
+    colink_flash_param.sap_config.end_ip   = 0x0a0a0704; //10, 10, 7, 4
+    colink_flash_param.sap_config.gw       = 0x0a0a0705; //10, 10, 7, 5
     colink_flash_param.sap_config.subnet   = 0xffffff00; //255, 255, 255, 0
 
     strcpy((char*)colink_flash_param.sap_config.ssid, "ITEAD-");
@@ -427,10 +427,23 @@ void colinkSwitchUpdate(void)
     cJSON_free(raw);
 }
 
+static void colinkSendUTCRequestCb(ColinkReqResultCode error_code, char utc_str[])
+{
+    if(COLINK_REQ_RESULT_NO_ERROR == error_code)
+    {
+        colink_UTC_str(utc_str);
+        os_printf("Get UTC success: %s\r\n", utc_str);
+    }
+}
+
 static void colinkNotifyDevStatus(ColinkDevStatus status)
 {
     os_printf("colinkNotifyDevStatus %d\r\n", status);
-    if(status == DEVICE_ONLINE) colinkSwitchUpdate();
+    if(status == DEVICE_ONLINE)
+    {
+        colinkSwitchUpdate();
+        colinkSendUTCRequest();
+    }
 }
 /*
 static void colinkUpgradeRequest(char *new_ver, ColinkOtaInfo file_list[], uint8_t file_num)
@@ -464,6 +477,7 @@ static void colinkProcessTask(void* pData)
     ev.colinkRecvUpdateCb = colinkRecvUpdate;
     ev.colinkNotifyDevStatusCb = colinkNotifyDevStatus;
     ev.colinkUpgradeRequestCb = colinkUpgradeRequest;/**< 升级通知的回调 */
+    ev.colinkSendUTCRequestCb = colinkSendUTCRequestCb;
 
     system_param_load(/*DEVICE_CONFIG_START_SEC, 0, */(char*)&colinkInfoCopy, sizeof(colinkInfoCopy));
     strcpy(dev_data->deviceid, colink_dev.deviceid);
@@ -488,7 +502,7 @@ static void colinkProcessTask(void* pData)
 
     while(1)
     {
-        if(DEVICE_MODE_SETTING != coLinkGetDeviceMode())
+        if(DEVICE_MODE_WORK_NORMAL == coLinkGetDeviceMode())
         {
             if((ret = colinkProcess()) != COLINK_PROCESS_NO_ERROR)
             {

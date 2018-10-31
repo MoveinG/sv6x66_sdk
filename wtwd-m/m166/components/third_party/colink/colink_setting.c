@@ -44,19 +44,16 @@ void colinkSettingTask(void* pData)
     recv_buffer = (char *)os_malloc(512);
     outBuff = (char *)os_malloc(512);
 
-    if(NULL == recv_buffer)
+    if(NULL == recv_buffer || NULL == outBuff)
     {
         os_printf("os_malloc err\r\n");
-        vTaskDelete(NULL);
-        return;
+        goto exit;
     }
     /* create a TCP socket */
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
     {
         os_printf("can not create socket\r\n");
-        os_free(recv_buffer);
-        vTaskDelete(NULL);
-        return;
+        goto exit;
     }
 
     /* bind to port 80 at any interface */
@@ -67,14 +64,20 @@ void colinkSettingTask(void* pData)
     {
         os_printf("can not bind socket\r\n");
         close(sockfd);
-        os_free(recv_buffer);
-        vTaskDelete(NULL);
-        return;
+        goto exit;
     }
 
     /* listen for connections (TCP listen backlog = 1) */
     listen(sockfd, 1); 
     size = sizeof(remotehost);
+
+    newconn = 8000; //8-second
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&newconn, sizeof(int)) != 0)
+    {
+        os_printf("set accept timeout failed");
+        close(sockfd);
+        goto exit;
+    }
 
     while (1)
     {
@@ -129,12 +132,25 @@ void colinkSettingTask(void* pData)
             }
             close(newconn);
         }
+        else
+        {
+            CoLinkDeviceMode mode = coLinkGetDeviceMode();
+            if(mode != DEVICE_MODE_SETTING && mode != DEVICE_MODE_SETTING_SELFAP)
+            {
+                close(sockfd);
+                os_printf("exit DeviceMode=%d\n", mode);
+                goto exit;
+            }
+        }
     }
 
     os_free(outBuff);
-    os_free(recv_buffer);
-    os_printf("exit colinkSettingTask\r\n");
+    outBuff = NULL;
 
+    os_free(recv_buffer);
+    recv_buffer = NULL;
+
+    os_printf("exit colinkSettingTask\r\n");
     if(DEVICE_MODE_SETTING_SELFAP == coLinkGetDeviceMode())
     {
         colinkSoftOverStart();
@@ -144,6 +160,10 @@ void colinkSettingTask(void* pData)
     mytime_clean_delay();
 
     colinkProcessStart();
+
+exit:
+    if(outBuff) os_free(outBuff);
+    if(recv_buffer) os_free(recv_buffer);
     vTaskDelete(NULL);
 }
 
@@ -152,6 +172,7 @@ void colinkSettingStart(void)
     xTaskCreate(colinkSettingTask, "colinkSettingTask", 512, NULL, 2, NULL);
 }
 
+/////////////////////////////////////
 void colink_Init_Device(void)
 {
 	int size = colink_load_deviceid((char*)&colink_dev, sizeof(ColinkDevice));

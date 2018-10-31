@@ -19,8 +19,8 @@
 #define LIGHT_FLASH1	250 //ms for smartconfig
 #define LIGHT_FLASH2	1500 //ms for AP mode
 
-#define LED_LIGHT_ON	0
-#define LED_LIGHT_OFF	1
+#define LED_LIGHT_ON	1
+#define LED_LIGHT_OFF	0
 
 #define SWITCH_PWRON	1
 #define SWITCH_PWROFF	0
@@ -163,10 +163,10 @@ static void Shift_Switch(void)
 	drv_gpio_set_logic(DEVICE_PWLED, led_pwr);
 }
 
-static void show_wifi_status(int connect)
+static void show_wifi_status(int light)
 {
 	//OS_MutexLock(kl_mutex);
-	if(connect) led_status = LED_LIGHT_ON;
+	if(light) led_status = LED_LIGHT_ON;
 	else led_status = LED_LIGHT_OFF;
 	//OS_MutexUnLock(kl_mutex);
 
@@ -177,6 +177,7 @@ static void KeyLed_Init(void)
 {
 	drv_gpio_set_mode(DEVICE_KEY1, 0);
 	drv_gpio_set_dir(DEVICE_KEY1, 0);
+	drv_gpio_set_pull(DEVICE_KEY1, GPIO_PULL_UP);
 	//drv_gpio_intc_trigger_mode(DEVICE_KEY1, GPIO_INTC_FALLING_EDGE);
 	//drv_gpio_intc_clear(DEVICE_KEY1);
 	//drv_gpio_register_isr(DEVICE_KEY1, irq_key1_gpio_ipc);
@@ -274,10 +275,25 @@ void wifi_status_cb(int connect)
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
+static void exit_link_config(unsigned short state)
+{
+	if(state)
+	{
+		if(state == 1) esptouch_stop();
+		if(state == 2) softap_exit();
+		wifi_auto_connect_start();
+	}
+}
+
 void TaskKeyLed(void *pdata)
 {
+	static unsigned int start_smart_t;
+	static CoLinkDeviceMode save_mode;
 	OsMsgQEntry msg_evt;
-	bool smarting=false, cloud_task=false;
+	#if defined(WT_CLOUD_EN)
+	bool cloud_task=false;
+	#endif
+	unsigned short smarting=0;
 	int value;
 
 	pwr_status = SWITCH_PWROFF;
@@ -314,17 +330,31 @@ void TaskKeyLed(void *pdata)
 		{
 			switch(msg_evt.MsgCmd) {
 			case EVENT_LED_TIME:
-				OS_TimerStart(led_flash_timer);
 				show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
+
+				if(os_tick2ms(OS_GetSysTick()) < start_smart_t + 180000) //3-min
+				{
+					OS_TimerStart(led_flash_timer);
+					break;
+				}
+				coLinkSetDeviceMode(save_mode);
+				exit_link_config(smarting);
+				smarting = 0;
+				//show_wifi_status(get_wifi_status());
 				break;
 
 			case EVENT_DEV_KEY:
 				printf("EVENT_DEV_KEY=%x\n", (int)msg_evt.MsgData);
 				if(msg_evt.MsgData == (void*)KEY_1LONG)
 				{
-					if(smarting == true)
+					if(smarting == 2) break;
+					if(smarting == 1)
 					{
 						printf("to AP mode config\n");
+
+						smarting = 2;
+						start_smart_t = os_tick2ms(OS_GetSysTick());
+
 						#if defined(CK_CLOUD_EN)
 						OS_TimerSet(led_flash_timer, LIGHT_FLASH2, (uint8_t)FALSE, NULL);
 						OS_TimerStart(led_flash_timer);
@@ -332,17 +362,22 @@ void TaskKeyLed(void *pdata)
 						show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
 
 						esptouch_stop();
-						//smarting = false;
 						enterSettingSelfAPMode();
 						#endif
 						break;
 					}
-					else printf("to smartconfig\n");
+					else
+					{
+						printf("to smartconfig\n");
+						save_mode = coLinkGetDeviceMode();
+					}
 
 					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
 						break;
 
-					smarting = true;
+					smarting = 1;
+					start_smart_t = os_tick2ms(OS_GetSysTick());
+
 					#if defined(CK_CLOUD_EN)
 					OS_TimerSet(led_flash_timer, LIGHT_FLASH1, (uint8_t)FALSE, NULL);
 					OS_TimerStart(led_flash_timer);
@@ -366,8 +401,15 @@ void TaskKeyLed(void *pdata)
 				}
 				if(msg_evt.MsgData == (void*)KEY_KEY1)
 				{
-					if(smarting == true) break;
-
+					if(smarting)
+					{
+						OS_TimerStop(led_flash_timer);
+						coLinkSetDeviceMode(save_mode);
+						exit_link_config(smarting);
+						smarting = 0;
+						//show_wifi_status(get_wifi_status());
+						break;
+					}
 					Shift_Switch();
 					#if defined(WT_CLOUD_EN)
 					if(cloud_task) update_xlink_status();
@@ -385,20 +427,13 @@ void TaskKeyLed(void *pdata)
 				break;
 
 			case EVENT_CONNECT:
-				/*if(msg_evt.MsgData == (void*)CONNECT_SET)
-				{
-					show_wifi_status(1);
-
-					#if defined(CK_CLOUD_EN)
-					colinkSettingStart();
-					#endif
-				}*/
+				//write_localhost("exit colinkSetting task", 24);
 				if(msg_evt.MsgData == (void*)CONNECT_CON)
 				{
 					if(smarting)
 					{
 						OS_TimerStop(led_flash_timer);
-						smarting = false;
+						smarting = 0;
 					}
 					show_wifi_status(1);
 
@@ -414,7 +449,7 @@ void TaskKeyLed(void *pdata)
 				}
 				if(msg_evt.MsgData == (void*)CONNECT_DIS)
 				{
-					if(smarting == false) show_wifi_status(0);
+					if(smarting == 0) show_wifi_status(0);
 				}
 				break;
 

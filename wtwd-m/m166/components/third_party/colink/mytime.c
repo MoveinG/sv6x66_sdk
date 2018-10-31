@@ -147,9 +147,9 @@ static void sntp_update_handler(void)
 		if(prev_tick > tick) realtime_offset += os_tick2ms(TICK_OVER_SEC);
 		prev_tick = tick;
 
-		tick = psGetTime(NULL, NULL);
-		tick -= realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
-		printf("%s offset=%d\n", __func__, tick);
+		//tick = psGetTime(NULL, NULL);
+		//tick -= realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
+		//printf("%s offset=%d\n", __func__, tick);
  	}
 
 	OS_TimerStart(sntp_update_timer);
@@ -174,8 +174,8 @@ void mytime_start(void)
 
 	colink_load_timer((char**)&app_timer);
 
-	sntp_init();
 	//realtime_offset = SEC_TO201811;
+	sntp_init();
 	mytime_state = MYTIME_SNTPING;
 
 	OS_TimerCreate(&sntp_update_timer, SNTP_TIME_MS, (signed char)FALSE, NULL, (OsTimerHandler)sntp_update_handler);
@@ -189,6 +189,7 @@ void mytime_start(void)
 void mytime_stop(void)
 {
 	//realtime_offset = SEC_TO201811;
+	sntp_stop();
 	mytime_state = MYTIME_IS_IDLE;
 
 	if(app_timer)
@@ -212,9 +213,11 @@ unsigned int mytime_get_time(struct mydatetime *ptime)
 {
 	unsigned int value;
 
+	OS_EnterCritical();
 	value = OS_GetSysTick();
 	if(prev_tick > value) realtime_offset += os_tick2ms(TICK_OVER_SEC);
 	prev_tick = value;
+	OS_ExitCritical();
 
 	value = realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
 	if(ptime)
@@ -222,6 +225,20 @@ unsigned int mytime_get_time(struct mydatetime *ptime)
 		*ptime = second_to_date(value);
 	}
 	return value;
+}
+
+void colink_UTC_str(const char *timestr)
+{
+	unsigned int value;
+
+	value = mytime_str_to_time(timestr);
+	if(value != 0)
+	{
+		OS_EnterCritical();
+		prev_tick = OS_GetSysTick();
+		realtime_offset = value - os_tick2ms(prev_tick) / 1000;
+		OS_ExitCritical();
+	}
 }
 
 //"2018-10-08T05:46:00.000Z"
