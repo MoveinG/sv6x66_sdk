@@ -6,6 +6,8 @@
 #include "iotapi/wifi_api.h"
 #include "colink/include/colink_global.h"
 #include "colink/include/colink_setting.h"
+#include "colink/include/colink_profile.h"
+#include "colink/include/mytime.h"
 
 #define DEVICE_WFLED	GPIO_13 //wifi
 #define DEVICE_PWLED	GPIO_01 //power
@@ -16,8 +18,17 @@
 #define DEVICE_SWITCH1	GPIO_11
 //#define DEVICE_SWITCH2	GPIO_11
 
-#define LIGHT_FLASH1	250 //ms for smartconfig
-#define LIGHT_FLASH2	1500 //ms for AP mode
+#define LIGHT_F_TIME	100 //100ms
+#define LIGHT_F_COUNT	20 //20
+
+#define STATUS_NORMAL	0
+#define STATUS_NO_WIFI	1
+#define STATUS_NO_SER	2
+#define STATUS_UN_REG	3
+#define STATUS_UPGRADE	4
+#define STATUS_SMART	5
+#define STATUS_AP_MODE	6
+#define STATUS_MAX_NUM	7
 
 #define LED_LIGHT_ON	1
 #define LED_LIGHT_OFF	0
@@ -25,10 +36,8 @@
 #define SWITCH_PWRON	1
 #define SWITCH_PWROFF	0
 
-#define KEY_DEBOUND		10
 #define KEY_CHECK_TIME	100
 #define KEY_LONG_VAL	50
-//#define KEY_NORMAL_VAL	2
 
 #define EVENT_DEV_KEY	1
 #define EVENT_CONNECT	2
@@ -38,16 +47,14 @@
 #define EVENT_UP_TIMER	6
 #define EVENT_BRIGHT	7
 #define EVENT_FLHMODE	8
+#define EVENT_DEVSTATUS	9
 
 #define KEY_KEY1		0x0001
 #define KEY_KEY2		0x0002
 #define KEY_1LONG		0x0100
-//#define KEY_DOWN		0x1000
-//#define KEY_TOUP		0x2000
 
 #define CONNECT_DIS		0
 #define CONNECT_CON		1
-#define CONNECT_SET		2
 
 #define SWITCH_CLOSE	0
 #define SWITCH_OPEN		1
@@ -55,7 +62,7 @@
 #define KEYLED_MSGLEN	10
 
 static OsTimer led_flash_timer, key_check_timer;
-static int led_status, pwr_status;
+static unsigned int dev_status, pwr_status;
 
 static OsMsgQ keyled_msgq;
 //static OsMutex kl_mutex;
@@ -76,30 +83,44 @@ extern void joylink_init(char *key);
 extern void joylink_stop(void);
 extern void wifi_auto_connect_start(void);
 
-extern void mytime_start(void);
-extern void mytime_stop(void);
-extern int mytime_update_delay(void);
-extern void mytime_clean_delay(void);
-
 extern void colink_dl_deviceid_start(void);
 
 ///////////////////////////////////////////
 static void led_flash_handler(void)
 {
-	//printf("%s\n", __func__);
-	//OS_TimerStart(led_flash_timer);
+	const static uint32_t status[STATUS_MAX_NUM]={0xFFFFF,0x00001,0x00005,0x003FF,0x00015,0x33333,0xFFCCC};
+	static int count, prev_status=-1;
+	static gpio_logic_t led_prev=LED_LIGHT_OFF;
+	gpio_logic_t led_status;
 
-	//OS_MutexLock(kl_mutex);
-	//if(led_status == LED_LIGHT_OFF) led_status = LED_LIGHT_ON;
-	//else led_status = LED_LIGHT_OFF;
-	//OS_MutexUnLock(kl_mutex);
+	if(prev_status != dev_status)
+	{
+		printf("%d current status: %d\n", prev_status, dev_status);
+		count = 0;
+		prev_status = dev_status;
+	}
 
-	//drv_gpio_set_logic(DEVICE_WFLED, led_status);
-	OsMsgQEntry msg_evt;
+	if(dev_status == STATUS_SMART || dev_status == STATUS_AP_MODE)
+	{
+		if(count == 0) //2-second
+		{
+			OsMsgQEntry msg_evt;
+			msg_evt.MsgCmd = EVENT_LED_TIME;
+			msg_evt.MsgData = (void*)NULL;
+			OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+		}
+	}
 
-	msg_evt.MsgCmd = EVENT_LED_TIME;
-	msg_evt.MsgData = (void*)NULL;
-	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
+	if(dev_status < STATUS_MAX_NUM)
+	{
+		led_status = status[dev_status] & (1 << count) ? LED_LIGHT_ON : LED_LIGHT_OFF;
+		if(led_status != led_prev)
+		{
+			drv_gpio_set_logic(DEVICE_WFLED, led_status);
+			led_prev = led_status;
+		}
+	}
+	if(++count >= LIGHT_F_COUNT) count = 0;
 }
 
 static void key_check_handler(void)
@@ -163,16 +184,6 @@ static void Shift_Switch(void)
 	drv_gpio_set_logic(DEVICE_PWLED, led_pwr);
 }
 
-static void show_wifi_status(int light)
-{
-	//OS_MutexLock(kl_mutex);
-	if(light) led_status = LED_LIGHT_ON;
-	else led_status = LED_LIGHT_OFF;
-	//OS_MutexUnLock(kl_mutex);
-
-	drv_gpio_set_logic(DEVICE_WFLED, led_status);
-}
-
 static void KeyLed_Init(void)
 {
 	drv_gpio_set_mode(DEVICE_KEY1, 0);
@@ -189,7 +200,7 @@ static void KeyLed_Init(void)
 
 	drv_gpio_set_mode(DEVICE_WFLED, 0);
 	drv_gpio_set_dir(DEVICE_WFLED, 1);
-	drv_gpio_set_logic(DEVICE_WFLED, led_status);
+	drv_gpio_set_logic(DEVICE_WFLED, LED_LIGHT_OFF);
 
 	drv_gpio_set_mode(DEVICE_PWLED, 0);
 	drv_gpio_set_dir(DEVICE_PWLED, 1);
@@ -204,6 +215,16 @@ static void KeyLed_Init(void)
 	drv_gpio_set_dir(DEVICE_SWITCH2, 1);
 	drv_gpio_set_logic(DEVICE_SWITCH2, SWITCH_PWROFF);
 #endif
+}
+
+static void exit_link_config(unsigned short state)
+{
+	if(state)
+	{
+		if(state == 1) esptouch_stop();
+		if(state == 2) softap_exit();
+		wifi_auto_connect_start();
+	}
 }
 
 int get_Switch_status(void)
@@ -270,19 +291,18 @@ void wifi_status_cb(int connect)
 	msg_evt.MsgCmd = EVENT_CONNECT;
 	if(connect) msg_evt.MsgData = (void*)CONNECT_CON;
 	else msg_evt.MsgData = (void*)CONNECT_DIS;
-	//msg_evt.MsgData = (void*)connect;
 
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
-static void exit_link_config(unsigned short state)
+void DevStatus_Notify_cb(ColinkDevStatus status)
 {
-	if(state)
-	{
-		if(state == 1) esptouch_stop();
-		if(state == 2) softap_exit();
-		wifi_auto_connect_start();
-	}
+	OsMsgQEntry msg_evt;
+
+	msg_evt.MsgCmd = EVENT_DEVSTATUS;
+	msg_evt.MsgData = (void*)status;
+
+	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
 void TaskKeyLed(void *pdata)
@@ -300,11 +320,11 @@ void TaskKeyLed(void *pdata)
 	//if(OS_MutexInit(&kl_mutex) != OS_SUCCESS)
 	//	return;
 
-	if(get_wifi_status() == 1) led_status = LED_LIGHT_ON;
-	led_status = LED_LIGHT_OFF;
+	if(get_wifi_status() == 1) dev_status = STATUS_NORMAL;
+	dev_status = STATUS_NO_WIFI;
 
 	led_flash_timer = NULL;
-	if(OS_TimerCreate(&led_flash_timer, LIGHT_FLASH1, (uint8_t)FALSE, NULL, (OsTimerHandler)led_flash_handler) != OS_SUCCESS)
+	if(OS_TimerCreate(&led_flash_timer, LIGHT_F_TIME, (uint8_t)TRUE, NULL, (OsTimerHandler)led_flash_handler) != OS_SUCCESS)
 		goto exit1;
 
 	key_check_timer = NULL;
@@ -315,6 +335,7 @@ void TaskKeyLed(void *pdata)
 		goto exit3;
 
 	KeyLed_Init();
+	OS_TimerStart(led_flash_timer);
 	OS_TimerStart(key_check_timer);
 
 	#if defined(CK_CLOUD_EN)
@@ -330,23 +351,21 @@ void TaskKeyLed(void *pdata)
 		{
 			switch(msg_evt.MsgCmd) {
 			case EVENT_LED_TIME:
-				show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
-
-				if(os_tick2ms(OS_GetSysTick()) < start_smart_t + 180000) //3-min
+				if(os_tick2ms(OS_GetSysTick()) > start_smart_t + 180000) //3-min
 				{
-					OS_TimerStart(led_flash_timer);
-					break;
+					coLinkSetDeviceMode(save_mode);
+					exit_link_config(smarting);
+					smarting = 0;
+					if(save_mode == DEVICE_MODE_WORK_NORMAL) dev_status = STATUS_NORMAL;
 				}
-				coLinkSetDeviceMode(save_mode);
-				exit_link_config(smarting);
-				smarting = 0;
-				//show_wifi_status(get_wifi_status());
 				break;
 
 			case EVENT_DEV_KEY:
 				printf("EVENT_DEV_KEY=%x\n", (int)msg_evt.MsgData);
 				if(msg_evt.MsgData == (void*)KEY_1LONG)
 				{
+					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
+						break;
 					if(smarting == 2) break;
 					if(smarting == 1)
 					{
@@ -356,11 +375,7 @@ void TaskKeyLed(void *pdata)
 						start_smart_t = os_tick2ms(OS_GetSysTick());
 
 						#if defined(CK_CLOUD_EN)
-						OS_TimerSet(led_flash_timer, LIGHT_FLASH2, (uint8_t)FALSE, NULL);
-						OS_TimerStart(led_flash_timer);
-
-						show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
-
+						dev_status = STATUS_AP_MODE;
 						esptouch_stop();
 						enterSettingSelfAPMode();
 						#endif
@@ -372,27 +387,19 @@ void TaskKeyLed(void *pdata)
 						save_mode = coLinkGetDeviceMode();
 					}
 
-					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
-						break;
-
 					smarting = 1;
 					start_smart_t = os_tick2ms(OS_GetSysTick());
 
 					#if defined(CK_CLOUD_EN)
-					OS_TimerSet(led_flash_timer, LIGHT_FLASH1, (uint8_t)FALSE, NULL);
-					OS_TimerStart(led_flash_timer);
-					show_wifi_status(led_status == LED_LIGHT_ON ? 0 : 1);
-
-					//system_param_delete();
+					dev_status = STATUS_SMART;
 					esptouch_stop();
 					coLinkSetDeviceMode(DEVICE_MODE_SETTING);
 					esptouch_init();
 					#endif
 
 					#if defined(WT_CLOUD_EN)
-					//SmartConfig_Start();
+					dev_status = STATUS_SMART;
 					joylink_stop();
-					OS_TimerStart(led_flash_timer);
 					joylink_init("WATERWORLDA15IOT");
 
 					if(cloud_task) xlinkProcessEnd();
@@ -401,17 +408,18 @@ void TaskKeyLed(void *pdata)
 				}
 				if(msg_evt.MsgData == (void*)KEY_KEY1)
 				{
-					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
-						break;
 					if(smarting)
 					{
-						OS_TimerStop(led_flash_timer);
 						coLinkSetDeviceMode(save_mode);
 						exit_link_config(smarting);
 						smarting = 0;
-						//show_wifi_status(get_wifi_status());
+						if(save_mode == DEVICE_MODE_WORK_NORMAL) dev_status = STATUS_NORMAL;
 						break;
 					}
+
+					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
+						break;
+
 					Shift_Switch();
 					#if defined(WT_CLOUD_EN)
 					if(cloud_task) update_xlink_status();
@@ -429,15 +437,13 @@ void TaskKeyLed(void *pdata)
 				break;
 
 			case EVENT_CONNECT:
-				//write_localhost("exit colinkSetting task", 24);
 				if(msg_evt.MsgData == (void*)CONNECT_CON)
 				{
 					if(smarting)
 					{
-						OS_TimerStop(led_flash_timer);
+						dev_status = STATUS_NORMAL;
 						smarting = 0;
 					}
-					show_wifi_status(1);
 
 					#if defined(WT_CLOUD_EN)
 					if(!cloud_task) xlinkProcessStart();
@@ -451,8 +457,24 @@ void TaskKeyLed(void *pdata)
 				}
 				if(msg_evt.MsgData == (void*)CONNECT_DIS)
 				{
-					if(smarting == 0) show_wifi_status(0);
+					if(smarting == 0) dev_status = STATUS_NO_WIFI;
 				}
+				break;
+
+			case EVENT_DEVSTATUS:
+				value = (int)msg_evt.MsgData;
+				//printf("EVENT_DEVSTATUS=%d\n",value);
+				if((ColinkDevStatus)value == DEVICE_UNREGISTERED)
+				{
+					dev_status = STATUS_UN_REG;
+					mytime_clean_delay();
+				}
+				if((ColinkDevStatus)value == DEVICE_ONLINE)
+				{
+					dev_status = STATUS_NORMAL;
+					colinkSwitchUpdate();
+				}
+				if((ColinkDevStatus)value == DEVICE_OFFLINE) dev_status = STATUS_NO_SER;
 				break;
 
 			case EVENT_SWITCH:

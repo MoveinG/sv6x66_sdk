@@ -439,15 +439,11 @@ static void colinkSendUTCRequestCb(ColinkReqResultCode error_code, char utc_str[
 static void colinkNotifyDevStatus(ColinkDevStatus status)
 {
     os_printf("colinkNotifyDevStatus %d\r\n", status);
-    if(status == DEVICE_UNREGISTERED)
-    {
-        mytime_clean_delay();
-    }
-    else if(status == DEVICE_ONLINE)
-    {
-        colinkSwitchUpdate();
-        colinkSendUTCRequest();
-    }
+
+    extern void DevStatus_Notify_cb(ColinkDevStatus status);
+    DevStatus_Notify_cb(status);
+
+    if(status == DEVICE_ONLINE) colinkSendUTCRequest();
 }
 /*
 static void colinkUpgradeRequest(char *new_ver, ColinkOtaInfo file_list[], uint8_t file_num)

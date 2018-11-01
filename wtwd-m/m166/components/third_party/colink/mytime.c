@@ -238,6 +238,15 @@ void colink_UTC_str(const char *timestr)
 		prev_tick = OS_GetSysTick();
 		realtime_offset = value - os_tick2ms(prev_tick) / 1000;
 		OS_ExitCritical();
+		if(mytime_state == MYTIME_SNTPING)
+		{
+			OS_EnterCritical();
+			mytime_state = MYTIME_SNTPED;
+			OS_ExitCritical();
+
+			Timer_update_time();
+			OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
+		}
 	}
 }
 
