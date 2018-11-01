@@ -439,7 +439,11 @@ static void colinkSendUTCRequestCb(ColinkReqResultCode error_code, char utc_str[
 static void colinkNotifyDevStatus(ColinkDevStatus status)
 {
     os_printf("colinkNotifyDevStatus %d\r\n", status);
-    if(status == DEVICE_ONLINE)
+    if(status == DEVICE_UNREGISTERED)
+    {
+        mytime_clean_delay();
+    }
+    else if(status == DEVICE_ONLINE)
     {
         colinkSwitchUpdate();
         colinkSendUTCRequest();
@@ -500,8 +504,10 @@ static void colinkProcessTask(void* pData)
 
     os_free(dev_data);
 
+    uint32_t prev, current;
     while(1)
     {
+        prev = os_tick2ms(OS_GetSysTick());
         if(DEVICE_MODE_WORK_NORMAL == coLinkGetDeviceMode())
         {
             if((ret = colinkProcess()) != COLINK_PROCESS_NO_ERROR)
@@ -509,7 +515,13 @@ static void colinkProcessTask(void* pData)
                 os_printf("colinkProcess ret=%d\r\n", ret);
             }
         }
-        vTaskDelay(50 / portTICK_RATE_MS);
+
+        current = os_tick2ms(OS_GetSysTick());
+        while(current >= prev && current < prev + 50)
+        {
+            vTaskDelay(10 / portTICK_RATE_MS);
+            current = os_tick2ms(OS_GetSysTick());
+        }
     }
 
     vTaskDelete(NULL);
@@ -609,6 +621,8 @@ void colinkSoftOverStart(void)
 
 void colinkProcessStart(void)
 {
+    if(system_param_load(NULL, 0) < 0) return;
+
     if(task_process_flag)
     {
         coLinkSetDeviceMode(DEVICE_MODE_WORK_NORMAL);

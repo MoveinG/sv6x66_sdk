@@ -160,7 +160,7 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
 #endif
 
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
-    mbedtls_ssl_conf_read_timeout(&conf, 10);
+    mbedtls_ssl_conf_read_timeout(&conf, 20);
     mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
 
     if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0)

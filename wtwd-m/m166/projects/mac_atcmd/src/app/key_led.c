@@ -401,6 +401,8 @@ void TaskKeyLed(void *pdata)
 				}
 				if(msg_evt.MsgData == (void*)KEY_KEY1)
 				{
+					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
+						break;
 					if(smarting)
 					{
 						OS_TimerStop(led_flash_timer);
@@ -444,7 +446,7 @@ void TaskKeyLed(void *pdata)
 
 					#if defined(CK_CLOUD_EN)
 					mytime_start();
-					if(system_param_load(NULL, 0) >= 0) colinkProcessStart();
+					if(coLinkGetDeviceMode() != DEVICE_MODE_SETTING) colinkProcessStart();
 					#endif
 				}
 				if(msg_evt.MsgData == (void*)CONNECT_DIS)
