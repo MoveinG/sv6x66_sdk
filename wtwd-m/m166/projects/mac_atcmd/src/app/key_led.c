@@ -320,7 +320,7 @@ void TaskKeyLed(void *pdata)
 	//if(OS_MutexInit(&kl_mutex) != OS_SUCCESS)
 	//	return;
 
-	if(get_wifi_status() == 1) dev_status = STATUS_NORMAL;
+	if(get_wifi_status() == 1) dev_status = STATUS_NO_SER;
 	dev_status = STATUS_NO_WIFI;
 
 	led_flash_timer = NULL;
@@ -437,11 +437,8 @@ void TaskKeyLed(void *pdata)
 			case EVENT_CONNECT:
 				if(msg_evt.MsgData == (void*)CONNECT_CON)
 				{
-					if(smarting)
-					{
-						dev_status = STATUS_NORMAL;
-						smarting = 0;
-					}
+					if(smarting) smarting = 0;
+					dev_status = STATUS_NO_SER;
 
 					#if defined(WT_CLOUD_EN)
 					if(!cloud_task) xlinkProcessStart();
@@ -472,7 +469,11 @@ void TaskKeyLed(void *pdata)
 					dev_status = STATUS_NORMAL;
 					colinkSwitchUpdate();
 				}
-				if((ColinkDevStatus)value == DEVICE_OFFLINE) dev_status = STATUS_NO_SER;
+				if((ColinkDevStatus)value == DEVICE_OFFLINE)
+				{
+					if(get_wifi_status() == 1) dev_status = STATUS_NO_SER;
+					else dev_status = STATUS_NO_WIFI;
+				}
 				if((ColinkDevStatus)value == 10) dev_status = STATUS_UPGRADE;
 				if((ColinkDevStatus)value == 11) dev_status = STATUS_NORMAL;
 				break;
