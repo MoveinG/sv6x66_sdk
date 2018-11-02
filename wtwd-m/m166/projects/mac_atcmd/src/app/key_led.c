@@ -356,7 +356,6 @@ void TaskKeyLed(void *pdata)
 					coLinkSetDeviceMode(save_mode);
 					exit_link_config(smarting);
 					smarting = 0;
-					if(save_mode == DEVICE_MODE_WORK_NORMAL) dev_status = STATUS_NORMAL;
 				}
 				break;
 
@@ -413,7 +412,6 @@ void TaskKeyLed(void *pdata)
 						coLinkSetDeviceMode(save_mode);
 						exit_link_config(smarting);
 						smarting = 0;
-						if(save_mode == DEVICE_MODE_WORK_NORMAL) dev_status = STATUS_NORMAL;
 						break;
 					}
 
@@ -475,6 +473,8 @@ void TaskKeyLed(void *pdata)
 					colinkSwitchUpdate();
 				}
 				if((ColinkDevStatus)value == DEVICE_OFFLINE) dev_status = STATUS_NO_SER;
+				if((ColinkDevStatus)value == 10) dev_status = STATUS_UPGRADE;
+				if((ColinkDevStatus)value == 11) dev_status = STATUS_NORMAL;
 				break;
 
 			case EVENT_SWITCH:

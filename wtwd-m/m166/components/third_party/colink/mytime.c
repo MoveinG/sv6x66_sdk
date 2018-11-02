@@ -6,6 +6,7 @@
 #include "colink_setting.h"
 #include "mytime.h"
 
+#define USE_COLINK_UTC //no use sntp
 #define SEC_TO201811	(1514764800) //second count 1970-01-01 00:00:00 to 2018-01-01 00:00:00
 #define WEEK_197011		4 //0-sunday(0--6)
 #define DAY_SECOND		(24*60*60) //second count for 1 DAY
@@ -124,6 +125,7 @@ static struct mydatetime second_to_date(unsigned int second)
 	return date;
 }
 
+#ifndef USE_COLINK_UTC
 static void sntp_update_handler(void)
 {
 	if(mytime_state == MYTIME_SNTPING)
@@ -138,10 +140,11 @@ static void sntp_update_handler(void)
 			printf("%s realtime_offset=%d\n", __func__, realtime_offset);
 
 			Timer_update_time();
-			OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
+			//OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
 		}
+		else OS_TimerStart(sntp_update_timer);
 	}
-	else
+	/*else
 	{
 		unsigned int tick = OS_GetSysTick();
 		if(prev_tick > tick) realtime_offset += os_tick2ms(TICK_OVER_SEC);
@@ -150,10 +153,9 @@ static void sntp_update_handler(void)
 		//tick = psGetTime(NULL, NULL);
 		//tick -= realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
 		//printf("%s offset=%d\n", __func__, tick);
- 	}
-
-	OS_TimerStart(sntp_update_timer);
+ 	}*/
 }
+#endif
 
 static void mytime_delay_handler(void)
 {
@@ -173,14 +175,15 @@ void mytime_start(void)
 		return;
 
 	colink_load_timer((char**)&ap_timer_list);
-
-	//realtime_offset = SEC_TO201811;
-	sntp_init();
 	mytime_state = MYTIME_SNTPING;
+
+	#ifndef USE_COLINK_UTC
+	sntp_init();
 
 	OS_TimerCreate(&sntp_update_timer, SNTP_TIME_MS, (signed char)FALSE, NULL, (OsTimerHandler)sntp_update_handler);
 	if(sntp_update_timer) OS_TimerStart(sntp_update_timer);
 	else printf("!! TimerCreate sntp_update_timer failed\n");
+	#endif
 
 	OS_TimerCreate(&mytime_delay_timer, SNTP_UPDATE_MS, (signed char)FALSE, NULL, (OsTimerHandler)mytime_delay_handler);
 	if(mytime_delay_timer == NULL) printf("!! TimerCreate mytime_delay_timer failed\n");
@@ -188,8 +191,6 @@ void mytime_start(void)
 
 void mytime_stop(void)
 {
-	//realtime_offset = SEC_TO201811;
-	sntp_stop();
 	mytime_state = MYTIME_IS_IDLE;
 
 	if(ap_timer_list)
@@ -197,11 +198,16 @@ void mytime_stop(void)
 		OS_MemFree(ap_timer_list);
 		ap_timer_list = NULL;
 	}
+
+	#ifndef USE_COLINK_UTC
+	sntp_stop();
 	if(sntp_update_timer)
 	{
 		OS_TimerDelete(sntp_update_timer);
 		sntp_update_timer = NULL;
 	}
+	#endif
+
 	if(mytime_delay_timer)
 	{
 		OS_TimerDelete(mytime_delay_timer);
@@ -238,6 +244,8 @@ void colink_UTC_str(const char *timestr)
 		prev_tick = OS_GetSysTick();
 		realtime_offset = value - os_tick2ms(prev_tick) / 1000;
 		OS_ExitCritical();
+
+		#ifdef USE_COLINK_UTC
 		if(mytime_state == MYTIME_SNTPING)
 		{
 			OS_EnterCritical();
@@ -245,8 +253,10 @@ void colink_UTC_str(const char *timestr)
 			OS_ExitCritical();
 
 			Timer_update_time();
-			OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
+			//OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
+			//OS_TimerStart(sntp_update_timer);
 		}
+		#endif
 	}
 }
 
