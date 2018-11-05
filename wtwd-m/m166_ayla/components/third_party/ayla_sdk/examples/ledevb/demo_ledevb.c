@@ -43,9 +43,9 @@ static int input;
 static int output;
 static int decimal_in;
 static int decimal_out;
-static char version[] = BUILD_PROGNAME " " BUILD_STRING;
+static char version[] = "1.0.1";
 static char cmd_buf[TLV_MAX_STR_LEN + 1];
-static char demo_host_version[] = "1.0.0.1";	/* property template version */
+static char demo_host_version[] = "1.0.0.2";	/* property template version */
 
 static enum ada_err demo_led_set(struct ada_sprop *, const void *, size_t);
 static enum ada_err demo_int_set(struct ada_sprop *, const void *, size_t);
@@ -135,7 +135,7 @@ static enum ada_err demo_led_val_set(struct ada_sprop *sprop,
 				const void *buf, size_t len)
 {
 	int ret = 0;
-
+	printf("############### previous led val:%d\n",value_led);
 	ret = ada_sprop_set_int(sprop, buf, len);
 	if (ret) {
 		return ret;

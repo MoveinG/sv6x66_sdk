@@ -970,7 +970,7 @@ static int client_ans_cipher_key(struct xml_state *sp, int argc, char **argv)
 	size_t len;
 	unsigned char buf[100];
 
-	if (argc != 1) {  
+	if (argc != 1) {
 		return 0;
 	}
 	state->np_cipher_key_len = 0;
@@ -1076,6 +1076,7 @@ u8 client_get_failed_dests(void)
 static void client_close(struct client_state *state)
 {
 	struct http_client *hc = &state->http_client;
+
 	al_ada_timer_cancel(&state->req_timer);
 	http_client_abort(hc);
 	state->request = CS_IDLE;
@@ -1375,7 +1376,7 @@ void client_req_start(struct http_client *hc, enum http_method method,
 	int auth_len;
 	struct http_hdr hdrs[2];
 	int hcnt = 0;
-	
+
 	ASSERT(client_locked);
 	switch (method) {
 	case HTTP_REQ_GET:
@@ -1396,7 +1397,6 @@ void client_req_start(struct http_client *hc, enum http_method method,
 	if (header) {
 		hdrs[hcnt++] = *header;		/* struct copy */
 	}
-	
 
 	if (hc->client_auth) {
 		/*
@@ -1426,14 +1426,10 @@ void client_req_start(struct http_client *hc, enum http_method method,
 			if (ada_conf.pubkey_len <= 0) {
 				goto no_auth;
 			}
-
-			int i = 0;
 			auth_len = client_auth_gen(ada_conf.pubkey,
 			    ada_conf.pubkey_len,
 			    buf + len, sizeof(buf) - len, req);
-			
 			if (auth_len <= 0) {
-				
 				goto no_auth;
 			}
 			hdrs[hcnt].name = HTTP_CLIENT_INIT_AUTH_HDR;
@@ -1441,13 +1437,11 @@ void client_req_start(struct http_client *hc, enum http_method method,
 		}
 	}
 	client_unlock();
-	
 	http_client_req(hc, method, resource, hcnt, hdrs);
 	client_lock();
 	return;
 
 no_auth:
-	
 	client_log(LOG_ERR "pub_key failure");
 	state->conn_state = CS_ERR;
 	ASSERT(client_locked);
@@ -1612,8 +1606,10 @@ static void client_next_step(void *arg)
 	struct client_state *state = &client_state;
 	struct client_callback_queue **cbqp;
 	struct al_ada_callback *cb;
+
 repeat:
 	ASSERT(client_locked);
+
 	switch (state->conn_state) {
 	/*
 	 * The following states are handled as general ADS or LAN next steps.
@@ -1696,6 +1692,7 @@ repeat:
 void client_wakeup(void)
 {
 	struct client_state *state = &client_state;
+
 	ASSERT(client_locked);
 	al_ada_call(&state->next_step_cb);
 }
@@ -2030,6 +2027,7 @@ static void client_timeout(struct timer *timer)
 {
 	struct client_state *state = &client_state;
 	struct http_client *hc = &state->http_client;
+
 	switch (state->conn_state) {
 	case CS_DOWN:
 	case CS_DISABLED:
@@ -3726,7 +3724,6 @@ static void client_commit_server(struct client_state *state)
 	hc->host_port = cf->conf_port;
 	hc->accept_non_ayla = 0;
 	hc->client_auth = 1;
-
 }
 
 int client_set_server(const char *host)

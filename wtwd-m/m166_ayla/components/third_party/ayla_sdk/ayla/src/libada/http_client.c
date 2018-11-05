@@ -189,6 +189,7 @@ static void http_client_parse_time(struct http_state *sp, int argc,
 	    CONTAINER_OF(struct http_client, http_state, sp);
 	unsigned long server_time;
 	char *errptr;
+
 	if (argc >= 1) {
 		server_time = strtoul(argv[0], &errptr, 10);
 		if (*errptr != '\0' || server_time >= MAX_U32) {
@@ -338,6 +339,7 @@ static void http_client_idle_close(struct http_client *hc)
 {
 	enum ada_err err;
 	struct al_net_stream *pcb;
+
 	al_ada_timer_cancel(&hc->hc_timer);
 	pcb = hc->pcb;
 
@@ -403,6 +405,7 @@ static void http_client_timeout(struct timer *arg)
 {
 	struct http_client *hc =
 	    CONTAINER_OF(struct http_client, hc_timer, arg);
+
 	switch (hc->state) {
 	case HCS_CONN:
 		if (al_net_stream_is_established(hc->pcb)) {
@@ -548,6 +551,7 @@ http_parse:
 		status = hc->http_state.status;
 		hc->http_status = status;
 		HTTP_CLIENT_DEBUG(hc, LOG_DEBUG, "HTTP status = %lu", status);
+
 		switch (status) {
 		case HTTP_STATUS_OK:
 		case HTTP_STATUS_CREATED:
@@ -748,6 +752,7 @@ static void http_client_issue_send_cb(struct http_client *hc)
 	if (http_client_req_send(hc, hc->body_buf, &hc->body_buf_len)) {
 		return;
 	}
+
 	if (hc->client_send_data_cb) {
 		hc->client_send_data_cb(hc);
 	} else {
@@ -780,6 +785,7 @@ static void
 http_client_tcp_sent(void *arg, struct al_net_stream *pcb, size_t len)
 {
 	struct http_client *hc = arg;
+
 	if (hc->state == HCS_WAIT_TCP_SENT) {
 		http_client_open_setup(hc);
 	}
@@ -799,6 +805,7 @@ enum ada_err http_client_send(struct http_client *hc, const void *buf,
 		hc->state = HCS_SEND;
 
 		log_bytes(hc->mod_log_id, LOG_SEV_DEBUG2, buf, len, "http_tx");
+
 		err = al_net_stream_write(hc->pcb, buf, len);
 		if (err == AE_OK) {
 			hc->sent_len += len;
@@ -890,6 +897,7 @@ static void http_client_err(void *arg, enum al_err err)
 {
 	struct http_client *hc = arg;
 	enum al_clock_src clock_src;
+
 	if (hc->state == HCS_CONN ||
 	    hc->state == HCS_CONN_TCP) {
 
@@ -959,7 +967,10 @@ static void http_client_dns_cb(struct al_net_dns_req *req)
 	addr = al_net_addr_get_ipv4(&req->addr);
 	if (addr) {
 		if (al_net_addr_get_ipv4(&hc->host_addr) != addr) {
-			bp = (u8 *)&addr;		
+			bp = (u8 *)&addr;
+			http_client_log(hc, LOG_INFO
+			    "DNS: host %s at %u.%u.%u.%u",
+			    name, bp[0], bp[1], bp[2], bp[3]);
 			hc->host_addr = req->addr;
 		}
 		hc->hc_error = HC_ERR_CONNECT;
@@ -996,7 +1007,6 @@ static void http_client_getdnshostip(struct http_client *hc)
  */
 void http_client_start(struct http_client *hc)
 {
-	
 	ASSERT(hc->client_tcp_recv_cb);
 	if (hc->host[0] != '\0') {
 		hc->req_pending = 1;
@@ -1015,16 +1025,14 @@ void http_client_start(struct http_client *hc)
 void http_client_req(struct http_client *hc, enum http_method method,
     const char *resource, int hcnt, const struct http_hdr *hdrs)
 {
-	
 	const char *method_str;
 	size_t len;
 	char *cp;
 	int i;
-	
+
 	if (!hc->hc_initialized) {
 		timer_init(&hc->hc_timer, http_client_timeout);
 		hc->hc_initialized = 1;
-		
 	}
 	switch (method) {
 	case HTTP_REQ_GET:
@@ -1044,6 +1052,7 @@ void http_client_req(struct http_client *hc, enum http_method method,
 	    "%s %s HTTP/1.1\r\n"
 	    "Host: %s\r\n",
 	    method_str, resource, hc->host);
+
 	if (!hc->sending_chunked) {		/* never chunked for now */
 		len += snprintf(hc->req_buf + len, sizeof(hc->req_buf) - len,
 		    "Content-Length: %u\r\n", hc->body_len);
@@ -1067,7 +1076,6 @@ void http_client_req(struct http_client *hc, enum http_method method,
 	hc->req_len = len + 2;	/* don't include NUL in len */
 	hc->sent_len = 0 - hc->req_len;	/* tricky.  counts body length only */
 	client_lock();
-	
 	http_client_start(hc);
 	client_unlock();
 }

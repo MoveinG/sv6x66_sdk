@@ -1194,13 +1194,13 @@ int At_AlyaLedevb (s32 argc, char *argv[])
     return ERROR_SUCCESS;
 }
 
-#define AP_SSID  "SBC_RX"
-#define AP_KEY   "1234567891"
+
 
 // #define AP_SSID  "htc"
 // #define AP_KEY   "1234567890"
 
-
+#define AP_SSID  "SBC_RX"
+#define AP_KEY   "1234567891"
 extern void airkisswificbfunc(WIFI_RSP *msg);
 int At_ConTest (s32 argc, char *argv[]){
     wifi_connect_active_2(AP_SSID, strlen(AP_SSID), AP_KEY, strlen(AP_KEY),airkisswificbfunc,5);

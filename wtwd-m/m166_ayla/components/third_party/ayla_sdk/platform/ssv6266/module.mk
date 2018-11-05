@@ -17,4 +17,5 @@ LOCAL_INC += -I$(TOPDIR)/components/third_party/mbedtls/include/mbedtls
 LOCAL_INC += -I$(MODULE_PATH)/../../ayla/include
 LOCAL_INC += -I$(MODULE_PATH)/../include/
 
-$(eval $(call build-lib,$(LIBRARY_NAME),$(LIB_SRC),$(LIB_ASRC),$(LOCAL_CFLAGS),$(LOCAL_INC),$(LOCAL_AFLAGS),$(MYDIR)))
+RELEASE_SRC := 0
+$(eval $(call link-lib,$(LIBRARY_NAME),$(LIB_SRC),$(LIB_ASRC),$(LOCAL_CFLAGS),$(LOCAL_INC),$(LOCAL_AFLAGS),$(MYDIR)))

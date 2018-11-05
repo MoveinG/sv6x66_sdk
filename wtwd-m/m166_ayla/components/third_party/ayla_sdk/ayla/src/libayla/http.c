@@ -46,7 +46,6 @@ http_tag_find(const struct http_tag *table, const char *name)
 		return NULL;
 	}
 	for (tag = table; tag->name; tag++) {
-		
 		if (!strcasecmp(name, tag->name)) {
 			return tag;
 		}

@@ -58,28 +58,23 @@ static int demo_conf_init(struct ada_conf *conf)
 	*/
 	load_conf_string("service_region", conf->region, sizeof(conf->region));
 	if (load_conf_string("device_dsn", conf->dsn, sizeof(conf->dsn))) {
-		printf("[%s][%d] \n",__FUNCTION__,__LINE__);
 		return -1;
 	}
 	conf->pubkey_len = al_persist_data_read(AL_PERSIST_FACTORY,
 	    "device_key", conf->pubkey, sizeof(conf->pubkey));
 	if (conf->pubkey_len <= 0) {
-		printf("[%s][%d] \n",__FUNCTION__,__LINE__);
 		return -1;
 	}
 	if (load_conf_string("oem_id", conf->oem, sizeof(conf->oem))) {
-		printf("[%s][%d] \n",__FUNCTION__,__LINE__);
 		return -1;
 	}
 	// if (al_persist_data_read(AL_PERSIST_FACTORY, "oem_key",
 	// 	conf->oemkey, sizeof(conf->oemkey)) != sizeof(conf->oemkey)) {
 	if (load_conf_string("oem_key",
 		conf->oemkey, sizeof(conf->oemkey)) ) {
-		printf("[%s][%d] \n",__FUNCTION__,__LINE__);
 		return -1;
 	}
 	if (load_conf_string("oem_model", conf->model, sizeof(conf->model))) {
-		printf("[%s][%d] \n",__FUNCTION__,__LINE__);
 		return -1;
 	}
 	load_conf_string("mfg_serial", conf->mfg_serial,
@@ -176,14 +171,16 @@ static void app_ada_main(void *arg)
 	demo_sched_init();
 	ada_sched_enable();
 
+	ada_client_up();
 	/* Demo init */
 	demo_init();
-	ada_client_up();
 
 	/* OTA init */
 	demo_ota_init();
+	// ada_client_up();
 
 	/* Enter main loop provided by the platform */
+	OS_MsDelay(200);
 	al_ada_main_loop();
 
 	OS_TaskDelete(NULL);

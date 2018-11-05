@@ -55,7 +55,6 @@ int client_auth_encrypt(void *pub_key, size_t pub_key_len,
 	/*
 	 * encrypt to temporary buffer.
 	 */
-	int i = 0;
 	rc = al_rsa_encrypt_pub(key, buf, tlen, tbuf, key_len);
 	if (rc < 0) {
 		client_log(LOG_ERR "auth: encrypt fail rc %d", rc);
@@ -84,7 +83,7 @@ int client_auth_gen(void *key, size_t key_len,
 	u8 tbuf[HTTP_MAX_TEXT];
 	size_t outlen;
 	int rc;
-	
+
 	rc = client_auth_encrypt(key, key_len, tbuf, len, req);
 	if (rc < 0) {
 		return rc;

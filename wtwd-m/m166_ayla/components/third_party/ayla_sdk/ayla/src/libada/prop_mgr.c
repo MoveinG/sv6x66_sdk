@@ -56,7 +56,6 @@ static void prop_mgr_send_next(void *);
 
 void prop_mgr_init(void)
 {
-	printf("prop_mgr_init !!!!!!!\n");
 	al_ada_callback_init(&prop_mgr_send_callback, prop_mgr_send_next, NULL);
 	prop_mgr_lock = ada_lock_create("prop_mgr");
 	ASSERT(prop_mgr_lock);

@@ -501,6 +501,7 @@ static enum ada_err client_recv_ota_get(struct http_client *hc,
 #ifndef DISABLE_LAN_OTA
 	int rc;
 #endif
+
 	if (buf) {
 		state->ota.auth_fail = 0;
 		if (state->ota_server.remote && !state->ota.url_fetched) {
@@ -524,6 +525,7 @@ static enum ada_err client_recv_ota_get(struct http_client *hc,
 			len = rc;
 		}
 #endif /* DISABLE_LAN_OTA */
+
 		status = client_ota_save(state, buf, len);
 		state->ota.data_recvd = 1;
 		if (status && status != PB_ERR_STALL) {
@@ -536,6 +538,7 @@ static enum ada_err client_recv_ota_get(struct http_client *hc,
 		}
 		return AE_OK;
 	}
+
 	if (state->ota_server.remote && !state->ota.url_fetched) {
 		/*
 		 * Parse remote OTA URL.
@@ -590,12 +593,14 @@ int client_ota_fetch_image(struct client_state *state)
 	};
 	struct http_hdr *hdr;
 	u32 off, cnt;
+
 	if (state->ota.in_prog != COS_IN_PROG || !state->ota_server.host[0]) {
 		return -1;
 	}
 	if (!CLIENT_HAS_KEY(state) && !state->ota_server.lan) {
 		return -1;
 	}
+
 	state->conn_state = CS_WAIT_OTA_GET;
 	state->request = CS_GET_OTA;
 	state->ota.data_recvd = 0;
