@@ -478,8 +478,9 @@ void TaskKeyLed(void *pdata)
 				if((ColinkDevStatus)value == 11) dev_status = STATUS_NORMAL;
 				break;
 
-			case EVENT_SWITCH:
 			case EVENT_SW_TIMER:
+				if(dev_status != STATUS_NORMAL)	break;
+			case EVENT_SWITCH:
 				if((msg_evt.MsgData == (void*)SWITCH_OPEN && pwr_status == SWITCH_PWROFF)
 					|| (msg_evt.MsgData == (void*)SWITCH_CLOSE && pwr_status == SWITCH_PWRON))
 				{

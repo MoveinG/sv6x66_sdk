@@ -6,6 +6,7 @@
 #include "colink_setting.h"
 #include "mytime.h"
 
+#define USE_COLINK_UTC //no use sntp
 #define SEC_TO201811	(1514764800) //second count 1970-01-01 00:00:00 to 2018-01-01 00:00:00
 #define WEEK_197011		4 //0-sunday(0--6)
 #define DAY_SECOND		(24*60*60) //second count for 1 DAY
@@ -29,7 +30,7 @@ static const signed short day_month[13] = {0, 31, 59, 90, 120,151,181,212,243,27
 static OsTimer sntp_update_timer=NULL;
 static OsTimer mytime_delay_timer=NULL;
 
-static colink_app_timer *app_timer=NULL;
+static colink_app_timer *ap_timer_list=NULL;
 static int timer_num;
 
 static unsigned int prev_tick=0;
@@ -124,6 +125,7 @@ static struct mydatetime second_to_date(unsigned int second)
 	return date;
 }
 
+#ifndef USE_COLINK_UTC
 static void sntp_update_handler(void)
 {
 	if(mytime_state == MYTIME_SNTPING)
@@ -138,28 +140,28 @@ static void sntp_update_handler(void)
 			printf("%s realtime_offset=%d\n", __func__, realtime_offset);
 
 			Timer_update_time();
-			OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
+			//OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
 		}
+		else OS_TimerStart(sntp_update_timer);
 	}
-	else
+	/*else
 	{
 		unsigned int tick = OS_GetSysTick();
 		if(prev_tick > tick) realtime_offset += os_tick2ms(TICK_OVER_SEC);
 		prev_tick = tick;
 
-		tick = psGetTime(NULL, NULL);
-		tick -= realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
-		printf("%s offset=%d\n", __func__, tick);
- 	}
-
-	OS_TimerStart(sntp_update_timer);
+		//tick = psGetTime(NULL, NULL);
+		//tick -= realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
+		//printf("%s offset=%d\n", __func__, tick);
+ 	}*/
 }
+#endif
 
 static void mytime_delay_handler(void)
 {
 	printf("%s state=%d, do_switch=%d\n", __func__, mytime_state, do_switch);
 
-	if(app_timer == NULL) return;
+	if(ap_timer_list == NULL) return;
 	if(mytime_state == MYTIME_DELAY)
 	{
 		Timer_Switch_cb(do_switch ? 1 : 0);
@@ -172,15 +174,16 @@ void mytime_start(void)
 	if(mytime_state != MYTIME_IS_IDLE)
 		return;
 
-	colink_load_timer((char**)&app_timer);
-
-	sntp_init();
-	//realtime_offset = SEC_TO201811;
+	colink_load_timer((char**)&ap_timer_list);
 	mytime_state = MYTIME_SNTPING;
+
+	#ifndef USE_COLINK_UTC
+	sntp_init();
 
 	OS_TimerCreate(&sntp_update_timer, SNTP_TIME_MS, (signed char)FALSE, NULL, (OsTimerHandler)sntp_update_handler);
 	if(sntp_update_timer) OS_TimerStart(sntp_update_timer);
 	else printf("!! TimerCreate sntp_update_timer failed\n");
+	#endif
 
 	OS_TimerCreate(&mytime_delay_timer, SNTP_UPDATE_MS, (signed char)FALSE, NULL, (OsTimerHandler)mytime_delay_handler);
 	if(mytime_delay_timer == NULL) printf("!! TimerCreate mytime_delay_timer failed\n");
@@ -188,19 +191,23 @@ void mytime_start(void)
 
 void mytime_stop(void)
 {
-	//realtime_offset = SEC_TO201811;
 	mytime_state = MYTIME_IS_IDLE;
 
-	if(app_timer)
+	if(ap_timer_list)
 	{
-		OS_MemFree(app_timer);
-		app_timer = NULL;
+		OS_MemFree(ap_timer_list);
+		ap_timer_list = NULL;
 	}
+
+	#ifndef USE_COLINK_UTC
+	sntp_stop();
 	if(sntp_update_timer)
 	{
 		OS_TimerDelete(sntp_update_timer);
 		sntp_update_timer = NULL;
 	}
+	#endif
+
 	if(mytime_delay_timer)
 	{
 		OS_TimerDelete(mytime_delay_timer);
@@ -212,9 +219,11 @@ unsigned int mytime_get_time(struct mydatetime *ptime)
 {
 	unsigned int value;
 
+	OS_EnterCritical();
 	value = OS_GetSysTick();
 	if(prev_tick > value) realtime_offset += os_tick2ms(TICK_OVER_SEC);
 	prev_tick = value;
+	OS_ExitCritical();
 
 	value = realtime_offset + os_tick2ms(OS_GetSysTick()) / 1000;
 	if(ptime)
@@ -222,6 +231,33 @@ unsigned int mytime_get_time(struct mydatetime *ptime)
 		*ptime = second_to_date(value);
 	}
 	return value;
+}
+
+void colink_UTC_str(const char *timestr)
+{
+	unsigned int value;
+
+	value = mytime_str_to_time(timestr);
+	if(value != 0)
+	{
+		OS_EnterCritical();
+		prev_tick = OS_GetSysTick();
+		realtime_offset = value - os_tick2ms(prev_tick) / 1000;
+		OS_ExitCritical();
+
+		#ifdef USE_COLINK_UTC
+		if(mytime_state == MYTIME_SNTPING)
+		{
+			OS_EnterCritical();
+			mytime_state = MYTIME_SNTPED;
+			OS_ExitCritical();
+
+			Timer_update_time();
+			//OS_TimerSet(sntp_update_timer, SNTP_UPDATE_MS, (unsigned char)FALSE, NULL);
+			//OS_TimerStart(sntp_update_timer);
+		}
+		#endif
+	}
 }
 
 //"2018-10-08T05:46:00.000Z"
@@ -279,7 +315,7 @@ cron_lite mytime_str_repeat(const char *cronstr)
 	return cron;
 }
 
-static unsigned int get_min_time(colink_app_timer *timer, int num)
+static unsigned int get_min_time(colink_app_timer *ap_time, int num)
 {
 	unsigned int cur_time, off_time;
 	unsigned char cur_switch;
@@ -289,20 +325,20 @@ static unsigned int get_min_time(colink_app_timer *timer, int num)
 	cur_time = mytime_get_time(NULL);
 	for(int i=0; i<num; i++)
 	{
-		if(timer->type == COLINK_TYPE_ONCE)
+		if(ap_time->type == COLINK_TYPE_ONCE)
 		{
-			if(timer->at_time == cur_time)
-				cur_switch = timer->start_do;
+			if(ap_time->at_time == cur_time)
+				cur_switch = ap_time->start_do;
 
-			if(timer->at_time > cur_time && off_time > timer->at_time) 
+			if(ap_time->at_time > cur_time && off_time > ap_time->at_time) 
 			{
-				off_time = timer->at_time;
-				do_switch = timer->start_do;
+				off_time = ap_time->at_time;
+				do_switch = ap_time->start_do;
 			}
 		}
-		if(timer->type == COLINK_TYPE_REPEAT)
+		if(ap_time->type == COLINK_TYPE_REPEAT)
 		{
-			if(timer->cron.week_bit)
+			if(ap_time->cron.week_bit)
 			{
 				int value, i, wday, cur_day;
 
@@ -311,18 +347,18 @@ static unsigned int get_min_time(colink_app_timer *timer, int num)
 				i = wday;
 				while((i - wday) < 8)
 				{
-					if(timer->cron.week_bit & (1 << (i % 7)))
+					if(ap_time->cron.week_bit & (1 << (i % 7)))
 					{
-						value = DAY_SECOND * (cur_day + i - wday) + timer->cron.hour * 3600 + timer->cron.min * 60;
-						printf("%s %d, value=%d, hour=%d, min=%d\n", __func__, i, value, timer->cron.hour, timer->cron.min);
+						value = DAY_SECOND * (cur_day + i - wday) + ap_time->cron.hour * 3600 + ap_time->cron.min * 60;
+						printf("%s %d, value=%d, hour=%d, min=%d\n", __func__, i, value, ap_time->cron.hour, ap_time->cron.min);
 
-						if(value == cur_time) cur_switch = timer->start_do;
+						if(value == cur_time) cur_switch = ap_time->start_do;
 						if(value > cur_time)
 						{
 						 	if(off_time > value)
 							{
 								off_time = value;
-								do_switch = timer->start_do;
+								do_switch = ap_time->start_do;
 							}
 							break;
 						}
@@ -331,7 +367,7 @@ static unsigned int get_min_time(colink_app_timer *timer, int num)
 				}
 			}
 		}
-		timer++;
+		ap_time++;
 	}
 
 	if(cur_switch != 0xFF) Timer_Switch_cb(cur_switch ? 1 : 0);
@@ -342,23 +378,23 @@ static unsigned int get_min_time(colink_app_timer *timer, int num)
 
 void *mytime_get_buffer(int size)
 {
-	if(app_timer != NULL) OS_MemFree(app_timer);
+	if(ap_timer_list != NULL) OS_MemFree(ap_timer_list);
 
 	timer_num = size / sizeof(colink_app_timer);
-	app_timer = OS_MemAlloc(size);
+	ap_timer_list = OS_MemAlloc(size);
 
-	printf("%s app_timer=%x num=%d\n", __func__, (unsigned int)app_timer, timer_num);
-	return app_timer;
+	printf("%s ap_timer_list=%x num=%d\n", __func__, (unsigned int)ap_timer_list, timer_num);
+	return ap_timer_list;
 }
 
 int mytime_update_delay(void)
 {
-	if(app_timer == NULL || timer_num <= 0)
+	if(ap_timer_list == NULL || timer_num <= 0)
 		return 0;
 	if(mytime_state == MYTIME_IS_IDLE || mytime_state == MYTIME_SNTPING)
 		return 0;
 
-	unsigned int diff_time = get_min_time(app_timer, timer_num);
+	unsigned int diff_time = get_min_time(ap_timer_list, timer_num);
 	if(diff_time == 0xFFFFFFFF)
 	{
 		mytime_state = MYTIME_SNTPED;
@@ -382,10 +418,10 @@ int mytime_update_delay(void)
 
 void mytime_clean_delay(void)
 {
-	if(app_timer)
+	if(ap_timer_list)
 	{
-		OS_MemFree(app_timer);
-		app_timer = NULL;
+		OS_MemFree(ap_timer_list);
+		ap_timer_list = NULL;
 	}
 
 	if(mytime_delay_timer) OS_TimerStop(mytime_delay_timer);

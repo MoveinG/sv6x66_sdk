@@ -530,11 +530,13 @@ static int startDownloadOTAFile(void)//
 
 static void upgrade_task(void* pData)//
 {
+    extern void DevStatus_Notify_cb(ColinkDevStatus status);
     int ret;
 
     os_printf("upgrade_task\n");
 
     coLinkSetDeviceMode(DEVICE_MODE_UPGRADE);
+    DevStatus_Notify_cb((ColinkDevStatus)10);
 
     //system_upgrade_flag_set(UPGRADE_FLAG_START);
 
@@ -587,6 +589,7 @@ static void upgrade_task(void* pData)//
     }
 
     coLinkSetDeviceMode(DEVICE_MODE_WORK_NORMAL);
+    DevStatus_Notify_cb((ColinkDevStatus)11);
 
     vTaskDelete(NULL);
 

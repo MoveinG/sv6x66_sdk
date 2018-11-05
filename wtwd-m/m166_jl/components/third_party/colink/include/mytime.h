@@ -25,4 +25,6 @@ void *mytime_get_buffer(int size);
 int mytime_update_delay(void);
 void mytime_clean_delay(void);
 
+void colink_UTC_str(const char *timestr);
+
 #endif
