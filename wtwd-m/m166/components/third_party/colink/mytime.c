@@ -315,7 +315,7 @@ cron_lite mytime_str_repeat(const char *cronstr)
 	return cron;
 }
 
-static unsigned int get_min_time(colink_app_timer *ap_time, int num)
+static unsigned int get_min_time(const colink_app_timer *ap_time, int num)
 {
 	unsigned int cur_time, off_time;
 	unsigned char cur_switch;
@@ -340,7 +340,8 @@ static unsigned int get_min_time(colink_app_timer *ap_time, int num)
 		{
 			if(ap_time->cron.week_bit)
 			{
-				int value, i, wday, cur_day;
+				int i, wday, cur_day;
+				unsigned int value;
 
 				cur_day = cur_time / DAY_SECOND; //day
 				wday = (cur_day + WEEK_197011) % 7; //today at week?
@@ -366,6 +367,43 @@ static unsigned int get_min_time(colink_app_timer *ap_time, int num)
 					i++;
 				}
 			}
+		}
+		if(ap_time->type == COLINK_TYPE_DURATION)
+		{
+			unsigned int value, cycle, delay;
+
+			cycle = ap_time->cycle * 60; //to secnond
+			if(ap_time->at_time > cur_time)
+			{
+				if(off_time > ap_time->at_time) 
+				{
+					off_time = ap_time->at_time;
+					do_switch = ap_time->start_do;
+				}
+			}
+			else if(ap_time->at_time < cur_time)
+			{
+				value = ap_time->at_time + ((cur_time - ap_time->at_time) / cycle) * cycle;
+				if(value == cur_time) cur_switch = ap_time->start_do;
+
+				delay = value + ap_time->delay * 60;
+				if(delay == cur_time) cur_switch = ap_time->end_do;
+				if(off_time > delay)
+				{
+					off_time = delay;
+					do_switch = ap_time->end_do;
+				}
+
+				cycle += value;
+				if(cycle == cur_time) cur_switch = ap_time->start_do;
+				if(off_time > cycle)
+				{
+					off_time = cycle;
+					do_switch = ap_time->start_do;
+				}
+				printf("%s cycle+1=%d, delay=%d\n", __func__, cycle, delay);
+			}
+			else cur_switch = ap_time->start_do;
 		}
 		ap_time++;
 	}
