@@ -505,7 +505,7 @@ void TaskKeyLed(void *pdata)
 
 			case EVENT_BRIGHT:
 				value = (int)msg_evt.MsgData;
-				if(value > 6 && value < 100) maoxin_set_light(value / 6); //10-100 -> 1-16
+				if(value > 6 && value <= 100) maoxin_set_light(value / 6); //10-100 -> 1-16
 				break;
 
 			case EVENT_FLHMODE:
