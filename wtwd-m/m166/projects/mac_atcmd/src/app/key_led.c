@@ -3,11 +3,15 @@
 #include <stdio.h>
 #include "osal.h"
 #include "gpio/drv_gpio.h"
+#include "wdt/drv_wdt.h"
 #include "iotapi/wifi_api.h"
-#include "colink/include/colink_global.h"
-#include "colink/include/colink_setting.h"
-#include "colink/include/colink_profile.h"
-#include "colink/include/mytime.h"
+
+#if defined(CK_CLOUD_EN)
+	#include "colink/include/colink_global.h"
+	#include "colink/include/colink_setting.h"
+	#include "colink/include/colink_profile.h"
+	#include "colink/include/mytime.h"
+#endif
 
 #define DEVICE_WFLED	GPIO_13 //wifi
 #define DEVICE_PWLED	GPIO_01 //power
@@ -55,12 +59,11 @@
 #define EVENT_DEV_KEY	1
 #define EVENT_CONNECT	2
 #define EVENT_SWITCH	3
-#define EVENT_SMART_T	4
+#define EVENT_01_SEC	4
 #define EVENT_SW_TIMER	5
 #define EVENT_UP_TIMER	6
 #define EVENT_DEVSTATUS	7
 #define EVENT_PING114	8
-#define EVENT_30_SEC	9
 #define EVENT_BRIGHT	0x100
 #define EVENT_FLHMODE	0x200
 
@@ -104,34 +107,10 @@ extern void colink_dl_deviceid_start(void);
 ///////////////////////////////////////////
 static void cycle_1sec_handler(void)
 {
-	static char clear_pwron=9, sec_30=0;
-
-	if(clear_pwron > 0)
-	{
-		clear_pwron--;
-		if(clear_pwron == 0) clear_poweron_number();
-		//printf("%s time=%u\n",__func__, os_tick2ms(OS_GetSysTick()));
-	}
-
-	if(wifi_status != WIFI_DIS_CON)
-	{
-		if(sec_30 == 29)
-		{
-			OsMsgQEntry msg_evt;
-			msg_evt.MsgCmd = EVENT_30_SEC;
-			msg_evt.MsgData = (void*)NULL;
-			OS_MsgQEnqueue(keyled_msgq, &msg_evt);
-		}
-		if(++sec_30 >= 30) sec_30 = 0;
-	}
-
-	if(led_status == STATUS_SMART || led_status == STATUS_AP_MODE)
-	{
-		OsMsgQEntry msg_evt;
-		msg_evt.MsgCmd = EVENT_SMART_T;
-		msg_evt.MsgData = (void*)NULL;
-		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
-	}
+	OsMsgQEntry msg_evt;
+	msg_evt.MsgCmd = EVENT_01_SEC;
+	msg_evt.MsgData = (void*)NULL;
+	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
 static short update_led_status(void)
@@ -266,6 +245,7 @@ static void KeyLed_Init(void)
 #endif
 }
 
+#if defined(CK_CLOUD_EN)
 static void exit_link_config(unsigned short state)
 {
 	if(state)
@@ -275,6 +255,7 @@ static void exit_link_config(unsigned short state)
 		wifi_auto_connect_start();
 	}
 }
+#endif
 
 static void wifi_internet_ping(void)
 {
@@ -355,6 +336,7 @@ void wifi_status_cb(int connect)
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
 
+#if defined(CK_CLOUD_EN)
 void DevStatus_Notify_cb(ColinkDevStatus status)
 {
 	OsMsgQEntry msg_evt;
@@ -364,6 +346,7 @@ void DevStatus_Notify_cb(ColinkDevStatus status)
 
 	OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 }
+#endif
 
 void Ping_Notify_cb(unsigned int ping, unsigned int recv)
 {
@@ -379,11 +362,14 @@ void Ping_Notify_cb(unsigned int ping, unsigned int recv)
 void TaskKeyLed(void *pdata)
 {
 	static unsigned int start_smart_t;
+	#if defined(CK_CLOUD_EN)
 	static CoLinkDeviceMode save_mode;
+	#endif
 	OsMsgQEntry msg_evt;
 	#if defined(WT_CLOUD_EN)
 	bool cloud_task=false;
 	#endif
+	char clear_count=9, sec_30=0;
 	int value;
 
 	if(get_wifi_status() == 1) led_status = STATUS_NO_SER;
@@ -428,56 +414,71 @@ void TaskKeyLed(void *pdata)
 	else wifi_auto_connect_start();
 	#endif
 
+	drv_wdt_init();
+	drv_wdt_enable(SYS_WDT, 20000);//20-second
+
 	printf("TaskKeyLed Init OK!\n");
 	while(1)
 	{
         if(OS_MsgQDequeue(keyled_msgq, &msg_evt, portMAX_DELAY) == OS_SUCCESS)
 		{
 			switch(msg_evt.MsgCmd) {
-			case EVENT_SMART_T:
-				if(os_tick2ms(OS_GetSysTick()) > start_smart_t + 180000) //3-min
+			case EVENT_01_SEC:
+				#if defined(CK_CLOUD_EN)
+				if(clear_count > 0)
 				{
-					coLinkSetDeviceMode(save_mode);
-					exit_link_config(dev_status);
-					dev_status = DEVICE_STATION;
-					wifi_status = WIFI_DIS_CON;
-					led_status = update_led_status();
+					clear_count--;
+					if(clear_count == 0) clear_poweron_number();
 				}
-				break;
-			case EVENT_30_SEC:
-				wifi_internet_ping();
+
+				if(led_status == STATUS_SMART || led_status == STATUS_AP_MODE)
+				{
+					if(os_tick2ms(OS_GetSysTick()) > start_smart_t + 180000) //3-min
+					{
+						coLinkSetDeviceMode(save_mode);
+						exit_link_config(dev_status);
+						dev_status = DEVICE_STATION;
+						wifi_status = WIFI_DIS_CON;
+						led_status = update_led_status();
+					}
+				}
+				#endif
+				drv_wdt_kick(SYS_WDT);
+
+				if(wifi_status != WIFI_DIS_CON)
+				{
+					if(sec_30 == 0) wifi_internet_ping();
+					if(++sec_30 >= 30) sec_30 = 0;
+				}
 				break;
 
 			case EVENT_DEV_KEY:
 				printf("EVENT_DEV_KEY=%x\n", (int)msg_evt.MsgData);
 				if(msg_evt.MsgData == (void*)KEY_1LONG)
 				{
+					#if defined(CK_CLOUD_EN)
 					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
 						break;
+
 					if(dev_status == DEVICE_AP_MODE) break;
 					if(dev_status == DEVICE_SMART)
 					{
 						printf("to AP mode config\n");
-
 						start_smart_t = os_tick2ms(OS_GetSysTick());
 
-						#if defined(CK_CLOUD_EN)
 						dev_status = DEVICE_AP_MODE;
 						led_status = update_led_status();
 						esptouch_stop();
 						enterSettingSelfAPMode();
-						#endif
 						break;
 					}
 					else
 					{
 						printf("to smartconfig\n");
 						save_mode = coLinkGetDeviceMode();
+						start_smart_t = os_tick2ms(OS_GetSysTick());
 					}
 
-					start_smart_t = os_tick2ms(OS_GetSysTick());
-
-					#if defined(CK_CLOUD_EN)
 					dev_status = DEVICE_SMART;
 					led_status = update_led_status();
 					esptouch_stop();
@@ -497,6 +498,7 @@ void TaskKeyLed(void *pdata)
 				}
 				if(msg_evt.MsgData == (void*)KEY_KEY1)
 				{
+					#if defined(CK_CLOUD_EN)
 					if(dev_status)
 					{
 						coLinkSetDeviceMode(save_mode);
@@ -513,11 +515,11 @@ void TaskKeyLed(void *pdata)
 					active_Switch(pwr_status ? 0 : 1);
 					set_switch_nvram(pwr_status);
 
+					colinkSwitchUpdate();
+					#endif
+
 					#if defined(WT_CLOUD_EN)
 					if(cloud_task) update_xlink_status();
-					#endif
-					#if defined(CK_CLOUD_EN)
-					colinkSwitchUpdate();
 					#endif
 				}
 				#if defined(DEVICE_KEY2)
@@ -552,6 +554,7 @@ void TaskKeyLed(void *pdata)
 				led_status = update_led_status();
 				break;
 
+			#if defined(CK_CLOUD_EN)
 			case EVENT_DEVSTATUS:
 				value = (int)msg_evt.MsgData;
 				if((ColinkDevStatus)value == DEVICE_UNREGISTERED)
@@ -573,6 +576,7 @@ void TaskKeyLed(void *pdata)
 
 				led_status = update_led_status();
 				break;
+			#endif
 
 			case EVENT_PING114:
 				value = (int)msg_evt.MsgData;
