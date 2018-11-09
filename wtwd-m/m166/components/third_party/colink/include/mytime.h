@@ -27,4 +27,10 @@ void mytime_clean_delay(void);
 
 void colink_UTC_str(const char *timestr);
 
+void add_poweron_number(void);
+uint8_t get_poweron_number(void);
+void clear_poweron_number(void);
+void set_switch_nvram(bool pwr_status);
+bool get_switch_nvram(void);
+
 #endif

@@ -128,7 +128,10 @@ void wifi_auto_connect_start(void)
 }
 #endif
 
+#if !defined(TY_CLOUD_EN)
+extern void add_poweron_number(void);
 extern void TaskKeyLed(void *pdata);
+#endif
 extern void drv_uart_init(void);
 void APP_Init(void)
 {
@@ -151,6 +154,10 @@ void APP_Init(void)
 	OS_StatInit();
 	OS_MemInit();
 	OS_PsramInit();
+
+#if !defined(TY_CLOUD_EN)
+	add_poweron_number();
+#endif
 
 	fs_handle = FS_init();
 	if(fs_handle)

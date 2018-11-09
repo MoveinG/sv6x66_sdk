@@ -467,3 +467,148 @@ void mytime_clean_delay(void)
 	colink_delete_timer();
 }
 
+//////////////////////////////////////
+#include <string.h>
+#include "sys/flash.h"
+
+#define FLAG_START_ADDR	0x30007000
+#define FLAG_LENGTH		0x1000
+
+static void write_flash_byte(unsigned int addr, uint8_t value)
+{
+    uint8_t *ptr, *buf;
+	
+	flash_init();
+	if(addr >= FLAG_START_ADDR + FLAG_LENGTH)
+	{
+		flash_init();
+		OS_EnterCritical();
+		flash_sector_erase((unsigned int)(FLAG_START_ADDR & 0xFFFFFF));
+		OS_ExitCritical();
+		addr = FLAG_START_ADDR;
+	}
+
+	ptr = (uint8_t*)((addr / FLASH_SECTOR_SIZE) * FLASH_SECTOR_SIZE);
+	buf = OS_MemAlloc(FLASH_SECTOR_SIZE);
+	memcpy(buf, ptr, FLASH_SECTOR_SIZE);
+
+	buf[addr % FLASH_SECTOR_SIZE] = value;
+
+	OS_EnterCritical();
+	flash_page_program((unsigned int)ptr & 0xFFFFFF, FLASH_PAGE_SIZE, buf);
+	OS_ExitCritical();
+    OS_MemFree(buf);
+}
+
+static unsigned int find_first_0xff(void)
+{
+	unsigned int addr1, addr2, p;
+
+	addr1 = FLAG_START_ADDR;
+	addr2 = addr1 + FLAG_LENGTH - 1;
+	while(addr1 < addr2)
+	{
+		p = (addr1+addr2) >> 1;
+		if(*(uint8_t*)p == 0xFF) addr2 = p - 1;
+		else addr1 = p + 1;
+	}
+	if(*(uint8_t*)addr1 != 0xFF) addr1++;
+
+	//printf("%s addr1=%x, addr2=%x, p=%x\n", __func__, addr1, addr2, p);
+	return addr1;
+}
+
+void add_poweron_number(void)
+{
+	uint8_t i, value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	value = *(uint8_t*)addr;
+	if(value & 0x20) //num is valid
+	{
+		if(value & 0x1f) //is num<5
+		{
+			for(i=0; (value & (1<<i)) == 0; i++) ;
+			value &= ~(1 << i);
+			write_flash_byte(addr, value);
+		}
+		return;
+	}
+
+	addr++; //*(uint8_t*)addr is 0xFF
+	value = (value & 0xc0) | 0x3e; //need+ switch status, 0->bit0
+
+	write_flash_byte(addr, value);
+}
+
+uint8_t get_poweron_number(void)
+{
+	uint8_t i, value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	value = *(uint8_t*)addr;
+	if(value & 0x20) //num is valid
+	{
+		for(i=0; i<5; i++) //max is 5
+		{
+			if(value & (1<<i)) return i;
+		}
+		return 5;
+	}
+	return 0;
+}
+
+void clear_poweron_number(void)
+{
+	uint8_t temp, value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	value = *(uint8_t*)addr;
+	temp = value & 0xdf; //clear bit5(is valid-bit)
+
+	write_flash_byte(addr, temp);
+}
+
+void set_switch_nvram(bool pwr_status)
+{
+	uint8_t temp, value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	temp = *(uint8_t*)addr;
+	if((temp & 0x80) == 0) addr++; //bit7: 0 is valid, 1 is no-used
+
+	//value = *(uint8_t*)addr; //must is no-used(0xFF)
+	if(pwr_status) value = 0x7f;
+	else value = 0x3f;
+
+	if(temp & 0x20) value &= 0xc0 | temp;
+
+	write_flash_byte(addr, value);
+}
+
+bool get_switch_nvram(void)
+{
+	uint8_t value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	value = *(uint8_t*)addr;
+	if(value & 0x80) return 0; //bit7: 0 is valid, 1 is no-used
+	if(value & 0x40) return 1; //bit6 is switch-bit
+	return 0;
+}
+
