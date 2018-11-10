@@ -123,6 +123,7 @@ void colinkSettingTask(void* pData)
                         strcpy((char*)colink_flash_param.sta_config.ssid, colinkInfo.ssid);
                         strcpy((char*)colink_flash_param.sta_config.password, colinkInfo.password);
                     }
+                    OS_MsDelay(1000);
                     close(newconn);
                     close(sockfd);
                     break;
