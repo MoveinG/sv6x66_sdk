@@ -560,7 +560,7 @@ void TaskKeyLed(void *pdata)
 				if((ColinkDevStatus)value == DEVICE_UNREGISTERED)
 				{
 					colink_status = COLINK_UN_REG;
-					mytime_clean_delay();
+					colink_delete_timer();
 				}
 				if((ColinkDevStatus)value == DEVICE_ONLINE)
 				{
