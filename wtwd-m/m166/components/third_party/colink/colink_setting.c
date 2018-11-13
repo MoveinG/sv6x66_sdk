@@ -3,6 +3,7 @@
 #include "fsal.h"
 #include "lwip/sockets.h"
 #include "mbedtls/sha256.h"
+#include "iperf3.0/net.h"
 #include "cJSON.h"
 #include "colink_define.h"
 #include "colink_setting.h"
@@ -55,6 +56,8 @@ void colinkSettingTask(void* pData)
         os_printf("can not create socket\r\n");
         goto exit;
     }
+    ret = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &ret, sizeof(ret));
 
     /* bind to port 80 at any interface */
     address.sin_family = AF_INET;
@@ -88,7 +91,7 @@ void colinkSettingTask(void* pData)
             vTaskDelay(1000 / portTICK_RATE_MS);
             ret = read(newconn, recv_buffer, 512); 
 
-            ret = colinkLinkParse((uint8_t*)recv_buffer, ret, (uint8_t*)outBuff, 1024, &outLen);
+            ret = colinkLinkParse((uint8_t*)recv_buffer, ret, (uint8_t*)outBuff, 512, &outLen);
             //os_printf("outBuff %d = %s\r\n", outLen, outBuff);
             os_printf("ret = %d\r\n", ret);
 

@@ -472,7 +472,7 @@ void mytime_clean_delay(void)
 #include "sys/flash.h"
 
 #define FLAG_START_ADDR	0x30007000
-#define FLAG_LENGTH		0x1000
+#define FLAG_LENGTH		FLASH_SECTOR_SIZE
 
 static void write_flash_byte(unsigned int addr, uint8_t value)
 {
@@ -488,11 +488,11 @@ static void write_flash_byte(unsigned int addr, uint8_t value)
 		addr = FLAG_START_ADDR;
 	}
 
-	ptr = (uint8_t*)((addr / FLASH_SECTOR_SIZE) * FLASH_SECTOR_SIZE);
-	buf = OS_MemAlloc(FLASH_SECTOR_SIZE);
-	memcpy(buf, ptr, FLASH_SECTOR_SIZE);
+	ptr = (uint8_t*)((addr / FLASH_PAGE_SIZE) * FLASH_PAGE_SIZE);
+	buf = OS_MemAlloc(FLASH_PAGE_SIZE);
+	memcpy(buf, ptr, FLASH_PAGE_SIZE);
 
-	buf[addr % FLASH_SECTOR_SIZE] = value;
+	buf[addr % FLASH_PAGE_SIZE] = value;
 
 	OS_EnterCritical();
 	flash_page_program((unsigned int)ptr & 0xFFFFFF, FLASH_PAGE_SIZE, buf);
