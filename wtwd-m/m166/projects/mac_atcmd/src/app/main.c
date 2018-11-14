@@ -148,7 +148,7 @@ void APP_Init(void)
 #endif
 	drv_uart_init();
     drv_uart_set_fifo(UART_INT_RXFIFO_TRGLVL_1, 0x0);
-	drv_uart_set_format(115200, UART_WORD_LEN_8, UART_STOP_BIT_1, UART_PARITY_DISABLE);
+	drv_uart_set_format(921600, UART_WORD_LEN_8, UART_STOP_BIT_1, UART_PARITY_DISABLE);
 
 	OS_Init();
 	OS_StatInit();
