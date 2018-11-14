@@ -147,6 +147,7 @@ void colinkSettingTask(void* pData)
                 os_printf("exit DeviceMode=%d\n", mode);
                 goto exit;
             }
+            OS_MsDelay(100);
         }
     }
 

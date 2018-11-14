@@ -192,6 +192,9 @@ static void esptouch_smnt_muticastadd(uint8* pAddr, int length)
 	if (pAddr[3] != pAddr[4] || pAddr[3] != pAddr[5])
 		return;
 
+	if (pSmnt->chCurrentProbability < 20)
+		pSmnt->chCurrentProbability += STEP_MULTICAST_HOLD_CHANNEL;			// Delay CH switch!
+
 	length -= pSmnt->offset_len + ESPTOUCH_PACKET_SUB;
 	if(length >= ESPTOUCH_MAX_NUM+0x100)
 		return;
@@ -235,10 +238,6 @@ static void esptouch_smnt_muticastadd(uint8* pAddr, int length)
 		pSmnt->group_addr = pAddr[3];
 		pSmnt->packet_count = 1;
 	}
-
-	if (pSmnt->chCurrentProbability < 20)
-		pSmnt->chCurrentProbability += STEP_MULTICAST_HOLD_CHANNEL;			// Delay CH switch!
-	return;
 }
 
 void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
@@ -288,7 +287,7 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 			{
 				if (/*packetType == 1 && */length >= ESPTOUCH_GUIDE_CODE)
 				{
-					if (pDest[3] == pDest[4] && pDest[3] == pDest[5])
+					if ((pDest[3] == pDest[4]) && (pDest[3] == pDest[5]))
 					{
 						if(pSmnt->group_addr == pDest[3])
 						{
@@ -308,7 +307,7 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 								//if(pSmnt->packet_count == GUIDE_PACKET_NUM)
 								if(diff == 0x0F)
 								{
-									if (pSmnt->chCurrentProbability < 20) pSmnt->chCurrentProbability = 10;
+									if (pSmnt->chCurrentProbability < 20) pSmnt->chCurrentProbability = 20;
 
 									memcpy(pSmnt->syncBssid, pBssid, sizeof(pSmnt->syncBssid));
 									pSmnt->state = SMART_CH_LOCKED;
@@ -348,6 +347,7 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 			pSmnt->group_addr = pDest[3];
 			pSmnt->packet_count = 0x08;
 			pSmnt->offset_len = length; //guide_code:515?
+			pSmnt->chCurrentProbability = STEP_MULTICAST_HOLD_CHANNEL;
 		}
 		printf("Try to SYNC!\n");
 		return;
@@ -372,7 +372,6 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 		memcpy(pSmnt->syncAppMac, pSrc, 6);
 		printf("Reset All State\n");
 	}
-	return;
 }
 
 //////////////////////////////////////
