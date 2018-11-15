@@ -3,6 +3,7 @@
 #include "fsal.h"
 #include "lwip/sockets.h"
 #include "mbedtls/sha256.h"
+#include "iperf3.0/net.h"
 #include "cJSON.h"
 #include "colink_define.h"
 #include "colink_setting.h"
@@ -55,6 +56,8 @@ void colinkSettingTask(void* pData)
         os_printf("can not create socket\r\n");
         goto exit;
     }
+    ret = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &ret, sizeof(ret));
 
     /* bind to port 80 at any interface */
     address.sin_family = AF_INET;
@@ -88,7 +91,7 @@ void colinkSettingTask(void* pData)
             vTaskDelay(1000 / portTICK_RATE_MS);
             ret = read(newconn, recv_buffer, 512); 
 
-            ret = colinkLinkParse((uint8_t*)recv_buffer, ret, (uint8_t*)outBuff, 1024, &outLen);
+            ret = colinkLinkParse((uint8_t*)recv_buffer, ret, (uint8_t*)outBuff, 512, &outLen);
             //os_printf("outBuff %d = %s\r\n", outLen, outBuff);
             os_printf("ret = %d\r\n", ret);
 
@@ -123,6 +126,7 @@ void colinkSettingTask(void* pData)
                         strcpy((char*)colink_flash_param.sta_config.ssid, colinkInfo.ssid);
                         strcpy((char*)colink_flash_param.sta_config.password, colinkInfo.password);
                     }
+                    OS_MsDelay(1000);
                     close(newconn);
                     close(sockfd);
                     break;
@@ -143,6 +147,7 @@ void colinkSettingTask(void* pData)
                 os_printf("exit DeviceMode=%d\n", mode);
                 goto exit;
             }
+            OS_MsDelay(100);
         }
     }
 
@@ -177,10 +182,10 @@ void colinkSettingStart(void)
 /////////////////////////////////////
 void colink_Init_Device(void)
 {
-	//int size = colink_load_deviceid((char*)&colink_dev, sizeof(ColinkDevice));
-	//if(sizeof(ColinkDevice) != size)
+	int size = colink_load_deviceid((char*)&colink_dev, sizeof(ColinkDevice));
+	if(sizeof(ColinkDevice) != size)
 	{
-		//printf("%s size=%d\n", __func__, size);
+		printf("%s size=%d\n", __func__, size);
 		memset(&colink_dev, 0, sizeof(ColinkDevice));
 		memcpy(colink_dev.deviceid, DEVICEID, sizeof(colink_dev.deviceid));
 		memcpy(colink_dev.apikey, APIKEY, sizeof(colink_dev.apikey));

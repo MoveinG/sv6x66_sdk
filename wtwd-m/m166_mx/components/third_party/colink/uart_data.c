@@ -366,7 +366,7 @@ void dl_deviceid_task(void *pdata)
 	}
 	uart_data_free();
 
-	uart_data_init(9200, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, 0x200);
+	uart_data_init(9600, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, 0x200);
 	OS_TaskDelete(NULL);
 }
 
@@ -377,7 +377,7 @@ void colink_dl_deviceid_start(void)
 	uart_data_init(19200, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, 0x200);
 	OS_TaskCreate(dl_deviceid_task, "dl_deviceid", 512, NULL, 2, NULL);
 #else
-	uart_data_init(9200, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, 0x200);
+	uart_data_init(9600, HSUART_WLS_8, HSUART_STB_1, HSUART_PARITY_DISABLE, 0x200);
 #endif
 }
 

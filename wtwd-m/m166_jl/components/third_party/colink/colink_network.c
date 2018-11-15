@@ -361,8 +361,8 @@ static void colinkRecvUpdate(char* data)
 
 				json_temp_p = cJSON_GetObjectItem(one_timer_p, "at");
 				app_timer->at_time = mytime_str_to_time(json_temp_p->valuestring);
-				app_timer->min_b = atoi(json_temp_p->valuestring+25);
-				app_timer->min_c = mytime_str_duration(json_temp_p->valuestring+25);
+				app_timer->cycle = atoi(json_temp_p->valuestring+25);
+				app_timer->delay = mytime_str_duration(json_temp_p->valuestring+25);
 
 				timer_startDo_p = cJSON_GetObjectItem(one_timer_p, "startDo");
 				json_temp_p = cJSON_GetObjectItem(timer_startDo_p, "switch");
@@ -372,8 +372,8 @@ static void colinkRecvUpdate(char* data)
 				json_temp_p = cJSON_GetObjectItem(timer_endDo_p, "switch");
 				if(!colinkStrcmp(json_temp_p->valuestring, "on")) app_timer->end_do = 1;
 			}
-			//os_printf("type=%d, do1=%d, do2=%d, time=%u, min_b=%d, min_c=%d\n",
-			//			app_timer->type, app_timer->start_do, app_timer->end_do, app_timer->at_time, app_timer->min_b, app_timer->min_c);
+			//os_printf("type=%d, do1=%d, do2=%d, time=%u, cycle=%d, delay=%d\n",
+			//			app_timer->type, app_timer->start_do, app_timer->end_do, app_timer->at_time, app_timer->cycle, app_timer->delay);
 			if(app_timer)
 			{
 				if(app_timer->type != 0) app_timer++;

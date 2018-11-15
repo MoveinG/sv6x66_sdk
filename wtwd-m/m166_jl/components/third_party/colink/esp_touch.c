@@ -16,6 +16,7 @@
 
 #define ESPTOUCH_GUIDE_CODE			515
 #define ESPTOUCH_PACKET_SUB			40
+#define ESPTOUCH_MAX_NUM			128
 
 #define GUIDE_PACKET_NUM			4
 #define DATA_PACKET_NUM				3
@@ -191,32 +192,37 @@ static void esptouch_smnt_muticastadd(uint8* pAddr, int length)
 	if (pAddr[3] != pAddr[4] || pAddr[3] != pAddr[5])
 		return;
 
+	if (pSmnt->chCurrentProbability < 20)
+		pSmnt->chCurrentProbability += STEP_MULTICAST_HOLD_CHANNEL;			// Delay CH switch!
+
 	length -= pSmnt->offset_len + ESPTOUCH_PACKET_SUB;
-	if(length >= ESPTOUCH_GUIDE_CODE-3)
+	if(length >= ESPTOUCH_MAX_NUM+0x100)
 		return;
 
 	if(pSmnt->group_addr == pAddr[3])
 	{
+		if(pSmnt->packet_data[pSmnt->packet_count] == length) return; //cancel repeat
+
 		pSmnt->packet_data[pSmnt->packet_count] = length;
 		pSmnt->packet_count++;
 		if(pSmnt->packet_count == DATA_PACKET_NUM)
 		{
-			if(pSmnt->packet_data[1] == 0x100 + pSmnt->index) //sequence header
+			if(pSmnt->packet_data[1] >= 0x100) //sequence header
 			{
 				val_idx[0] = ((pSmnt->packet_data[0] << 4) & 0xF0) | (pSmnt->packet_data[2] & 0x0F);
 				val_idx[1] = pSmnt->packet_data[1] & 0xFF;
 				crc8 = (pSmnt->packet_data[0] & 0xF0) | ((pSmnt->packet_data[2] >> 4) & 0x0F);
 				crc82 = esptouch_smnt_crc(val_idx, 2);
-				if(crc8 == crc82)
+				if((crc8 == crc82) && pSmnt->payload_multicast[val_idx[1]] == 0)
 				{
 					printf("vaule=0x%02x, %3d  %3d  %3d\n", val_idx[0], pSmnt->packet_data[0], pSmnt->packet_data[1], pSmnt->packet_data[2]);
 
-					pSmnt->payload_multicast[pSmnt->index] = val_idx[0];
-					if(pSmnt->index == 0) pSmnt->total_len = val_idx[0];
-					if(pSmnt->index == 1) pSmnt->password_len = val_idx[0];
+					pSmnt->payload_multicast[val_idx[1]] = val_idx[0];
+					if(val_idx[1] == 0) pSmnt->total_len = val_idx[0];
+					if(val_idx[1] == 1) pSmnt->password_len = val_idx[0];
 
 					pSmnt->index++;
-					if(pSmnt->index == pSmnt->password_len + ESP_PASSWORD_OFF)
+					if((pSmnt->password_len != 0) && (pSmnt->index == (pSmnt->password_len + ESP_PASSWORD_OFF)))
 					{
 						pSmnt->state = SMART_FINISH;
 						esptouch_smnt_finish();
@@ -232,54 +238,41 @@ static void esptouch_smnt_muticastadd(uint8* pAddr, int length)
 		pSmnt->group_addr = pAddr[3];
 		pSmnt->packet_count = 1;
 	}
-
-	if (pSmnt->chCurrentProbability < 20)
-		pSmnt->chCurrentProbability += STEP_MULTICAST_HOLD_CHANNEL;			// Delay CH switch!
-	return;
 }
 
 void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 {
-	uint8 isUplink = 1;
-	uint8 packetType = 0;					// 1-multicast packets 2-broadcast packets 0-thers
+	//uint8 isUplink = 1;
+	//uint8 packetType = 0;					// 1-multicast packets 2-broadcast packets 0-thers
 	uint8 isDifferentAddr = 0;
 	uint8 *pDest, *pSrc, *pBssid;
 
-	if (pSmnt == NULL)
+	if (pSmnt == NULL || pHeader == NULL)
 		return;
-	if (/*((length > 100) && (pSmnt->state != SMART_CH_LOCKED)) || */pSmnt->state == SMART_FINISH)	
+
+	if (pSmnt->state == SMART_FINISH)
 		return;
 
 	if (pHeader->FC.ToDs)
 	{
-		isUplink = 1;
+		//isUplink = 1;
 		pBssid = pHeader->Addr1;
 		pSrc = pHeader->Addr2;
 		pDest = pHeader->Addr3;
-
-		if (!(/*(memcmp(pDest, MAC_BROADCAST, 6) == 0) || */(memcmp(pDest, MAC_MULTICAST, 3) == 0))){
-			return;
-		}
 	}
 	else
 	{
 		pDest = pHeader->Addr1;
 		pBssid = pHeader->Addr2;
 		pSrc  = pHeader->Addr3;
-
-		isUplink = 0;
-		//not broadcast nor multicast package ,return
-		if (!(/*(memcmp(pDest, MAC_BROADCAST, 6) == 0) || */(memcmp(pDest, MAC_MULTICAST, 3) == 0))){
-			return;
-		}
-	}
-	if (memcmp(pDest, MAC_MULTICAST, 3) == 0)
-	{
-		//if (pSmnt->state == SMART_CH_LOCKING)
-		//	printf("(%02x-%04d):%02x:%02x:%02x->%d\n", *((uint8*)pHeader) & 0xFF, pHeader->Sequence, pDest[3], pDest[4], pDest[5], length);
-		packetType = 1;
+		//isUplink = 0;
 	}
 
+	if (memcmp(pDest, MAC_MULTICAST, 3) != 0) return;
+	//if (pSmnt->state == SMART_CH_LOCKING)
+	//printf("%d, (%x:%x:%x %x=%x)(%x:%x:%x:%x:%x):%d\n", pHeader->FC.ToDs, 
+	//		pDest[0], pDest[1], pDest[2], pDest[3], pDest[4], pSrc[0], pSrc[1], pSrc[2], pSrc[3], pSrc[4], length);
+	//packetType = 1;
 	if (memcmp(pSrc, pSmnt->syncAppMac, 6) != 0)
 	{
 		isDifferentAddr = 1;
@@ -287,27 +280,44 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 
 	if(pSmnt->state == SMART_CH_LOCKING)
 	{
-		if (packetType == 0) return;
+		//if (packetType == 0) return;
 		if(!isDifferentAddr)
 		{
-			if (packetType != 0)
+			//if (packetType != 0)
 			{
-				if (packetType == 1 && length >= ESPTOUCH_GUIDE_CODE)
+				if (/*packetType == 1 && */length >= ESPTOUCH_GUIDE_CODE)
 				{
-					if (pDest[3] == pDest[4] && pDest[3] == pDest[5])
+					if ((pDest[3] == pDest[4]) && (pDest[3] == pDest[5]))
 					{
 						if(pSmnt->group_addr == pDest[3])
 						{
-							if(pSmnt->offset_len == pSmnt->packet_count + length) //guide_code:514/513/512
+							uint16 diff;
+							if(pSmnt->offset_len > length) diff = pSmnt->offset_len - length;
+							else diff = length - pSmnt->offset_len;
+
+							//if(pSmnt->offset_len == pSmnt->packet_count + length) //guide_code:514/513/512?
+							if(diff < GUIDE_PACKET_NUM)
 							{
-								pSmnt->packet_count++;
-								if(pSmnt->packet_count == GUIDE_PACKET_NUM)
+								if(pSmnt->offset_len > length) pSmnt->packet_count |= 0x08 >> diff;
+								else pSmnt->packet_count |= 0x08 << diff;
+
+								diff = pSmnt->packet_count;
+								while((diff & 0x01) == 0) diff >>= 1;
+
+								//if(pSmnt->packet_count == GUIDE_PACKET_NUM)
+								if(diff == 0x0F)
 								{
-									if (pSmnt->chCurrentProbability < 20) pSmnt->chCurrentProbability = 10;
+									if (pSmnt->chCurrentProbability < 20) pSmnt->chCurrentProbability = 20;
 
 									memcpy(pSmnt->syncBssid, pBssid, sizeof(pSmnt->syncBssid));
 									pSmnt->state = SMART_CH_LOCKED;
 
+									diff = pSmnt->packet_count;
+									while((diff & 0x01) == 0)
+									{
+										diff >>= 1;
+										pSmnt->offset_len++;
+									}
 									printf("SMART_CH_LOCKED:%d\n", pSmnt->offset_len);
 
 									pSmnt->offset_len -= ESPTOUCH_GUIDE_CODE;
@@ -319,8 +329,8 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 						else
 						{
 							pSmnt->group_addr = pDest[3];
-							pSmnt->packet_count = 1;
-							pSmnt->offset_len = length; //guide_code:515
+							pSmnt->packet_count = 0x08;
+							pSmnt->offset_len = length; //guide_code:515?
 						}
 
 					}
@@ -332,6 +342,13 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 			return;
 		}
 		memcpy(pSmnt->syncAppMac, pSrc, 6);
+		if((length >= ESPTOUCH_GUIDE_CODE) && (pDest[3] == pDest[4]) && (pDest[3] == pDest[5]))
+		{
+			pSmnt->group_addr = pDest[3];
+			pSmnt->packet_count = 0x08;
+			pSmnt->offset_len = length; //guide_code:515?
+			pSmnt->chCurrentProbability = STEP_MULTICAST_HOLD_CHANNEL;
+		}
 		printf("Try to SYNC!\n");
 		return;
 	}
@@ -339,7 +356,8 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 	{
 		if (isDifferentAddr) return;
 
-		if (packetType == 1){
+		//if (packetType == 1)
+		{
 			esptouch_smnt_muticastadd(pDest, length);
 			return;
 		}
@@ -354,7 +372,6 @@ void esptouch_smnt_datahandler(PHEADER_802_11 pHeader, int length)
 		memcpy(pSmnt->syncAppMac, pSrc, 6);
 		printf("Reset All State\n");
 	}
-	return;
 }
 
 //////////////////////////////////////

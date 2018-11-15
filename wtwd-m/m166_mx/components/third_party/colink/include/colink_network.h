@@ -33,8 +33,8 @@ typedef struct
 		uint32_t at_time;
 		cron_lite cron;
 	};
-	uint16_t min_b;
-	uint16_t min_c;
+	uint16_t cycle;
+	uint16_t delay;
 } colink_app_timer;
 
 //#define COLINK_SSL at colink_socket.c

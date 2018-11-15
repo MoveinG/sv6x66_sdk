@@ -315,7 +315,7 @@ cron_lite mytime_str_repeat(const char *cronstr)
 	return cron;
 }
 
-static unsigned int get_min_time(colink_app_timer *ap_time, int num)
+static unsigned int get_min_time(const colink_app_timer *ap_time, int num)
 {
 	unsigned int cur_time, off_time;
 	unsigned char cur_switch;
@@ -340,7 +340,8 @@ static unsigned int get_min_time(colink_app_timer *ap_time, int num)
 		{
 			if(ap_time->cron.week_bit)
 			{
-				int value, i, wday, cur_day;
+				int i, wday, cur_day;
+				unsigned int value;
 
 				cur_day = cur_time / DAY_SECOND; //day
 				wday = (cur_day + WEEK_197011) % 7; //today at week?
@@ -366,6 +367,43 @@ static unsigned int get_min_time(colink_app_timer *ap_time, int num)
 					i++;
 				}
 			}
+		}
+		if(ap_time->type == COLINK_TYPE_DURATION)
+		{
+			unsigned int value, cycle, delay;
+
+			cycle = ap_time->cycle * 60; //to secnond
+			if(ap_time->at_time > cur_time)
+			{
+				if(off_time > ap_time->at_time) 
+				{
+					off_time = ap_time->at_time;
+					do_switch = ap_time->start_do;
+				}
+			}
+			else if(ap_time->at_time < cur_time)
+			{
+				value = ap_time->at_time + ((cur_time - ap_time->at_time) / cycle) * cycle;
+				if(value == cur_time) cur_switch = ap_time->start_do;
+
+				delay = value + ap_time->delay * 60;
+				if(delay == cur_time) cur_switch = ap_time->end_do;
+				if(off_time > delay)
+				{
+					off_time = delay;
+					do_switch = ap_time->end_do;
+				}
+
+				cycle += value;
+				if(cycle == cur_time) cur_switch = ap_time->start_do;
+				if(off_time > cycle)
+				{
+					off_time = cycle;
+					do_switch = ap_time->start_do;
+				}
+				printf("%s cycle+1=%d, delay=%d\n", __func__, cycle, delay);
+			}
+			else cur_switch = ap_time->start_do;
 		}
 		ap_time++;
 	}
@@ -427,5 +465,150 @@ void mytime_clean_delay(void)
 	if(mytime_delay_timer) OS_TimerStop(mytime_delay_timer);
 
 	colink_delete_timer();
+}
+
+//////////////////////////////////////
+#include <string.h>
+#include "sys/flash.h"
+
+#define FLAG_START_ADDR	0x30007000
+#define FLAG_LENGTH		FLASH_SECTOR_SIZE
+
+static void write_flash_byte(unsigned int addr, uint8_t value)
+{
+    uint8_t *ptr, *buf;
+	
+	flash_init();
+	if(addr >= FLAG_START_ADDR + FLAG_LENGTH)
+	{
+		flash_init();
+		OS_EnterCritical();
+		flash_sector_erase((unsigned int)(FLAG_START_ADDR & 0xFFFFFF));
+		OS_ExitCritical();
+		addr = FLAG_START_ADDR;
+	}
+
+	ptr = (uint8_t*)((addr / FLASH_PAGE_SIZE) * FLASH_PAGE_SIZE);
+	buf = OS_MemAlloc(FLASH_PAGE_SIZE);
+	memcpy(buf, ptr, FLASH_PAGE_SIZE);
+
+	buf[addr % FLASH_PAGE_SIZE] = value;
+
+	OS_EnterCritical();
+	flash_page_program((unsigned int)ptr & 0xFFFFFF, FLASH_PAGE_SIZE, buf);
+	OS_ExitCritical();
+    OS_MemFree(buf);
+}
+
+static unsigned int find_first_0xff(void)
+{
+	unsigned int addr1, addr2, p;
+
+	addr1 = FLAG_START_ADDR;
+	addr2 = addr1 + FLAG_LENGTH - 1;
+	while(addr1 < addr2)
+	{
+		p = (addr1+addr2) >> 1;
+		if(*(uint8_t*)p == 0xFF) addr2 = p - 1;
+		else addr1 = p + 1;
+	}
+	if(*(uint8_t*)addr1 != 0xFF) addr1++;
+
+	//printf("%s addr1=%x, addr2=%x, p=%x\n", __func__, addr1, addr2, p);
+	return addr1;
+}
+
+void add_poweron_number(void)
+{
+	uint8_t i, value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	value = *(uint8_t*)addr;
+	if(value & 0x20) //num is valid
+	{
+		if(value & 0x1f) //is num<5
+		{
+			for(i=0; (value & (1<<i)) == 0; i++) ;
+			value &= ~(1 << i);
+			write_flash_byte(addr, value);
+		}
+		return;
+	}
+
+	addr++; //*(uint8_t*)addr is 0xFF
+	value = (value & 0xc0) | 0x3e; //need+ switch status, 0->bit0
+
+	write_flash_byte(addr, value);
+}
+
+uint8_t get_poweron_number(void)
+{
+	uint8_t i, value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	value = *(uint8_t*)addr;
+	if(value & 0x20) //num is valid
+	{
+		for(i=0; i<5; i++) //max is 5
+		{
+			if(value & (1<<i)) return i;
+		}
+		return 5;
+	}
+	return 0;
+}
+
+void clear_poweron_number(void)
+{
+	uint8_t temp, value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	value = *(uint8_t*)addr;
+	temp = value & 0xdf; //clear bit5(is valid-bit)
+
+	write_flash_byte(addr, temp);
+}
+
+void set_switch_nvram(bool pwr_status)
+{
+	uint8_t temp, value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	temp = *(uint8_t*)addr;
+	if((temp & 0x80) == 0) addr++; //bit7: 0 is valid, 1 is no-used
+
+	//value = *(uint8_t*)addr; //must is no-used(0xFF)
+	if(pwr_status) value = 0x7f;
+	else value = 0x3f;
+
+	if(temp & 0x20) value &= 0xc0 | temp;
+
+	write_flash_byte(addr, value);
+}
+
+bool get_switch_nvram(void)
+{
+	uint8_t value;
+	unsigned int addr;
+
+	addr = find_first_0xff();
+	if(addr > FLAG_START_ADDR) addr--;
+
+	value = *(uint8_t*)addr;
+	if(value & 0x80) return 0; //bit7: 0 is valid, 1 is no-used
+	if(value & 0x40) return 1; //bit6 is switch-bit
+	return 0;
 }
 
