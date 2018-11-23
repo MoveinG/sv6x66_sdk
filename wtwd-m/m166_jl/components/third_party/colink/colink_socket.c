@@ -102,7 +102,7 @@ int32_t colinkTcpSslConnect(const char* dst, uint16_t port)
         return COLINK_TCP_ARG_INVALID;
     }
 #if defined(MBEDTLS_DEBUG_C)
-    //mbedtls_debug_set_threshold(1); //1...4
+    //mbedtls_debug_set_threshold(2); //1...4
 #endif
 
     mbedtls_net_init(&server_fd);
@@ -266,6 +266,7 @@ ColinkTcpErrorCode colinkTcpSslState(int32_t fd)
     mbedtls_ssl_context *pssl = (mbedtls_ssl_context *)fd;
     int tcp_fd = ((mbedtls_net_context*)(pssl->p_bio))->fd;
     int ret;
+	static int i = 0;
 
     if (tcp_fd < 0 || NULL == pssl) 
     {
@@ -305,9 +306,13 @@ ColinkTcpErrorCode colinkTcpSslState(int32_t fd)
 
             if(pssl->state != MBEDTLS_SSL_HANDSHAKE_OVER)
             {
+                mbedtls_ssl_conf_read_timeout(&conf, 500+100*i);
                 ret = mbedtls_ssl_handshake_step( pssl );
                 colinkPrintf("mbedtls_ssl_handshake_step return = 0X%X\r\n", -ret);
-
+                mbedtls_ssl_conf_read_timeout(&conf, 20);
+				i++;
+				if(i > 10)i = 0;
+				
                 if (0 != ret)
                 {
                     errcode = COLINK_TCP_CONNECT_ERR;
@@ -350,7 +355,7 @@ int32_t colinkTcpSslSend(int32_t fd, const uint8_t* buf, uint16_t len)
     {
         return COLINK_TCP_ARG_INVALID;
     }
-
+    mbedtls_ssl_conf_read_timeout(&conf, 20);
     ret = mbedtls_ssl_write(pssl, buf, len);
     
     if(ret > 0)
@@ -380,7 +385,7 @@ int32_t colinkTcpSslRead(int32_t fd, uint8_t* buf, uint16_t len)
     {
         return COLINK_TCP_ARG_INVALID;
     }
-
+    mbedtls_ssl_conf_read_timeout(&conf, 20);
     ret = mbedtls_ssl_read(pssl, buf, len);
 
     if(ret > 0)
