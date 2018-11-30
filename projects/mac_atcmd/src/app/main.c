@@ -15,6 +15,7 @@
 #include "netstack_def.h"
 #include "uart/drv_uart.h"
 #include "rf/rf_api.h"
+#include "user_transport.h"
 
 void Cli_Task( void *args );
 
@@ -54,6 +55,23 @@ typedef struct _stParam
 
 stParam param;
 
+
+void user_transport_task(void *pdata)
+{
+	printf("[%s]:%d\n",__func__,__LINE__);
+
+	WIFI_OPMODE mode = get_DUT_wifi_mode();
+	user_transport_init(mode);
+	
+	while(1)
+    {
+        OS_MsDelay(10);
+		user_transport_func();
+    }
+	OS_TaskDelete(NULL);
+}
+
+
 void tcptask(void *args)
 {
 	while(1){
@@ -79,7 +97,13 @@ void wifi_auto_connect_task(void *pdata)
         OS_MsDelay(1*1000);
         do_wifi_auto_connect();
     }
-    
+	else
+	{
+		DUT_wifi_start(DUT_AP);
+	}
+	
+    OS_TaskCreate(user_transport_task, "user_transport", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+	
     OS_TaskDelete(NULL);
 }
 
@@ -143,7 +167,12 @@ void APP_Init(void)
 #endif
 
     init_global_conf();
+
     OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+	
+	//OS_TaskCreate(user_transport_task, "user_transport", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+
+	printf("<%s>%d\n",__func__,__LINE__);
 
     OS_StartScheduler();
 }
