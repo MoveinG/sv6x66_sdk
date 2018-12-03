@@ -60,7 +60,10 @@ void user_transport_task(void *pdata)
 {
 	printf("[%s]:%d\n",__func__,__LINE__);
 
+	//DUT_wifi_start(DUT_AP);
+
 	WIFI_OPMODE mode = get_DUT_wifi_mode();
+	OS_MsDelay(3*1000);
 	user_transport_init(mode);
 	
 	while(1)
@@ -96,6 +99,7 @@ void wifi_auto_connect_task(void *pdata)
         DUT_wifi_start(DUT_STA);
         OS_MsDelay(1*1000);
         do_wifi_auto_connect();
+		connect_to_wifi();
     }
 	else
 	{

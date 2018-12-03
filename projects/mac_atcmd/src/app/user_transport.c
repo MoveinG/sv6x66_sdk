@@ -1,5 +1,5 @@
 /****************************include*********************/
-
+#include <string.h>
 #include "soc_types.h"
 #include "sys/backtrace.h"
 #include "sys/xip.h"
@@ -13,6 +13,7 @@
 #include "ieee80211_mgmt.h"
 #include "ieee80211_mac.h"
 #include "sta_func.h"
+#include "error.h"
 #include "wifi_api.h"
 #include "netstack.h"
 #include "netstack_def.h"
@@ -22,13 +23,10 @@
 #include "user_aes.h"
 
 
+/****************************define*********************/
+
 
 /****************************typedef*********************/
-typedef struct {
-	WIFI_OPMODE deviceMode;
-	unsigned char deviceConApStatus;
-	unsigned char deviceConServerStatus;
-}device_status_t;
 
 
 
@@ -56,7 +54,7 @@ void set_device_connect_ap_status(unsigned char status)
 	deviceStatus.deviceConApStatus = status;
 }
 
-unsigned char get_device_connect_ap_status(void)
+int get_device_connect_ap_status(void)
 {
 	return deviceStatus.deviceConApStatus;
 }
@@ -66,35 +64,113 @@ void set_connect_server_status(unsigned char status)
 	deviceStatus.deviceConServerStatus = status;
 }
 
-unsigned char get_connect_server_status(void)
+int get_connect_server_status(void)
 {
 	return deviceStatus.deviceConServerStatus;
 }
 
-
-int tcp_server_init(void)
+void set_wifi_config_msg(int value)
 {
-	int ret = true;
-	return ret;
+	deviceStatus.socketServerRevFlag = value;
+}
+
+int get_wifi_config_msg(void)
+{
+	return (deviceStatus.socketServerRevFlag);
+}
+
+void set_socket_send_ack(char value)
+{
+	deviceStatus.socketSendAckFlag = value;
+}
+
+char get_socket_send_ack(void)
+{
+	return deviceStatus.socketSendAckFlag;
+}
+
+void set_rev_server_data_flag(int value)
+{
+	deviceStatus.socketClientRevFlag = value;
+}
+
+int get_rev_server_data_flag(void)
+{
+	return (deviceStatus.socketClientRevFlag);
+}
+
+void get_wifi_param(char* wifiSsid,char* wifiKey)
+{
+	char *pbuffer = NULL;
+	char *ppost = NULL;
+	char *pkey = NULL;
+	int len = 0;
+	printf("\r\n---------------------------------\r\n");
+	//memcpy(deviceStatus.socketServerRevBuffer,"{\"ssid\":\"wifiname\",\"password\":\"12345678\"}",42);
+	//printf("buffer:%s\r\n",deviceStatus.socketServerRevBuffer);
+	if ((deviceStatus.socketServerRevBuffer[0] == '{') && \
+		(deviceStatus.socketServerRevBuffer[1] == '\"'))
+	{
+		pbuffer = &deviceStatus.socketServerRevBuffer[1];
+		if ((strstr(pbuffer,"ssid")) && (strstr(pbuffer,"password")))
+		{
+			pbuffer = &deviceStatus.socketServerRevBuffer[9];
+			ppost = strchr(pbuffer,',');
+			len = ppost - pbuffer - 1;
+			memcpy(wifiSsid, pbuffer, len);
+			printf("ssid=%s\r\n",wifiSsid);
+			pbuffer = &deviceStatus.socketServerRevBuffer[9+len];
+			ppost = strchr(pbuffer,':');
+			ppost = ppost+2;
+			pkey = strchr(ppost,'\"');
+			len = pkey - ppost;
+			memcpy(wifiKey, ppost, len);
+			printf("key=%s\r\n",wifiKey);
+		}
+	}
+	printf("\r\n---------------------------------\r\n");
+}
+
+
+void wifi_cb_func(WIFI_RSP *msg)
+{
+    uint8_t dhcpen;
+    u8 mac[6];
+    uip_ipaddr_t ipaddr, submask, gateway, dnsserver;
+
+	printf("[%s]:%d!\r\n",__func__,__LINE__);
+
+    if(msg->wifistatus == 1)
+    {
+    	set_device_connect_ap_status(true);
+        if(msg->id == 0)
+            get_if_config_2("et0", &dhcpen, (u32*)&ipaddr, (u32*)&submask, (u32*)&gateway, (u32*)&dnsserver, mac, 6);
+        else
+            get_if_config_2("et1", &dhcpen, (u32*)&ipaddr, (u32*)&submask, (u32*)&gateway, (u32*)&dnsserver, mac, 6);
+        printf("STA%d:\n", msg->id);
+        printf("mac addr        - %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        printf("ip addr         - %d.%d.%d.%d\n", ipaddr.u8[0], ipaddr.u8[1], ipaddr.u8[2], ipaddr.u8[3]);
+        printf("netmask         - %d.%d.%d.%d\n", submask.u8[0], submask.u8[1], submask.u8[2], submask.u8[3]);
+        printf("default gateway - %d.%d.%d.%d\n", gateway.u8[0], gateway.u8[1], gateway.u8[2], gateway.u8[3]);
+        printf("DNS server      - %d.%d.%d.%d\n", dnsserver.u8[0], dnsserver.u8[1], dnsserver.u8[2], dnsserver.u8[3]);
+
+        recordAP();
+    }
+    else
+    {
+    	set_device_connect_ap_status(false);
+    }
 }
 
 
 int connect_to_wifi(void)
 {
-	int ret = true;
-	return ret;
+    return (wifi_connect(wifi_cb_func));
 }
 
 int connect_to_user_server(void)
 {
-	int ret = true;
-	return ret;
-}
-
-int user_socket_init(void)
-{
-	int ret = true;
-	return ret;
+	return (user_tcp_client_create());
 }
 
 
@@ -103,46 +179,39 @@ void user_transport_init(WIFI_OPMODE mode)
 {
 	printf("[%s]:%d!\r\n",__func__,__LINE__);
 
-	unsigned char encryptData[40] = {0};
-	unsigned char decryptData[40] = {0};
 	set_device_mode(mode);
 	
 	switch (mode)
 	{	
 		 case DUT_AP:
-		 	if (!tcp_server_init())
+		 	printf("[%s]deviece mode is AP!\r\n",__func__);
+			if (!user_tcp_server_create())
 			{
-				printf("[%s]tcp create failure!\r\n",__func__);
+				printf("[%s]tcp server create failure!\r\n",__func__);
 			}
 		 break;
 		 
 		 case DUT_STA:
-			if (get_device_connect_ap_status())
+		 	printf("[%s]deviece mode is STA!\r\n",__func__);
+			
+			if (!get_wifi_status())
 			{
-				set_device_connect_ap_status(true);
-				if (connect_to_user_server())
-				{
-					set_connect_server_status(true);
-				}
-				else 
-				{
-					printf("[%s]connect to server failure!\r\n",__func__);
-				}
+				if (!connect_to_wifi())
+					set_device_connect_ap_status(true);
+				else
+					set_device_connect_ap_status(false);
 			}
 			else
 			{
-				if (!connect_to_wifi())
-				{
-					printf("[%s]connect to wifi failure!\r\n",__func__);
-				}
-				if (!get_auto_connect_flag())
-				{
-					set_auto_connect_flag(1);
-				}
+				set_device_connect_ap_status(true);
 			}
-			if(!user_socket_init())
+			if (!get_auto_connect_flag())
 			{
-				printf("[%s]user socket create error!\r\n",__func__);
+				set_auto_connect_flag(1);
+			}
+			if (!user_tcp_client_create())
+			{
+				printf("[%s]tcp client create failure!\r\n",__func__);
 			}
 		 break;
 		 
@@ -161,37 +230,51 @@ void user_transport_func(void)
 	switch (get_device_mode())
 	{
 		case DUT_AP:
-			//if (get_wifi_config_msg_flag())
+			//printf("[%s]deviece mode is ap!\r\n",__func__);
+			if (get_wifi_config_msg())
 			{
+				char wifiSsid[20] = {0};
+				char wifiKey[20]  = {0};
+				get_wifi_param(wifiSsid,wifiKey);
+				set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
 				DUT_wifi_start(DUT_STA);
 				set_device_mode(DUT_STA);
-				set_auto_connect_flag(1);
-				if (!connect_to_wifi())
-				{
-					printf("[%s]connect wifi failure!\r\n",__func__);
-				}
+				set_auto_connect_flag(true);
+				connect_to_wifi();
+				set_socket_send_ack(true);
 			}
 		break;
 
 		case DUT_STA:
+			#if 1
+			//printf("[%s]deviece mode is station!\r\n",__func__);
 			if (get_connect_server_status())
 			{
-				//receive_server_data();
-				//解析数据
-				//发送数据
+				if (get_rev_server_data_flag())
+				{
+					int buflen = 0;
+					char pSesBuffer[BUFFER_SIZE_MAX] = {0};
+					char pDesBuffer[BUFFER_SIZE_MAX] = {0};
+					char pStr = NULL;
+					set_rev_server_data_flag(false);
+					buflen = strlen(deviceStatus.socketClientRevBuffer);
+					pStr = deviceStatus.socketClientRevBuffer + 1;
+					memcpy(pDesBuffer,deviceStatus.socketClientRevBuffer,BUFFER_SIZE_MAX);
+					user_aes_decrypt(pSesBuffer,pDesBuffer);
+					//解析数据
+					//发送数据
+				}
 			}
 			else
 			{
 				set_connect_server_status(false);
-				if(!user_socket_init())
+				if(0 != connect_to_user_server())
 				{
 					printf("[%s]user socket create error!\r\n",__func__);
-				}
-				if (connect_to_user_server())
-				{
 					set_connect_server_status(true);
 				}
 			}
+			#endif
 		break;
 
 		default:
