@@ -41,7 +41,7 @@ void user_aes_encrypt(unsigned char *indata, unsigned char *outdata)
 	mbedtls_aes_context aes;
 	unsigned char dst[128];
 	unsigned char IV[20] = "0102030405060708";
-	unsigned char key[20] = "KEYDIY9753szecar";
+	unsigned char key[20] = "KEYDIY2018szecar";
 	
 	length = strlen((char *)indata); 
 	iplain = indata;
@@ -72,7 +72,7 @@ void user_aes_decrypt(unsigned char *indata, unsigned char *outdata)
 	char length;
 	mbedtls_aes_context aes;
 	unsigned char IV[20] = "0102030405060708";
-	unsigned char key[20] = "KEYDIY9753szecar";
+	unsigned char key[20] = "KEYDIY2018szecar";
 	
 	length = strlen((char *)indata);
 	iplain = indata;

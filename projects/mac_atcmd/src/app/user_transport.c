@@ -21,6 +21,7 @@
 #include "rf/rf_api.h"
 #include "user_transport.h"
 #include "user_aes.h"
+#include "user_uart.h"
 
 
 /****************************define*********************/
@@ -179,8 +180,10 @@ void user_transport_init(WIFI_OPMODE mode)
 {
 	printf("[%s]:%d!\r\n",__func__,__LINE__);
 
+	//app_uart_int();
+	key_led_task_create();
 	set_device_mode(mode);
-	
+	//app_uart_send("user app start!\r\n",strlen("user app start!\r\n"));
 	switch (mode)
 	{	
 		 case DUT_AP:
@@ -235,13 +238,13 @@ void user_transport_func(void)
 			{
 				char wifiSsid[20] = {0};
 				char wifiKey[20]  = {0};
+				set_socket_send_ack(true);
 				get_wifi_param(wifiSsid,wifiKey);
 				set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
 				DUT_wifi_start(DUT_STA);
 				set_device_mode(DUT_STA);
 				set_auto_connect_flag(true);
 				connect_to_wifi();
-				set_socket_send_ack(true);
 			}
 		break;
 
@@ -257,21 +260,21 @@ void user_transport_func(void)
 					char pDesBuffer[BUFFER_SIZE_MAX] = {0};
 					char pStr = NULL;
 					set_rev_server_data_flag(false);
-					buflen = strlen(deviceStatus.socketClientRevBuffer);
-					pStr = deviceStatus.socketClientRevBuffer + 1;
-					memcpy(pDesBuffer,deviceStatus.socketClientRevBuffer,BUFFER_SIZE_MAX);
-					user_aes_decrypt(pSesBuffer,pDesBuffer);
-					//解析数据
-					//发送数据
+					//buflen = strlen(deviceStatus.socketClientRevBuffer);
+					//pStr = deviceStatus.socketClientRevBuffer + 1;
+					//memcpy(pSesBuffer,pStr,buflen - 2);
+					//user_aes_decrypt(pSesBuffer,pDesBuffer);
+					//printf("decrypt:%s\r\n",pDesBuffer);
 				}
 			}
 			else
 			{
-				set_connect_server_status(false);
-				if(0 != connect_to_user_server())
+				if (deviceStatus.socketCreateFlag == false)
 				{
-					printf("[%s]user socket create error!\r\n",__func__);
-					set_connect_server_status(true);
+					if(user_tcp_client_create())
+					{
+						printf("[%s]user socket create error!\r\n",__func__);
+					}
 				}
 			}
 			#endif

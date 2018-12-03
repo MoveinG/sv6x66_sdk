@@ -2,6 +2,8 @@
 LIB_SRC := main.c
 LIB_SRC += ssv_lib.c
 LIB_SRC += user_aes.c
+LIB_SRC += user_uart.c
+LIB_SRC += user_gpio.c
 LIB_SRC += user_socket.c
 LIB_SRC += user_transport.c
 

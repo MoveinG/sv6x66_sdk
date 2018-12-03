@@ -15,6 +15,7 @@ typedef struct {
 	char deviceConServerStatus;
 	int  socketClientId;
 	char socketClientChn;
+	char socketCreateFlag;
 	char socketClientRevFlag;
 	char socketClientRevBuffer[BUFFER_SIZE_MAX];
 	int  socketServerId;
@@ -30,6 +31,10 @@ void user_transport_init(WIFI_OPMODE mode);
 void user_transport_func(void);
 
 int  connect_to_wifi(void);
+
+void set_device_mode(WIFI_OPMODE mode);
+WIFI_OPMODE get_device_mode(void);
+
 
 void set_device_connect_ap_status(unsigned char status);
 int  get_device_connect_ap_status(void);
