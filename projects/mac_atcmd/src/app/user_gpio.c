@@ -35,7 +35,7 @@
 
 
 static OsTimer key_event_timer=NULL;
-char mode = DEVICE_START;
+static char DeviceMode = DEVICE_START;
 
 
 
@@ -53,9 +53,12 @@ void key_event_handler(void)
 		if(conut == KEY_TIME)
 		{
 			key_status = KEY_LONG;
-			if(mode == DUT_AP) mode = DUT_STA;
-			else mode = DUT_AP;
-		
+			DeviceMode = get_device_mode();
+			printf("DeviceMode = %d \r\n",DeviceMode);
+			if(DeviceMode == DUT_AP) DeviceMode = DUT_STA;
+			else DeviceMode = DUT_AP;
+			printf("DeviceMode2 = %d \r\n",DeviceMode);
+			
 		}
 		conut++;
 	}
@@ -68,10 +71,11 @@ void key_event_handler(void)
 		conut = 0;
 	}
 	last_key1 = state;
+	
 	switch(key_status)
 	{
 		case KEY_LONG:
-			if(get_device_mode() == DUT_AP)
+			if(DeviceMode == DUT_AP)
 			{
 				if(timer_count % 3 == 0)
 				{
@@ -82,7 +86,7 @@ void key_event_handler(void)
 				}
 
 			}
-			else if (get_device_mode == DUT_STA)
+			else 
 			{
 				if(timer_count % 15 == 0)
 				{
@@ -95,7 +99,7 @@ void key_event_handler(void)
 			break;
 		case KEY_SHORT:
 			printf("Device exit\r\n");
-			mode = DEVICE_START;
+			DeviceMode = DEVICE_START;
 			drv_gpio_set_logic(DEVICE_LED, 0);
 			break;
 		default:
@@ -130,14 +134,18 @@ static void user_key_led_task(void *arg)
 	Keyled_Init();
 	while(1)
 	{
-		 if (mode == DUT_STA)
+		 if (DeviceMode == DUT_STA)
 		 {
 		 	DUT_wifi_start(DUT_STA);
+			set_device_mode(DUT_STA);
 		 }
-		 else if (mode == DUT_AP)
+		 else if (DeviceMode == DUT_AP)
 		 {
 		 	DUT_wifi_start(DUT_AP);
+			set_device_mode(DUT_AP);
+			
 		 }
+		 OS_MsDelay(20);
 	}
 	vTaskDelete(NULL);
 }
