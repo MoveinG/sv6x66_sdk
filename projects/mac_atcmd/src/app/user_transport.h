@@ -15,11 +15,12 @@ typedef struct {
 	char deviceConServerStatus;
 	int  socketClientId;
 	char socketClientChn;
-	char socketCreateFlag;
+	char socketClientCreateFlag;
 	char socketClientRevFlag;
 	char socketClientRevBuffer[BUFFER_SIZE_MAX];
 	int  socketServerId;
 	char socketSendAckFlag;
+	char socketServerCreateFlag;
 	char socketServerRevFlag;
 	char socketServerRevBuffer[BUFFER_SIZE_MAX];
 }device_status_t;

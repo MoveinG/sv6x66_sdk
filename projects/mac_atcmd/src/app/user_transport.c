@@ -107,7 +107,7 @@ void get_wifi_param(char* wifiSsid,char* wifiKey)
 	char *pkey = NULL;
 	int len = 0;
 	printf("\r\n---------------------------------\r\n");
-	//memcpy(deviceStatus.socketServerRevBuffer,"{\"ssid\":\"wifiname\",\"password\":\"12345678\"}",42);
+	memcpy(deviceStatus.socketServerRevBuffer,"{\"ssid\":\"wifiname\",\"password\":\"12345678\"}",42);
 	//printf("buffer:%s\r\n",deviceStatus.socketServerRevBuffer);
 	if ((deviceStatus.socketServerRevBuffer[0] == '{') && \
 		(deviceStatus.socketServerRevBuffer[1] == '\"'))
@@ -234,6 +234,10 @@ void user_transport_func(void)
 	{
 		case DUT_AP:
 			//printf("[%s]deviece mode is ap!\r\n",__func__);
+			if (deviceStatus.socketServerCreateFlag == false)
+			{
+				user_tcp_server_create();
+			}
 			if (get_wifi_config_msg())
 			{
 				char wifiSsid[20] = {0};
@@ -269,7 +273,7 @@ void user_transport_func(void)
 			}
 			else
 			{
-				if (deviceStatus.socketCreateFlag == false)
+				if (deviceStatus.socketClientCreateFlag == false)
 				{
 					if(user_tcp_client_create())
 					{

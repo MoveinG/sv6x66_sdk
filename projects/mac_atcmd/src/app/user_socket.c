@@ -99,6 +99,10 @@ static void user_tcp_client_task(void *arg)
 	while(1)
 	{
 		//if (send_cmd_flag) cmd from uart
+		if (get_device_mode == DUT_AP)
+		{
+			 goto exit;
+		}
 		send(ret, "Hello", strlen("Hello"), 0);
 		read(newconn, buffer, BUFFER_SIZE_MAX);
 		if(buffer[0] != 0)
@@ -108,8 +112,12 @@ static void user_tcp_client_task(void *arg)
 			printf("receive msg =%s\r\n", buffer);
 			memset(buffer,0,BUFFER_SIZE_MAX);
 		}
+		
         OS_MsDelay(1000);
 	}
+
+exit:
+	deviceStatus.socketClientCreateFlag = false;
 	vTaskDelete(NULL);
 }
 
@@ -169,6 +177,7 @@ static void user_tcp_server_task(void *arg)
 
  
 exit:
+	deviceStatus.socketServerCreateFlag = false;
     vTaskDelete(NULL);
 }
 
@@ -176,9 +185,11 @@ exit:
 int user_tcp_server_create(void)
 {
 	int ret = 0;
-	
-	ret = OS_TaskCreate(user_tcp_server_task, "user_tcp_server_task", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
-
+	if (deviceStatus.socketServerRevFlag != true)
+	{
+		deviceStatus.socketServerRevFlag = true;
+		ret = OS_TaskCreate(user_tcp_server_task, "user_tcp_server_task", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+	}
 	return ret;
 }
 
@@ -186,9 +197,9 @@ int user_tcp_client_create(void)
 {
 	int ret = 0;
 
-	if (deviceStatus.socketCreateFlag != true)
+	if (deviceStatus.socketClientRevFlag != true)
 	{
-		deviceStatus.socketCreateFlag = true;
+		deviceStatus.socketClientRevFlag = true;
 		ret = OS_TaskCreate(user_tcp_client_task, "user_tcp_client_task", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
 	}
 	return ret;
