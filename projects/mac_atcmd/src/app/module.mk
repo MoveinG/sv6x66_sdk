@@ -25,6 +25,7 @@ LOCAL_INC += -I$(TOPDIR)/components/third_party/mbedtls/include/mbedtls
 LOCAL_INC += -I$(TOPDIR)/components/tools/atcmd
 LOCAL_INC += -I$(TOPDIR)/projects/mac_atcmd/src/cli
 LOCAL_INC += -Icomponents/netstack_wrapper
+LOCAL_INC += -Icomponents/drv/wdt
 LOCAL_INC += -Icomponents/net/tcpip/lwip-1.4.0/src/include
 LOCAL_INC += -Icomponents/net/tcpip/lwip-1.4.0/ports/icomm/include
 LOCAL_INC += -Icomponents/net/tcpip/lwip-1.4.0/src/include/ipv4

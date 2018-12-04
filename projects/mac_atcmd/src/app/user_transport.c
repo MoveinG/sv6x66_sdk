@@ -107,7 +107,7 @@ void get_wifi_param(char* wifiSsid,char* wifiKey)
 	char *pkey = NULL;
 	int len = 0;
 	printf("\r\n---------------------------------\r\n");
-	memcpy(deviceStatus.socketServerRevBuffer,"{\"ssid\":\"wifiname\",\"password\":\"12345678\"}",42);
+	memcpy(deviceStatus.socketServerRevBuffer,"{\"ssid\":\"A15\",\"password\":\"cdd@20180725\"}",42);
 	//printf("buffer:%s\r\n",deviceStatus.socketServerRevBuffer);
 	if ((deviceStatus.socketServerRevBuffer[0] == '{') && \
 		(deviceStatus.socketServerRevBuffer[1] == '\"'))
@@ -182,20 +182,21 @@ void user_transport_init(WIFI_OPMODE mode)
 
 	//app_uart_int();
 	key_led_task_create();
+	memset(&deviceStatus,0,sizeof(device_status_t));
 	set_device_mode(mode);
 	//app_uart_send("user app start!\r\n",strlen("user app start!\r\n"));
 	switch (mode)
 	{	
 		 case DUT_AP:
-		 	printf("[%s]deviece mode is AP!\r\n",__func__);
+		 	printf("[%d]deviece mode is AP!\r\n",__LINE__);
 			if (!user_tcp_server_create())
 			{
-				printf("[%s]tcp server create failure!\r\n",__func__);
+				printf("[%d]tcp server create failure!\r\n",__LINE__);
 			}
 		 break;
 		 
 		 case DUT_STA:
-		 	printf("[%s]deviece mode is STA!\r\n",__func__);
+		 	printf("[%d]deviece mode is STA!\r\n",__LINE__);
 			
 			if (!get_wifi_status())
 			{
@@ -214,12 +215,12 @@ void user_transport_init(WIFI_OPMODE mode)
 			}
 			if (!user_tcp_client_create())
 			{
-				printf("[%s]tcp client create failure!\r\n",__func__);
+				printf("[%d]tcp client create failure!\r\n",__LINE__);
 			}
 		 break;
 		 
 		 default:
-		 	printf("[%s]device mode error!\r\n",__func__);
+		 	printf("[%d]device mode error!\r\n",__LINE__);
 		 break;
 	}
 }
@@ -234,27 +235,40 @@ void user_transport_func(void)
 	{
 		case DUT_AP:
 			//printf("[%s]deviece mode is ap!\r\n",__func__);
-			if (deviceStatus.socketServerCreateFlag == false)
+			if ((deviceStatus.socketServerCreateFlag == false) && (!get_socket_send_ack()))
 			{
+				OS_MsDelay(1000);
 				user_tcp_server_create();
 			}
-			if (get_wifi_config_msg())
+			#if 0
+			//if (get_wifi_config_msg())
 			{
-				char wifiSsid[20] = {0};
-				char wifiKey[20]  = {0};
-				set_socket_send_ack(true);
-				get_wifi_param(wifiSsid,wifiKey);
-				set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
-				DUT_wifi_start(DUT_STA);
-				set_device_mode(DUT_STA);
-				set_auto_connect_flag(true);
-				connect_to_wifi();
+				//char wifiSsid[20] = {0};
+				//char wifiKey[20]  = {0};
+				//get_wifi_param(wifiSsid,wifiKey);
+				//set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
+				//DUT_wifi_start(DUT_STA);
+				//OS_MsDelay(100);
+				//set_device_mode(DUT_STA);
+				//set_auto_connect_flag(true);
+				//if (0 == connect_to_wifi())
+				{
+					//printf("[%d]:connect wifi success!!\r\n",__LINE__);
+					//set_device_mode(DUT_STA);
+				}
+				//set_socket_send_ack(true);
+				//OS_MsDelay(3000);
 			}
+			#endif
 		break;
 
 		case DUT_STA:
 			#if 1
 			//printf("[%s]deviece mode is station!\r\n",__func__);
+			if (get_socket_send_ack())
+			{
+				set_socket_send_ack(false);
+			}
 			if (get_connect_server_status())
 			{
 				if (get_rev_server_data_flag())
@@ -265,20 +279,21 @@ void user_transport_func(void)
 					char pStr = NULL;
 					set_rev_server_data_flag(false);
 					//buflen = strlen(deviceStatus.socketClientRevBuffer);
+					printf("recStr:%s\r\n",deviceStatus.socketClientRevBuffer);
 					//pStr = deviceStatus.socketClientRevBuffer + 1;
 					//memcpy(pSesBuffer,pStr,buflen - 2);
 					//user_aes_decrypt(pSesBuffer,pDesBuffer);
 					//printf("decrypt:%s\r\n",pDesBuffer);
+					memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
+					OS_MsDelay(1000);
 				}
 			}
 			else
 			{
 				if (deviceStatus.socketClientCreateFlag == false)
 				{
-					if(user_tcp_client_create())
-					{
-						printf("[%s]user socket create error!\r\n",__func__);
-					}
+					OS_MsDelay(1000);
+					user_tcp_client_create();
 				}
 			}
 			#endif

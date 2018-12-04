@@ -7,6 +7,7 @@
 #include "netstack_def.h"
 #include "ssv_lib.h"
 #include "wifi_api.h"
+#include "drv_wdt.h"
 #include "user_transport.h"
 #include "user_socket.h"
 
@@ -54,6 +55,8 @@ enum {
 /***********************local function ********************/
 static void user_tcp_client_task(void *arg)
 {
+	printf("[%d]:[%s]\r\n",__LINE__,__func__);
+		
 	char *pIp = 0;
     u16 port;    
     int socketId,newconn;
@@ -75,27 +78,25 @@ static void user_tcp_client_task(void *arg)
     if ((socketId = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("Failed to create socket\n");
-		vTaskDelete(NULL);
-        return ERROR_INVALID_PARAMETER;
+		goto exit;
     }
     ret = connect(socketId, (struct sockaddr *) &s_sockaddr, sizeof(s_sockaddr));
     if (ret < 0)
     {
         printf("Failed to connect ret=%d\n",ret);
         close(socketId);      
-		vTaskDelete(NULL);
-        return ERROR_INVALID_PARAMETER;
+		goto exit;
     }
 
     if (update_new_sd(socketId, -1) != 0)
     {
         close(socketId);
         printf("fail to add socket\n");
-		vTaskDelete(NULL);
-        return ERROR_TCP_CONNECTION;
+		goto exit;
     }
 
 	set_connect_server_status(true);
+	deviceStatus.socketClientRevFlag = true;
 	while(1)
 	{
 		//if (send_cmd_flag) cmd from uart
@@ -103,13 +104,13 @@ static void user_tcp_client_task(void *arg)
 		{
 			 goto exit;
 		}
-		send(ret, "Hello", strlen("Hello"), 0);
+		send(ret, "{4UVa4A9rd8Bb/8/e2XN4F+CCGMPXRSE+O+AX/wdBEWQ=}", strlen("{4UVa4A9rd8Bb/8/e2XN4F+CCGMPXRSE+O+AX/wdBEWQ=}"), 0);
 		read(newconn, buffer, BUFFER_SIZE_MAX);
 		if(buffer[0] != 0)
 		{
 			memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
 			set_rev_server_data_flag(true);
-			printf("receive msg =%s\r\n", buffer);
+			//printf("receive msg =%s\r\n", buffer);
 			memset(buffer,0,BUFFER_SIZE_MAX);
 		}
 		
@@ -117,6 +118,7 @@ static void user_tcp_client_task(void *arg)
 	}
 
 exit:
+	set_connect_server_status(false);
 	deviceStatus.socketClientCreateFlag = false;
 	vTaskDelete(NULL);
 }
@@ -124,6 +126,8 @@ exit:
 
 static void user_tcp_server_task(void *arg)
 {
+	printf("[%d]:[%s]\r\n",__LINE__,__func__);
+	
 	int sockfd, newconn, size, ret;
     struct sockaddr_in address, remotehost;
    	char readlen;
@@ -154,17 +158,38 @@ static void user_tcp_server_task(void *arg)
     listen(sockfd, 1); 
     size = sizeof(remotehost);
 
-	
+	deviceStatus.socketServerCreateFlag = true;
 	newconn = accept(sockfd, (struct sockaddr *)&remotehost, (socklen_t *)&size);
     while (1)
     {
     	vTaskDelay(1000 / portTICK_RATE_MS);
         if (newconn >= 0)
         {
-			set_wifi_config_msg(true);
+			//set_wifi_config_msg(true);
+			deviceStatus.socketServerRevFlag = true;
 			memset(deviceStatus.socketServerRevBuffer, 0 , BUFFER_SIZE_MAX);
 			read(newconn, deviceStatus.socketServerRevBuffer, BUFFER_SIZE_MAX);
 			printf("receive msg =%s\r\n", deviceStatus.socketServerRevBuffer);
+
+			OS_MsDelay(100);
+			drv_wdt_init();
+        	drv_wdt_enable(SYS_WDT, 100);
+
+			//char wifiSsid[20] = {0};
+			//char wifiKey[20]  = {0};
+			//softap_exit();
+			//get_wifi_param(wifiSsid,wifiKey);
+			//set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
+			//DUT_wifi_start(DUT_STA);
+			//OS_MsDelay(100);
+			//set_device_mode(DUT_STA);
+			//set_auto_connect_flag(true);
+			//if (0 == connect_to_wifi())
+			{
+				//printf("[%d]:connect wifi success!!\r\n",__LINE__);
+				//set_device_mode(DUT_STA);
+			}
+			//set_socket_send_ack(true);
         }
 		if (get_socket_send_ack())
 		{	
@@ -177,6 +202,8 @@ static void user_tcp_server_task(void *arg)
 
  
 exit:
+	set_wifi_config_msg(false);
+	deviceStatus.socketServerRevFlag = false;
 	deviceStatus.socketServerCreateFlag = false;
     vTaskDelete(NULL);
 }
@@ -185,11 +212,9 @@ exit:
 int user_tcp_server_create(void)
 {
 	int ret = 0;
-	if (deviceStatus.socketServerRevFlag != true)
-	{
-		deviceStatus.socketServerRevFlag = true;
-		ret = OS_TaskCreate(user_tcp_server_task, "user_tcp_server_task", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
-	}
+	
+	ret = OS_TaskCreate(user_tcp_server_task, "user_tcp_server_task", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+	OS_MsDelay(1000);
 	return ret;
 }
 
@@ -197,11 +222,8 @@ int user_tcp_client_create(void)
 {
 	int ret = 0;
 
-	if (deviceStatus.socketClientRevFlag != true)
-	{
-		deviceStatus.socketClientRevFlag = true;
-		ret = OS_TaskCreate(user_tcp_client_task, "user_tcp_client_task", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
-	}
+	ret = OS_TaskCreate(user_tcp_client_task, "user_tcp_client_task", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+	OS_MsDelay(1000);
 	return ret;
 }
 
