@@ -64,6 +64,7 @@ static void user_tcp_client_task(void *arg)
     struct sockaddr_in s_sockaddr;
     int listen = 0;
 	unsigned char buffer[BUFFER_SIZE_MAX] = {0};
+	unsigned char aesBuffer[BUFFER_SIZE_MAX] = {0};
 
 
 	pIp = USER_SERVER_IP;
@@ -96,24 +97,30 @@ static void user_tcp_client_task(void *arg)
     }
 
 	set_connect_server_status(true);
+	deviceStatus.socketClientCreateFlag = true;
 	deviceStatus.socketClientRevFlag = true;
 	while(1)
 	{
+		read(newconn, buffer, BUFFER_SIZE_MAX);
+		if(buffer[0] != 0)
+		{
+			printf("buffer = %s\r\n",buffer);
+			memcpy(aesBuffer,&buffer[1],strlen(buffer) - 2);
+			memset(buffer,0,BUFFER_SIZE_MAX);
+			user_aes_decrypt(aesBuffer,buffer);
+			memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
+			memset(aesBuffer,0,BUFFER_SIZE_MAX);
+			set_rev_server_data_flag(true);
+		}
 		if (deviceStatus.uartCmdFlag)
 		{
 			deviceStatus.uartCmdFlag = false;
-			user_aes_encrypt(deviceStatus.uartCmdBuffer,buffer);
+			memset(buffer,0,BUFFER_SIZE_MAX);
+			user_aes_encrypt(deviceStatus.uartCmdBuffer,aesBuffer);
+			sprintf(buffer,"{%s}",aesBuffer);
 			send(ret, buffer, strlen(buffer), 0);
-			memset(buffer,0,BUFFER_SIZE_MAX);
-			read(newconn, buffer, BUFFER_SIZE_MAX);
-		//printf("buffer = %s\r\n",buffer);	
-			if(buffer[0] != 0)
-			{
-				memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
-				set_rev_server_data_flag(true);
-			}
+			memset(aesBuffer,0,BUFFER_SIZE_MAX);
 			memset(deviceStatus.uartCmdBuffer,0,BUFFER_SIZE_MAX);
-			memset(buffer,0,BUFFER_SIZE_MAX);
 		}
 		if (get_device_mode == DUT_AP)
 		{
@@ -234,7 +241,6 @@ static void user_tcp_server_task(void *arg)
     	vTaskDelay(1000 / portTICK_RATE_MS);
         if (newconn >= 0)
         {
-			//set_wifi_config_msg(true);
 			deviceStatus.socketServerRevFlag = true;
 			memset(deviceStatus.socketServerRevBuffer, 0 , BUFFER_SIZE_MAX);
 			read(newconn, deviceStatus.socketServerRevBuffer, BUFFER_SIZE_MAX);
@@ -252,13 +258,10 @@ static void user_tcp_server_task(void *arg)
 		{	
 			send_client_ack(buf);
 			send(newconn, buf, strlen(buf), 0);
-			//memset(buf, 0, sizeof(buf));
-			//memset(str, 0, sizeof(str));
 			vTaskDelay(1000 / portTICK_RATE_MS);
 			drv_wdt_init();
         	drv_wdt_enable(SYS_WDT, 100);
 		}
-
 		
     }
 

@@ -169,11 +169,6 @@ int connect_to_wifi(void)
     return (wifi_connect(wifi_cb_func));
 }
 
-int connect_to_user_server(void)
-{
-	return (user_tcp_client_create());
-}
-
 
 
 void user_transport_init(WIFI_OPMODE mode)
@@ -235,37 +230,15 @@ void user_transport_func(void)
 	switch (get_device_mode())
 	{
 		case DUT_AP:
-			//printf("[%s]deviece mode is ap!\r\n",__func__);
 			if ((deviceStatus.socketServerCreateFlag == false) && (!get_socket_send_ack()))
 			{
 				OS_MsDelay(1000);
 				user_tcp_server_create();
 			}
-			#if 0
-			//if (get_wifi_config_msg())
-			{
-				//char wifiSsid[20] = {0};
-				//char wifiKey[20]  = {0};
-				//get_wifi_param(wifiSsid,wifiKey);
-				//set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
-				//DUT_wifi_start(DUT_STA);
-				//OS_MsDelay(100);
-				//set_device_mode(DUT_STA);
-				//set_auto_connect_flag(true);
-				//if (0 == connect_to_wifi())
-				{
-					//printf("[%d]:connect wifi success!!\r\n",__LINE__);
-					//set_device_mode(DUT_STA);
-				}
-				//set_socket_send_ack(true);
-				//OS_MsDelay(3000);
-			}
-			#endif
 		break;
 
 		case DUT_STA:
 			#if 1
-			//printf("[%s]deviece mode is station!\r\n",__func__);
 			if (get_socket_send_ack())
 			{
 				set_socket_send_ack(false);
@@ -274,19 +247,10 @@ void user_transport_func(void)
 			{
 				if (get_rev_server_data_flag())
 				{
-					int buflen = 0;
-					char pSesBuffer[BUFFER_SIZE_MAX] = {0};
-					char pDesBuffer[BUFFER_SIZE_MAX] = {0};
-					char pStr = NULL;
 					set_rev_server_data_flag(false);
-					//buflen = strlen(deviceStatus.socketClientRevBuffer);
-					printf("recStr:%s\r\n",deviceStatus.socketClientRevBuffer);
-					//pStr = deviceStatus.socketClientRevBuffer + 1;
-					//memcpy(pSesBuffer,pStr,buflen - 2);
-					//user_aes_decrypt(pSesBuffer,pDesBuffer);
-					//printf("decrypt:%s\r\n",pDesBuffer);
+					app_uart_send(deviceStatus.socketClientRevBuffer,strlen(deviceStatus.socketClientRevBuffer));
 					memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
-					OS_MsDelay(1000);
+					OS_MsDelay(100);
 				}
 			}
 			else

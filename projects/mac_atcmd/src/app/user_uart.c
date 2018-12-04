@@ -5,6 +5,8 @@
 #include "hsuart/hal_hsuart.h"
 #include "hsuart/drv_hsuart.h"
 #include "user_uart.h"
+#include "wifi_api.h"
+#include "user_transport.h"
 //#include "atcmd.h"
 
 
@@ -195,8 +197,16 @@ void app_uart_command(char *cmd)
 
 	switch (*cmd)
 	{	
-		 case '~':
-		 	sprintf(deviceStatus.uartCmdBuffer, "{%s}", cmd);
+		 case 0x21:
+		 case 0x22:
+		 case 0x23:
+		 case 0x24:
+		 case 0x25:
+		 case 0x26:
+		 case 0x27:
+		 case 0x5e:
+		 	printf("uartBuf=%s\r\n",cmd);
+		 	memcpy(deviceStatus.uartCmdBuffer,cmd,strlen(cmd));
 		 break;
 		 
 		 default:
@@ -207,6 +217,7 @@ void app_uart_command(char *cmd)
 
 void app_server_command(char *cmd)
 {
+	set_rev_server_data_flag(true);
 	switch (*cmd)
 	{	
 		 case 0x21:
@@ -234,6 +245,7 @@ void app_server_command(char *cmd)
 		 break;
 		 
 		 default:
+		 	set_rev_server_data_flag(false);
 		 	printf("server command error!\r\n");
 		 break;
 	}
@@ -268,8 +280,8 @@ void app_uart_rx_task(void *pdata)
          {
             if(AppUartRx->recv_len == last_recv_len)
             {
-			   app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
-			   app_command_func(AppUartRx->buf);
+			   //app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
+			   app_uart_command(AppUartRx->buf);
                AppUartRx->recv_len = 0;
             }
 			last_recv_len = AppUartRx->recv_len;
@@ -279,7 +291,8 @@ void app_uart_rx_task(void *pdata)
 	  else if(ret = OS_SUCCESS)
 	  {
 	      //AppUartProcessing(AppUartRx->buf,AppUartRx->recv_len);
-	      app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
+	      //app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
+		  app_uart_command(AppUartRx->buf);
           printf("app uart(full):%d\r\n",AppUartRx->recv_len);
           AppUartRx->recv_len = 0;
 		  rx_full_flg = true;
