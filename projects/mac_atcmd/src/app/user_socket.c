@@ -10,7 +10,7 @@
 #include "drv_wdt.h"
 #include "user_transport.h"
 #include "user_socket.h"
-
+#include "../cfg/mac_cfg.h"
 
 
 /****************************define*********************/
@@ -106,6 +106,7 @@ static void user_tcp_client_task(void *arg)
 		}
 		send(ret, "{4UVa4A9rd8Bb/8/e2XN4F+CCGMPXRSE+O+AX/wdBEWQ=}", strlen("{4UVa4A9rd8Bb/8/e2XN4F+CCGMPXRSE+O+AX/wdBEWQ=}"), 0);
 		read(newconn, buffer, BUFFER_SIZE_MAX);
+		//printf("buffer = %s\r\n",buffer);	
 		if(buffer[0] != 0)
 		{
 			memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
@@ -124,6 +125,68 @@ exit:
 }
 
 
+void HexToStr(unsigned char *pbDest,unsigned  char *pbSrc,unsigned int nLen)
+{
+		unsigned char	ddl,ddh;
+		unsigned int i;
+
+		for (i=0; i<nLen; i++)
+		{
+			ddh = 48 + pbSrc[i] / 16;
+			ddl = 48 + pbSrc[i] % 16;
+			if (ddh > 57) ddh = ddh + 7;
+			if (ddl > 57) ddl = ddl + 7;
+			pbDest[i*2] = ddh;
+			pbDest[i*2+1] = ddl;
+		}
+
+		pbDest[nLen*2] = '\0';
+}
+
+void read_mac1_addr(unsigned char *mac)
+{
+	printf("\n");
+    void *cfg_handle = wifi_cfg_init();
+    char mac_addr[6] = {0};
+    wifi_cfg_get_addr1(cfg_handle, mac_addr);
+    wifi_cfg_deinit(cfg_handle);
+	memcpy(mac, mac_addr, sizeof(mac_addr));
+	//printf("%02X:%02X:%02X:%02X:%02X:%02X\n", (uint8_t)mac_addr[0], (uint8_t)mac_addr[1], (uint8_t)mac_addr[2], (uint8_t)mac_addr[3], (uint8_t)mac_addr[4], (uint8_t)mac_addr[5]);
+}
+
+void send_client_ack(char *buffer)
+{
+	int i, j=0;
+	unsigned char buf[30] = {0};
+	unsigned char str[30] = {0};
+	char arry[5] = {':'};
+	char s[5] = "\"}";
+	char dest[30] = "{\"ack\":\"";
+	char *p = NULL;
+	unsigned char macaddr[6] = {0};	
+
+	for(i = 2; i < 15; i += 3)
+	{
+		memcpy(&buf[i], arry, 1);
+
+	}
+	read_mac1_addr(macaddr);
+	HexToStr(str, macaddr, 6);
+	for(i = 0; i < 18; i++)
+	{
+		if(i != 2 && i!= 5 && i!=8 && i!=11 && i!=14 ) 
+		{
+			memcpy(&buf[i], &str[j], 1);
+			j++;
+		}
+
+	}
+	strcat(buf, s);
+	strcat(dest, buf);
+	memcpy(buffer, dest, strlen(dest));
+
+}
+
 static void user_tcp_server_task(void *arg)
 {
 	printf("[%d]:[%s]\r\n",__LINE__,__func__);
@@ -133,7 +196,8 @@ static void user_tcp_server_task(void *arg)
    	char readlen;
     printf("tcpservertask\r\n");
 	unsigned char buffer[100] = {0};
-
+	char buf[30];
+	
 	/* create a TCP socket */
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
     {
@@ -171,33 +235,26 @@ static void user_tcp_server_task(void *arg)
 			read(newconn, deviceStatus.socketServerRevBuffer, BUFFER_SIZE_MAX);
 			printf("receive msg =%s\r\n", deviceStatus.socketServerRevBuffer);
 
-			OS_MsDelay(100);
-			drv_wdt_init();
-        	drv_wdt_enable(SYS_WDT, 100);
-
-			//char wifiSsid[20] = {0};
-			//char wifiKey[20]  = {0};
+			char wifiSsid[20] = {0};
+			char wifiKey[20]  = {0};
 			//softap_exit();
-			//get_wifi_param(wifiSsid,wifiKey);
-			//set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
+			get_wifi_param(wifiSsid,wifiKey);
+			set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
 			//DUT_wifi_start(DUT_STA);
-			//OS_MsDelay(100);
-			//set_device_mode(DUT_STA);
-			//set_auto_connect_flag(true);
-			//if (0 == connect_to_wifi())
-			{
-				//printf("[%d]:connect wifi success!!\r\n",__LINE__);
-				//set_device_mode(DUT_STA);
-			}
-			//set_socket_send_ack(true);
+			set_socket_send_ack(true);
         }
 		if (get_socket_send_ack())
 		{	
-			//这里需要吧设备的mac地址和封包为{"ack":"11:12:13:aa:bb:cc"}的形式发送打用户APP；
-			//send(ret, "{\"ack\":\"11:12:13:aa:bb:cc\"}", strlen("{\"ack\":\"11:12:13:aa:bb:cc\"}"), 0);
+			send_client_ack(buf);
+			send(newconn, buf, strlen(buf), 0);
+			//memset(buf, 0, sizeof(buf));
+			//memset(str, 0, sizeof(str));
 			vTaskDelay(1000 / portTICK_RATE_MS);
-			goto exit;
+			drv_wdt_init();
+        	drv_wdt_enable(SYS_WDT, 100);
 		}
+
+		
     }
 
  
