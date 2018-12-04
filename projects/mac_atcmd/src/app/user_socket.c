@@ -99,19 +99,24 @@ static void user_tcp_client_task(void *arg)
 	deviceStatus.socketClientRevFlag = true;
 	while(1)
 	{
-		//if (send_cmd_flag) cmd from uart
+		if (deviceStatus.uartCmdFlag)
+		{
+			deviceStatus.uartCmdFlag = false;
+			user_aes_encrypt(deviceStatus.uartCmdBuffer,buffer);
+			send(ret, buffer, strlen(buffer), 0);
+			memset(buffer,0,BUFFER_SIZE_MAX);
+			read(newconn, buffer, BUFFER_SIZE_MAX);
+			if(buffer[0] != 0)
+			{
+				memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
+				set_rev_server_data_flag(true);
+			}
+			memset(deviceStatus.uartCmdBuffer,0,BUFFER_SIZE_MAX);
+			memset(buffer,0,BUFFER_SIZE_MAX);
+		}
 		if (get_device_mode == DUT_AP)
 		{
 			 goto exit;
-		}
-		send(ret, "{4UVa4A9rd8Bb/8/e2XN4F+CCGMPXRSE+O+AX/wdBEWQ=}", strlen("{4UVa4A9rd8Bb/8/e2XN4F+CCGMPXRSE+O+AX/wdBEWQ=}"), 0);
-		read(newconn, buffer, BUFFER_SIZE_MAX);
-		if(buffer[0] != 0)
-		{
-			memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
-			set_rev_server_data_flag(true);
-			//printf("receive msg =%s\r\n", buffer);
-			memset(buffer,0,BUFFER_SIZE_MAX);
 		}
 		
         OS_MsDelay(1000);
@@ -172,31 +177,21 @@ static void user_tcp_server_task(void *arg)
 			printf("receive msg =%s\r\n", deviceStatus.socketServerRevBuffer);
 
 			OS_MsDelay(100);
-			drv_wdt_init();
-        	drv_wdt_enable(SYS_WDT, 100);
 
-			//char wifiSsid[20] = {0};
-			//char wifiKey[20]  = {0};
-			//softap_exit();
-			//get_wifi_param(wifiSsid,wifiKey);
-			//set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
-			//DUT_wifi_start(DUT_STA);
-			//OS_MsDelay(100);
-			//set_device_mode(DUT_STA);
-			//set_auto_connect_flag(true);
-			//if (0 == connect_to_wifi())
-			{
-				//printf("[%d]:connect wifi success!!\r\n",__LINE__);
-				//set_device_mode(DUT_STA);
-			}
-			//set_socket_send_ack(true);
+			char wifiSsid[20] = {0};
+			char wifiKey[20]  = {0};
+			get_wifi_param(wifiSsid,wifiKey);
+			set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
+			set_socket_send_ack(true);
         }
 		if (get_socket_send_ack())
 		{	
+			
 			//这里需要吧设备的mac地址和封包为{"ack":"11:12:13:aa:bb:cc"}的形式发送打用户APP；
 			//send(ret, "{\"ack\":\"11:12:13:aa:bb:cc\"}", strlen("{\"ack\":\"11:12:13:aa:bb:cc\"}"), 0);
 			vTaskDelay(1000 / portTICK_RATE_MS);
-			goto exit;
+			drv_wdt_init();
+        	drv_wdt_enable(SYS_WDT, 100);
 		}
     }
 

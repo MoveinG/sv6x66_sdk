@@ -29,6 +29,19 @@ static unsigned char *AES_Padding_Zero(unsigned char *data,unsigned short data_l
 }
 
 
+static size_t AES_Padding5(unsigned char *src, size_t srcLen)
+{ 
+	size_t paddNum = 16 - srcLen % 16; 
+	for (int i = 0; i < paddNum; i++) 
+	{ 
+		src[srcLen + i] = paddNum; 
+	}
+	return srcLen + paddNum; 
+}
+
+
+
+
 void user_aes_encrypt(unsigned char *indata, unsigned char *outdata)
 {
 	
@@ -47,13 +60,15 @@ void user_aes_encrypt(unsigned char *indata, unsigned char *outdata)
 	iplain = indata;
 	
 	mbedtls_aes_init( &aes );
-	plain = AES_Padding_Zero(iplain, length, &padlen);
+	//plain = AES_Padding_Zero(iplain, length, &padlen);
+	padlen = AES_Padding5(iplain,length);
+	plain = iplain;
 	mbedtls_aes_setkey_enc(&aes, key, 128);	
-	mbedtls_aes_crypt_cbc(&aes, AES_ENCRYPT, padlen, IV, plain, cypher);
+	mbedtls_aes_crypt_cbc(&aes, AES_ENCRYPT, padlen, IV, plain, cypher);\
 	mbedtls_base64_encode(dst, sizeof(dst), &enlen, cypher, padlen);
 	
 	length = strlen((char *)dst);
-    free(plain);
+    //free(plain);
 	plain = NULL;
 	memcpy(outdata, dst, enlen);
 
@@ -78,9 +93,11 @@ void user_aes_decrypt(unsigned char *indata, unsigned char *outdata)
 	iplain = indata;
 	mbedtls_aes_init( &aes );
 	mbedtls_base64_decode(rst, sizeof(rst), &delen, iplain, length);
-	plain = AES_Padding_Zero(rst, delen, &padlen);
+	//plain = AES_Padding_Zero(rst, delen, &padlen);
+	padlen = AES_Padding5(rst,length);
+	plain = iplain;
 	mbedtls_aes_setkey_dec(&aes, key, 128);
-	mbedtls_aes_crypt_cbc(&aes, AES_DECRYPT, padlen, IV, plain, plain_decrypt);
+	mbedtls_aes_crypt_cbc(&aes, AES_DECRYPT, padlen, IV, rst, plain_decrypt);
 	memcpy(outdata, plain_decrypt, padlen);
 
 }

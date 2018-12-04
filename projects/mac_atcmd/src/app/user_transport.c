@@ -180,11 +180,12 @@ void user_transport_init(WIFI_OPMODE mode)
 {
 	printf("[%s]:%d!\r\n",__func__,__LINE__);
 
-	//app_uart_int();
+	app_uart_int();
 	key_led_task_create();
 	memset(&deviceStatus,0,sizeof(device_status_t));
 	set_device_mode(mode);
-	//app_uart_send("user app start!\r\n",strlen("user app start!\r\n"));
+	app_uart_send("user app start!\r\n",strlen("user app start!\r\n"));
+
 	switch (mode)
 	{	
 		 case DUT_AP:

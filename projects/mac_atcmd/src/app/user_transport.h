@@ -11,6 +11,8 @@
 
 typedef struct {
 	WIFI_OPMODE deviceMode;
+	char uartCmdFlag;
+	char uartCmdBuffer[BUFFER_SIZE_MAX];
 	char deviceConApStatus;
 	char deviceConServerStatus;
 	int  socketClientId;

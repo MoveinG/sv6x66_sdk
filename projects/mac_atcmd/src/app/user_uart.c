@@ -5,7 +5,7 @@
 #include "hsuart/hal_hsuart.h"
 #include "hsuart/drv_hsuart.h"
 #include "user_uart.h"
-#include "atcmd.h"
+//#include "atcmd.h"
 
 
 
@@ -40,7 +40,7 @@ void app_uart_rx_task(void *pdata);
 ******************************************************************************/
 void app_uart_int(void)
 {
-#if 0
+#if 1
     printf("hsuart int\r\n");
 	memset(&AppUartRxData1,0,sizeof(AppUartRx_t));
 	AppUartRx = &AppUartRxData1;
@@ -49,8 +49,8 @@ void app_uart_int(void)
     drv_hsuart_set_fifo (HSUART_INT_RX_FIFO_TRIG_LV_16);
     drv_hsuart_set_hardware_flow_control (16, 24);
 
-    //drv_hsuart_set_format(115200, HSUART_WLS_8,HSUART_STB_1 , HSUART_PARITY_DISABLE);
-    app_uart_set_format(CIB.uartcfg.baudrate,CIB.uartcfg.databits,CIB.uartcfg.stopbit,CIB.uartcfg.datapaity);
+    drv_hsuart_set_format(9600, HSUART_WLS_8,HSUART_STB_1 , HSUART_PARITY_DISABLE);
+    //app_uart_set_format(CIB.uartcfg.baudrate,CIB.uartcfg.databits,CIB.uartcfg.stopbit,CIB.uartcfg.datapaity);
 
 	drv_hsuart_register_isr(HSUART_RX_DATA_READY_IE, app_uart_isr);
 	if(OS_SemInit(&AppUartRxSem, 1, 0) == OS_SUCCESS)
@@ -189,6 +189,58 @@ void app_uart_isr(void)
 	}
 }
 
+void app_uart_command(char *cmd)
+{
+	deviceStatus.uartCmdFlag = true;
+
+	switch (*cmd)
+	{	
+		 case '~':
+		 	sprintf(deviceStatus.uartCmdBuffer, "{%s}", cmd);
+		 break;
+		 
+		 default:
+		 	deviceStatus.uartCmdFlag = false;
+		 break;
+	}
+}
+
+void app_server_command(char *cmd)
+{
+	switch (*cmd)
+	{	
+		 case 0x21:
+		 break;
+		 
+		 case 0x22:
+		 break;
+
+		 case 0x23:
+		 break;
+
+		 case 0x24:
+		 break;
+
+		 case 0x25:
+		 break;
+
+		 case 0x26:
+		 break;
+
+		 case 0x27:
+		 break;
+
+		 case 0x5e:
+		 break;
+		 
+		 default:
+		 	printf("server command error!\r\n");
+		 break;
+	}
+}
+
+
+
 /*****************************************************************************
 *
 * app_uart_rx_task
@@ -202,7 +254,7 @@ void app_uart_isr(void)
 ******************************************************************************/
 void app_uart_rx_task(void *pdata)
 {
-#if 0
+#if 1
    OS_STATUS ret;
    uint32_t last_recv_len = 0;
    bool rx_full_flg = false;
@@ -216,17 +268,8 @@ void app_uart_rx_task(void *pdata)
          {
             if(AppUartRx->recv_len == last_recv_len)
             {
-               if((AtCmdMode == TRANSMIT_MODE) && (rx_full_flg == false) && (AppUartRx->recv_len == CMD_CHAR_NUMS) && (!memcmp(AppUartRx->buf,CMD_CHAR,CMD_CHAR_NUMS)))
-               {
-                  AtCmdMode = ATCMD_MODE;
-				  CmdUartRspStatus(CMD_SUCCESS);
-                  printf("enter at cmd mode\r\n");
-               }
-			   else
-			   {
-                  AppUartProcessing(AppUartRx->buf,AppUartRx->recv_len);
-				  printf("app uart(timeout):%d\r\n",AppUartRx->recv_len);
-			   }
+			   app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
+			   app_command_func(AppUartRx->buf);
                AppUartRx->recv_len = 0;
             }
 			last_recv_len = AppUartRx->recv_len;
@@ -235,7 +278,8 @@ void app_uart_rx_task(void *pdata)
       }
 	  else if(ret = OS_SUCCESS)
 	  {
-	      AppUartProcessing(AppUartRx->buf,AppUartRx->recv_len);
+	      //AppUartProcessing(AppUartRx->buf,AppUartRx->recv_len);
+	      app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
           printf("app uart(full):%d\r\n",AppUartRx->recv_len);
           AppUartRx->recv_len = 0;
 		  rx_full_flg = true;
