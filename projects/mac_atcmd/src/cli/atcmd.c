@@ -1805,6 +1805,8 @@ void atwificbfunc(WIFI_RSP *msg)
     }
     else
     {
+        extern void set_device_connect_ap_status(unsigned char status);
+        set_device_connect_ap_status(false);
         printf("%s OK\n", ATCMD_DISCONNECT);
     }
 }

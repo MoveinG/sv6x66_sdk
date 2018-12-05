@@ -217,7 +217,7 @@ void send_client_ack(char *buffer)
 	memcpy(buffer, dest, strlen(dest));
 
 }
-
+extern void atwificbfunc(WIFI_RSP *msg);
 static void user_tcp_server_task(void *arg)
 {
 	printf("[%d]:[%s]\r\n",__LINE__,__func__);
@@ -227,7 +227,9 @@ static void user_tcp_server_task(void *arg)
    	char readlen;
     printf("tcpservertask\r\n");
 	unsigned char buffer[100] = {0};
-	char buf[30];
+	char wifiSsid[20] = {0};
+	char wifiKey[20]  = {0};
+	char buf[30] = {0};
 	
 	/* create a TCP socket */
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
@@ -267,19 +269,31 @@ static void user_tcp_server_task(void *arg)
 
 			OS_MsDelay(100);
 
-			char wifiSsid[20] = {0};
-			char wifiKey[20]  = {0};
 			get_wifi_param(wifiSsid,wifiKey);
-			set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
+			
+			//set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
 			set_socket_send_ack(true);
         }
 		if (get_socket_send_ack())
 		{	
 			send_client_ack(buf);
 			send(newconn, buf, strlen(buf), 0);
-			vTaskDelay(1000 / portTICK_RATE_MS);
-			drv_wdt_init();
-        	drv_wdt_enable(SYS_WDT, 100);
+			OS_MsDelay(1000);
+			close(newconn);
+			close(sockfd);
+			softap_exit();
+			OS_MsDelay(1000);
+
+			wifi_disconnect(atwificbfunc);
+			OS_MsDelay(1000);
+			DUT_wifi_start(DUT_STA);
+			set_device_mode(DUT_STA);
+			OS_MsDelay(1000);
+			wifi_connect_active((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey),atwificbfunc);
+			goto exit;
+			//vTaskDelay(1000 / portTICK_RATE_MS);
+			//drv_wdt_init();
+        	//drv_wdt_enable(SYS_WDT, 100);
 		}
 		
     }

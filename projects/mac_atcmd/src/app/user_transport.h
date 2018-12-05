@@ -55,6 +55,8 @@ void set_rev_server_data_flag(int value);
 int  get_rev_server_data_flag(void);
 
 void get_wifi_param(char* wifiSsid,char* wifiKey);
+void wifi_cb_func(WIFI_RSP *msg);
+
 
 extern device_status_t deviceStatus;
 

@@ -79,24 +79,30 @@ void user_aes_decrypt(unsigned char *indata, unsigned char *outdata)
 {
 	
 	unsigned char plain_decrypt[64] = {0};
-	unsigned char rst[128] = {0};
+	unsigned char rst[64] = {0};
+	unsigned char des[64] = {0};
 	size_t delen = 0;
 	unsigned short padlen = 0;
-	unsigned char *iplain = NULL;
+	char *iplain = NULL;
+	char *pBuf = NULL;
 	char length = 0;
 	mbedtls_aes_context aes;
 	unsigned char IV[20] = "0102030405060708";
 	unsigned char key[20] = "KEYDIY2018szecar";
 
+	memset(plain_decrypt,0,64);
 	length = strlen((char *)indata);
 	iplain = indata;
 	mbedtls_aes_init( &aes );
 	mbedtls_base64_decode(rst, sizeof(rst), &delen, iplain, length);
 	//plain = AES_Padding_Zero(rst, delen, &padlen);
-	padlen = AES_Padding5(rst,length);
+	padlen = AES_Padding5(rst,delen);
 	mbedtls_aes_setkey_dec(&aes, key, 128);
-	mbedtls_aes_crypt_cbc(&aes, AES_DECRYPT, padlen, IV, rst, plain_decrypt);
-	memcpy(outdata, plain_decrypt, 3);
+	mbedtls_aes_crypt_cbc(&aes, AES_DECRYPT, padlen, IV, rst, plain_decrypt);
+	pBuf = plain_decrypt;
+	iplain = strchr(plain_decrypt,'?');
+	length = iplain - pBuf + 1;
+	memcpy(outdata, plain_decrypt, length);
 
 }
 					

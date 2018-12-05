@@ -34,7 +34,6 @@
 
 
 static OsTimer key_led_timer = NULL;
-static char DeviceMode = DEVICE_START;
 
 
 void key_led_handler(void)
@@ -51,9 +50,8 @@ void key_led_handler(void)
 		if(conut == KEY_TIME)
 		{
 			key_status = KEY_LONG;
-			DeviceMode = get_device_mode();
-			if(DeviceMode == DUT_AP) DeviceMode = DUT_STA;
-			else DeviceMode = DUT_AP;
+			if(get_device_mode() == DUT_AP) set_device_mode(DUT_STA);
+			else set_device_mode(DUT_AP);
 		}
 		conut++;
 	}
@@ -70,7 +68,7 @@ void key_led_handler(void)
 	switch(key_status)
 	{
 		case KEY_LONG:
-			if(DeviceMode == DUT_AP)
+			if(get_device_mode() == DUT_AP)
 			{
 				if(timer_count % 3 == 0)
 				{
@@ -97,7 +95,7 @@ void key_led_handler(void)
 			break;
 
 	}
-	if(DeviceMode != DEVICE_START) return;
+	if(get_device_mode() != DEVICE_START) return;
 	if(get_connect_server_status() == true)
 	{
 		drv_gpio_set_logic(DEVICE_LED, 1);	
@@ -153,12 +151,12 @@ static void user_key_led_task(void *arg)
 	Keyled_Init();
 	while(1)
 	{
-		 if (DeviceMode == DUT_STA)
+		 if (get_device_mode() == DUT_STA)
 		 {
 		 	DUT_wifi_start(DUT_STA);
 			set_device_mode(DUT_STA);
 		 }
-		 else if (DeviceMode == DUT_AP)
+		 else if (get_device_mode() == DUT_AP)
 		 {
 		 	DUT_wifi_start(DUT_AP);
 			set_device_mode(DUT_AP);

@@ -25,6 +25,8 @@
 
 
 /****************************define*********************/
+#define TEST_AP_INFO  			"{\"ssid\":\"A15\",\"password\":\"cdd@20180725\"}"
+
 
 
 /****************************typedef*********************/
@@ -103,11 +105,12 @@ int get_rev_server_data_flag(void)
 void get_wifi_param(char* wifiSsid,char* wifiKey)
 {
 	char *pbuffer = NULL;
-	char *ppost = NULL;
-	char *pkey = NULL;
-	int len = 0;
+	char *ppost   = NULL;
+	char *pkey    = NULL;
+	int   len     = 0;
+	
 	printf("\r\n---------------------------------\r\n");
-	//memcpy(deviceStatus.socketServerRevBuffer,"{\"ssid\":\"A15\",\"password\":\"cdd@20180725\"}",42);
+	//memcpy(deviceStatus.socketServerRevBuffer,TEST_AP_INFO,strlen(TEST_AP_INFO));
 	if ((deviceStatus.socketServerRevBuffer[0] == '{') && \
 		(deviceStatus.socketServerRevBuffer[1] == '\"'))
 	{
@@ -138,7 +141,7 @@ void wifi_cb_func(WIFI_RSP *msg)
     u8 mac[6];
     uip_ipaddr_t ipaddr, submask, gateway, dnsserver;
 
-	//printf("[%s]:%d!\r\n",__func__,__LINE__);
+	printf("[%s]:%d!\r\n",__func__,__LINE__);
 
     if(msg->wifistatus == 1)
     {
@@ -173,7 +176,6 @@ int connect_to_wifi(void)
 void user_transport_init(WIFI_OPMODE mode)
 {
 	//printf("[%s]:%d!\r\n",__func__,__LINE__);
-
 	app_uart_int();
 	key_led_task_create();
 	memset(&deviceStatus,0,sizeof(device_status_t));
