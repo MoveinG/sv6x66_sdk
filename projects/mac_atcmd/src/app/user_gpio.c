@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include "soc_types.h"
 #include "sys/backtrace.h"
@@ -34,12 +33,11 @@
 #define DEVICE_START 0
 
 
-static OsTimer key_event_timer=NULL;
+static OsTimer key_led_timer = NULL;
 static char DeviceMode = DEVICE_START;
 
 
-
-void key_event_handler(void)
+void key_led_handler(void)
 {
 	static char last_key1 = 1, conut = 0;
 	unsigned char state;
@@ -54,11 +52,8 @@ void key_event_handler(void)
 		{
 			key_status = KEY_LONG;
 			DeviceMode = get_device_mode();
-			printf("DeviceMode = %d \r\n",DeviceMode);
 			if(DeviceMode == DUT_AP) DeviceMode = DUT_STA;
 			else DeviceMode = DUT_AP;
-			printf("DeviceMode2 = %d \r\n",DeviceMode);
-			
 		}
 		conut++;
 	}
@@ -79,8 +74,7 @@ void key_event_handler(void)
 			{
 				if(timer_count % 3 == 0)
 				{
-					
-					printf("Device enters AP mode\r\n");
+					//printf("Device enters AP mode\r\n");
 					led_s = !led_s;
 					drv_gpio_set_logic(DEVICE_LED, led_s);
 				}
@@ -90,25 +84,49 @@ void key_event_handler(void)
 			{
 				if(timer_count % 15 == 0)
 				{
-					printf("Device enters STA mode\r\n");
+					//printf("Device enters STA mode\r\n");
 					led_s = !led_s;
-					drv_gpio_set_logic(DEVICE_LED, led_s);
+					drv_gpio_set_logic(DEVICE_LED, led_s);	
 				}
 
 			}
 			break;
 		case KEY_SHORT:
-			printf("Device exit\r\n");
-			DeviceMode = DEVICE_START;
-			drv_gpio_set_logic(DEVICE_LED, 0);
 			break;
 		default:
 			break;
 
 	}
-	
+	if(DeviceMode != DEVICE_START) return;
+	if(get_connect_server_status() == true)
+	{
+		drv_gpio_set_logic(DEVICE_LED, 1);	
+	}
+	else
+	{
+		if(timer_count % 1 == 0)   
+		{
+			if((timer_count >= 4) && (timer_count < 20))
+			{
+				drv_gpio_set_logic(DEVICE_LED, 0);
+				led_s = 0;
+			}
+			else if(timer_count >= 20)
+			{
+				timer_count = 0; 
+			}
+			else
+			{
+				led_s = !led_s;
+				drv_gpio_set_logic(DEVICE_LED, led_s);
+				
+			}
+				 
+		}
+	}
 
 }
+
 
 
 void Keyled_Init(void)
@@ -119,13 +137,14 @@ void Keyled_Init(void)
 
 	drv_gpio_set_mode(DEVICE_LED, 0);
 	drv_gpio_set_dir(DEVICE_LED, 1);
-	drv_gpio_set_logic(DEVICE_LED, 1);
+	drv_gpio_set_logic(DEVICE_LED, 0);
 
-	if(OS_TimerCreate(&key_event_timer, 100, (unsigned char)1, NULL, (OsTimerHandler)key_event_handler) != OS_SUCCESS)
+	if(OS_TimerCreate(&key_led_timer, 100, (unsigned char)1, NULL, (OsTimerHandler)key_led_handler) != OS_SUCCESS)
 	{
-		printf("create KEY timer failed\r\n");
+		printf("create KEY_LED timer failed\r\n");
 	}
-	OS_TimerStart(key_event_timer);
+	OS_TimerStart(key_led_timer);
+	
 }
 
 
