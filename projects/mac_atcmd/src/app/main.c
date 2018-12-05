@@ -103,7 +103,7 @@ void wifi_auto_connect_task(void *pdata)
     }
 	else
 	{
-		DUT_wifi_start(DUT_AP);
+		DUT_wifi_start(DUT_STA);
 	}
 	
     OS_TaskCreate(user_transport_task, "user_transport", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);

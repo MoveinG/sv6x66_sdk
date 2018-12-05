@@ -191,10 +191,8 @@ void app_uart_isr(void)
 	}
 }
 
-void app_uart_command(char *cmd)
+void app_uart_command(char *cmd,char cmdLen)
 {
-	deviceStatus.uartCmdFlag = true;
-
 	switch (*cmd)
 	{	
 		 case 0x21:
@@ -206,11 +204,11 @@ void app_uart_command(char *cmd)
 		 case 0x27:
 		 case 0x5e:
 		 	printf("uartBuf=%s\r\n",cmd);
-		 	memcpy(deviceStatus.uartCmdBuffer,cmd,strlen(cmd));
+			deviceStatus.uartCmdFlag = true;
+		 	memcpy(deviceStatus.uartCmdBuffer,cmd,cmdLen);
 		 break;
 		 
 		 default:
-		 	deviceStatus.uartCmdFlag = false;
 		 break;
 	}
 }
@@ -245,7 +243,7 @@ void app_server_command(char *cmd)
 		 break;
 		 
 		 default:
-		 	set_rev_server_data_flag(false);
+		 	//set_rev_server_data_flag(false);
 		 	printf("server command error!\r\n");
 		 break;
 	}
@@ -281,7 +279,7 @@ void app_uart_rx_task(void *pdata)
             if(AppUartRx->recv_len == last_recv_len)
             {
 			   //app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
-			   app_uart_command(AppUartRx->buf);
+			   app_uart_command(AppUartRx->buf,AppUartRx->recv_len);
                AppUartRx->recv_len = 0;
             }
 			last_recv_len = AppUartRx->recv_len;
@@ -292,7 +290,7 @@ void app_uart_rx_task(void *pdata)
 	  {
 	      //AppUartProcessing(AppUartRx->buf,AppUartRx->recv_len);
 	      //app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
-		  app_uart_command(AppUartRx->buf);
+		  app_uart_command(AppUartRx->buf,AppUartRx->recv_len);
           printf("app uart(full):%d\r\n",AppUartRx->recv_len);
           AppUartRx->recv_len = 0;
 		  rx_full_flg = true;

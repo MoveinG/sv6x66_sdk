@@ -102,24 +102,9 @@ static void user_tcp_client_task(void *arg)
 	deviceStatus.socketClientRevFlag = true;
 	while(1)
 	{
-		read(newconn, buffer, BUFFER_SIZE_MAX);
-		if(buffer[0] != 0)
+		if (deviceStatus.uartCmdFlag == true)
 		{
-			printf("buffer = %s\r\n",buffer);
-			
-			pBuf = strchr(buffer,'{');
-			if ((pBuf != NULL) && (strlen(pBuf) > 2))
-			{
-				memset(aesBuffer,0,BUFFER_SIZE_MAX);
-				memcpy(aesBuffer,(pBuf+1),strlen(pBuf) - 2);
-				user_aes_decrypt(aesBuffer,buffer);
-				memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
-				set_rev_server_data_flag(true);
-			}
-			memset(buffer,0,BUFFER_SIZE_MAX);
-		}
-		if (deviceStatus.uartCmdFlag)
-		{
+			printf("222222222222222222222222\r\n");
 			deviceStatus.uartCmdFlag = false;
 			memset(buffer,0,BUFFER_SIZE_MAX);
 			user_aes_encrypt(deviceStatus.uartCmdBuffer,aesBuffer);
@@ -129,12 +114,40 @@ static void user_tcp_client_task(void *arg)
 			memset(aesBuffer,0,BUFFER_SIZE_MAX);
 			memset(deviceStatus.uartCmdBuffer,0,BUFFER_SIZE_MAX);
 		}
+		else
+		{
+			read(newconn, buffer, BUFFER_SIZE_MAX);
+			if(buffer[0] != 0)
+			{
+				printf("[%d]buffer=%s\r\n",__LINE__,buffer);
+			
+				//pBuf = strchr(buffer,'{');
+				//printf("[%d]pBuf=%s\r\n",__LINE__,pBuf );
+				if ((buffer[0] == '{') && (buffer[1] != '{'))
+				{
+					memset(aesBuffer,0,BUFFER_SIZE_MAX);
+					memcpy(aesBuffer,&(buffer[1]),strlen(buffer) - 2);
+					memset(buffer,0,BUFFER_SIZE_MAX);
+					printf("send to uart aesBuffer=%s,len=%d\r\n",aesBuffer,strlen(aesBuffer));
+					user_aes_decrypt(aesBuffer,buffer);
+					printf("send to uart buffer=%s,len=%d\r\n",buffer,strlen(buffer));
+					OS_MsDelay(100);
+					//memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
+					//app_uart_send(deviceStatus.socketClientRevBuffer,strlen(deviceStatus.socketClientRevBuffer));
+					//memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
+					//OS_MsDelay(100);
+					//set_rev_server_data_flag(true);
+				}
+				memset(buffer,0,BUFFER_SIZE_MAX);
+			}
+		}
+		
 		if (get_device_mode == DUT_AP)
 		{
 			 goto exit;
 		}
 		
-        OS_MsDelay(100);
+        vTaskDelay(1000 / portTICK_RATE_MS);
 	}
 
 exit:

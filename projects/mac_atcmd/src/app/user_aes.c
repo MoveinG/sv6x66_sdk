@@ -78,27 +78,28 @@ void user_aes_encrypt(unsigned char *indata, unsigned char *outdata)
 void user_aes_decrypt(unsigned char *indata, unsigned char *outdata)
 {
 	
-	static unsigned char plain_decrypt[64];
-	unsigned char rst[128];
-	size_t delen;
-	unsigned short padlen;
+	unsigned char plain_decrypt[64] = {0};
+	unsigned char rst[128] = {0};
+	size_t delen = 0;
+	unsigned short padlen = 0;
 	unsigned char *iplain = NULL;
-	unsigned char *plain = NULL;
-	char length;
+	char length = 0;
 	mbedtls_aes_context aes;
 	unsigned char IV[20] = "0102030405060708";
 	unsigned char key[20] = "KEYDIY2018szecar";
-	
+
+	printf("[%s]indata=%s,len=%d\r\n",__func__,indata,strlen(indata));
 	length = strlen((char *)indata);
 	iplain = indata;
 	mbedtls_aes_init( &aes );
 	mbedtls_base64_decode(rst, sizeof(rst), &delen, iplain, length);
 	//plain = AES_Padding_Zero(rst, delen, &padlen);
 	padlen = AES_Padding5(rst,length);
-	plain = iplain;
 	mbedtls_aes_setkey_dec(&aes, key, 128);
 	mbedtls_aes_crypt_cbc(&aes, AES_DECRYPT, padlen, IV, rst, plain_decrypt);
-	memcpy(outdata, plain_decrypt, padlen);
+	printf("[%s]len=%d padlen=%d\r\n",__func__,strlen(plain_decrypt),padlen);
+	memcpy(outdata, plain_decrypt, 3);
+	printf("[%s]len=%d\r\n",__func__,strlen(outdata));
 
 }
 					
