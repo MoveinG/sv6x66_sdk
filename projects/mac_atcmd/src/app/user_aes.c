@@ -88,7 +88,6 @@ void user_aes_decrypt(unsigned char *indata, unsigned char *outdata)
 	unsigned char IV[20] = "0102030405060708";
 	unsigned char key[20] = "KEYDIY2018szecar";
 
-	printf("[%s]indata=%s,len=%d\r\n",__func__,indata,strlen(indata));
 	length = strlen((char *)indata);
 	iplain = indata;
 	mbedtls_aes_init( &aes );
@@ -97,9 +96,7 @@ void user_aes_decrypt(unsigned char *indata, unsigned char *outdata)
 	padlen = AES_Padding5(rst,length);
 	mbedtls_aes_setkey_dec(&aes, key, 128);
 	mbedtls_aes_crypt_cbc(&aes, AES_DECRYPT, padlen, IV, rst, plain_decrypt);
-	printf("[%s]len=%d padlen=%d\r\n",__func__,strlen(plain_decrypt),padlen);
 	memcpy(outdata, plain_decrypt, 3);
-	printf("[%s]len=%d\r\n",__func__,strlen(outdata));
 
 }
 					

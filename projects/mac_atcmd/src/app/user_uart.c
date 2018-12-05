@@ -203,6 +203,7 @@ void app_uart_command(char *cmd,char cmdLen)
 		 case 0x26:
 		 case 0x27:
 		 case 0x5e:
+		 case 0x7e:
 		 	printf("uartBuf=%s\r\n",cmd);
 			deviceStatus.uartCmdFlag = true;
 		 	memcpy(deviceStatus.uartCmdBuffer,cmd,cmdLen);
