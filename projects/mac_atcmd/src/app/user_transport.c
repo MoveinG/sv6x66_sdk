@@ -216,7 +216,7 @@ void user_transport_init(WIFI_OPMODE mode)
 		 break;
 		 
 		 default:
-		 	printf("[%d]device mode error!\r\n",__LINE__);
+		 	//printf("[%d]device mode error!\r\n",__LINE__);
 		 break;
 	}
 }
@@ -265,7 +265,7 @@ void user_transport_func(void)
 		break;
 
 		default:
-			printf("[%s]device mode error!\r\n",__func__);
+			//printf("[%s]device mode error!\r\n",__func__);
 		break;
 	}
 

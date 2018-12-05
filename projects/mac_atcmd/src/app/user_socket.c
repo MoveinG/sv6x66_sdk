@@ -63,6 +63,7 @@ static void user_tcp_client_task(void *arg)
 	static int ret;
     struct sockaddr_in s_sockaddr;
     int listen = 0;
+	char pBuf = NULL;
 	unsigned char buffer[BUFFER_SIZE_MAX] = {0};
 	unsigned char aesBuffer[BUFFER_SIZE_MAX] = {0};
 
@@ -105,12 +106,17 @@ static void user_tcp_client_task(void *arg)
 		if(buffer[0] != 0)
 		{
 			printf("buffer = %s\r\n",buffer);
-			memcpy(aesBuffer,&buffer[1],strlen(buffer) - 2);
+			
+			pBuf = strchr(buffer,'{');
+			if ((pBuf != NULL) && (strlen(pBuf) > 2))
+			{
+				memset(aesBuffer,0,BUFFER_SIZE_MAX);
+				memcpy(aesBuffer,(pBuf+1),strlen(pBuf) - 2);
+				user_aes_decrypt(aesBuffer,buffer);
+				memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
+				set_rev_server_data_flag(true);
+			}
 			memset(buffer,0,BUFFER_SIZE_MAX);
-			user_aes_decrypt(aesBuffer,buffer);
-			memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
-			memset(aesBuffer,0,BUFFER_SIZE_MAX);
-			set_rev_server_data_flag(true);
 		}
 		if (deviceStatus.uartCmdFlag)
 		{
@@ -118,6 +124,7 @@ static void user_tcp_client_task(void *arg)
 			memset(buffer,0,BUFFER_SIZE_MAX);
 			user_aes_encrypt(deviceStatus.uartCmdBuffer,aesBuffer);
 			sprintf(buffer,"{%s}",aesBuffer);
+			printf("uart send to server buffer=%s\r\n",buffer);
 			send(ret, buffer, strlen(buffer), 0);
 			memset(aesBuffer,0,BUFFER_SIZE_MAX);
 			memset(deviceStatus.uartCmdBuffer,0,BUFFER_SIZE_MAX);
@@ -127,7 +134,7 @@ static void user_tcp_client_task(void *arg)
 			 goto exit;
 		}
 		
-        OS_MsDelay(1000);
+        OS_MsDelay(100);
 	}
 
 exit:
