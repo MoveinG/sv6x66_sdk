@@ -23,14 +23,14 @@
 #include "user_gpio.h"
 
 
-#define KEY_TIME    30
-#define KEY_LONG 	1
-#define KEY_SHORT 	2
+#define KEY_TIME   		 		30
+#define KEY_LONG 				1
+#define KEY_SHORT 				2
 
-#define DEVICE_KEY GPIO_00
-#define DEVICE_LED GPIO_13
+#define DEVICE_KEY 				GPIO_00
+#define DEVICE_LED 				GPIO_13		
 
-#define DEVICE_START 0
+#define HEART_DATA              "^32FF9C628A2B22AD6A85C9D492ABF8141F?"
 
 
 static OsTimer key_led_timer = NULL;
@@ -42,6 +42,15 @@ void key_led_handler(void)
 	unsigned char state;
 	static uint8_t timer_count, led_s;
 	static char key_status;
+	static char timeIndex = 0;
+
+	timeIndex++;
+	if (timeIndex == 100)
+	{
+		timeIndex = 0;
+		deviceStatus.uartCmdFlag = true;
+		memcpy(deviceStatus.uartCmdBuffer,HEART_DATA,strlen(HEART_DATA));
+	}
 
 	timer_count++;
 	state = drv_gpio_get_logic(DEVICE_KEY);
@@ -78,16 +87,6 @@ void key_led_handler(void)
 				}
 
 			}
-			else 
-			{
-				if(timer_count % 15 == 0)
-				{
-					//printf("Device enters STA mode\r\n");
-					led_s = !led_s;
-					drv_gpio_set_logic(DEVICE_LED, led_s);	
-				}
-
-			}
 			break;
 		case KEY_SHORT:
 			break;
@@ -95,12 +94,11 @@ void key_led_handler(void)
 			break;
 
 	}
-	if(get_device_mode() != DEVICE_START) return;
 	if(get_connect_server_status() == true)
 	{
 		drv_gpio_set_logic(DEVICE_LED, 1);	
 	}
-	else
+	else if ((get_connect_server_status() == false) && (get_device_mode() != DUT_AP))
 	{
 		if(timer_count % 1 == 0)   
 		{

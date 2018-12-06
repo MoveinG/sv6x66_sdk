@@ -177,7 +177,6 @@ void user_transport_init(WIFI_OPMODE mode)
 {
 	//printf("[%s]:%d!\r\n",__func__,__LINE__);
 	app_uart_int();
-	key_led_task_create();
 	memset(&deviceStatus,0,sizeof(device_status_t));
 	set_device_mode(mode);
 	app_uart_send("user app start!\r\n",strlen("user app start!\r\n"));
@@ -254,13 +253,14 @@ void user_transport_func(void)
 					OS_MsDelay(100);
 				}
 			}
-			else
+			if ((get_wifi_status()) && (deviceStatus.socketClientCreateFlag == false))
 			{
-				if (deviceStatus.socketClientCreateFlag == false)
-				{
-					OS_MsDelay(1000);
-					user_tcp_client_create();
-				}
+				OS_MsDelay(1000);
+				user_tcp_client_create();
+			}
+			if (!get_wifi_status())
+			{
+				set_connect_server_status(false);
 			}
 			#endif
 		break;

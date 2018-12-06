@@ -175,6 +175,7 @@ void APP_Init(void)
     OS_TaskCreate(wifi_auto_connect_task, "wifi_auto_connect", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
 	
 	//OS_TaskCreate(user_transport_task, "user_transport", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+	key_led_task_create();
 
 	printf("<%s>%d\n",__func__,__LINE__);
 

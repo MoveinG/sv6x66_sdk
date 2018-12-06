@@ -4,7 +4,7 @@
 
 
 
-#define BUFFER_SIZE_MAX				150
+#define BUFFER_SIZE_MAX				100
 
 
 
