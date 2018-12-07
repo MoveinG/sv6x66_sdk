@@ -121,12 +121,15 @@ void get_wifi_param(char* wifiSsid,char* wifiKey)
 			ppost = strchr(pbuffer,',');
 			len = ppost - pbuffer - 1;
 			memcpy(wifiSsid, pbuffer, len);
+			
 			printf("ssid=%s\r\n",wifiSsid);
+			
 			pbuffer = &deviceStatus.socketServerRevBuffer[9+len];
-			ppost = strchr(pbuffer,':');
-			ppost = ppost+2;
-			pkey = strchr(ppost,'\"');
-			len = pkey - ppost;
+			ppost   = strchr(pbuffer,':');
+			ppost   = ppost+2;
+			pkey    = strchr(ppost,'\"');
+			len     = pkey - ppost;
+			
 			memcpy(wifiKey, ppost, len);
 			printf("key=%s\r\n",wifiKey);
 		}
@@ -134,42 +137,6 @@ void get_wifi_param(char* wifiSsid,char* wifiKey)
 	printf("\r\n---------------------------------\r\n");
 }
 
-
-void wifi_cb_func(WIFI_RSP *msg)
-{
-    uint8_t dhcpen;
-    u8 mac[6];
-    uip_ipaddr_t ipaddr, submask, gateway, dnsserver;
-
-	printf("[%s]:%d!\r\n",__func__,__LINE__);
-
-    if(msg->wifistatus == 1)
-    {
-    	set_device_connect_ap_status(true);
-        if(msg->id == 0)
-            get_if_config_2("et0", &dhcpen, (u32*)&ipaddr, (u32*)&submask, (u32*)&gateway, (u32*)&dnsserver, mac, 6);
-        else
-            get_if_config_2("et1", &dhcpen, (u32*)&ipaddr, (u32*)&submask, (u32*)&gateway, (u32*)&dnsserver, mac, 6);
-        printf("STA%d:\n", msg->id);
-        printf("mac addr        - %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        printf("ip addr         - %d.%d.%d.%d\n", ipaddr.u8[0], ipaddr.u8[1], ipaddr.u8[2], ipaddr.u8[3]);
-        printf("netmask         - %d.%d.%d.%d\n", submask.u8[0], submask.u8[1], submask.u8[2], submask.u8[3]);
-        printf("default gateway - %d.%d.%d.%d\n", gateway.u8[0], gateway.u8[1], gateway.u8[2], gateway.u8[3]);
-        printf("DNS server      - %d.%d.%d.%d\n", dnsserver.u8[0], dnsserver.u8[1], dnsserver.u8[2], dnsserver.u8[3]);
-
-        recordAP();
-    }
-    else
-    {
-    	set_device_connect_ap_status(false);
-    }
-}
-
-
-int connect_to_wifi(void)
-{
-    return (wifi_connect(wifi_cb_func));
-}
 
 
 
@@ -196,23 +163,24 @@ void user_transport_init(WIFI_OPMODE mode)
 			
 			if (!get_wifi_status())
 			{
-				if (!connect_to_wifi())
+				if (!wifi_connect(atwificbfunc))
 					set_device_connect_ap_status(true);
 				else
 					set_device_connect_ap_status(false);
 			}
 			else
 			{
+				if (!user_tcp_client_create())
+				{
+					printf("[%d]tcp client create failure!\r\n",__LINE__);
+				}
 				set_device_connect_ap_status(true);
 			}
 			if (!get_auto_connect_flag())
 			{
 				set_auto_connect_flag(1);
 			}
-			if (!user_tcp_client_create())
-			{
-				printf("[%d]tcp client create failure!\r\n",__LINE__);
-			}
+			
 		 break;
 		 
 		 default:
@@ -238,20 +206,12 @@ void user_transport_func(void)
 		break;
 
 		case DUT_STA:
-			#if 1
-			if (get_socket_send_ack())
+			if ((get_connect_server_status()) && (get_rev_server_data_flag()))
 			{
-				set_socket_send_ack(false);
-			}
-			if (get_connect_server_status())
-			{
-				if (get_rev_server_data_flag())
-				{
-					set_rev_server_data_flag(false);
-					app_uart_send(deviceStatus.socketClientRevBuffer,strlen(deviceStatus.socketClientRevBuffer));
-					memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
-					OS_MsDelay(100);
-				}
+				set_rev_server_data_flag(false);
+				app_uart_send(deviceStatus.socketClientRevBuffer,strlen(deviceStatus.socketClientRevBuffer));
+				memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
+				OS_MsDelay(100);
 			}
 			if ((get_wifi_status()) && (deviceStatus.socketClientCreateFlag == false))
 			{
@@ -262,7 +222,6 @@ void user_transport_func(void)
 			{
 				set_connect_server_status(false);
 			}
-			#endif
 		break;
 
 		default:

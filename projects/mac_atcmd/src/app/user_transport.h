@@ -33,8 +33,6 @@ typedef struct {
 void user_transport_init(WIFI_OPMODE mode);
 void user_transport_func(void);
 
-int  connect_to_wifi(void);
-
 void set_device_mode(WIFI_OPMODE mode);
 WIFI_OPMODE get_device_mode(void);
 
@@ -56,6 +54,10 @@ int  get_rev_server_data_flag(void);
 
 void get_wifi_param(char* wifiSsid,char* wifiKey);
 void wifi_cb_func(WIFI_RSP *msg);
+
+extern void atwificbfunc(WIFI_RSP *msg);
+
+
 
 
 extern device_status_t deviceStatus;

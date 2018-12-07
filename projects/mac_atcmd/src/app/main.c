@@ -99,7 +99,7 @@ void wifi_auto_connect_task(void *pdata)
         DUT_wifi_start(DUT_STA);
         OS_MsDelay(1*1000);
         do_wifi_auto_connect();
-		connect_to_wifi();
+		//wifi_connect(atwificbfunc);
     }
 	else
 	{

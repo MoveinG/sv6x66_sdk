@@ -98,7 +98,8 @@ void user_aes_decrypt(unsigned char *indata, unsigned char *outdata)
 	//plain = AES_Padding_Zero(rst, delen, &padlen);
 	padlen = AES_Padding5(rst,delen);
 	mbedtls_aes_setkey_dec(&aes, key, 128);
-	mbedtls_aes_crypt_cbc(&aes, AES_DECRYPT, padlen, IV, rst, plain_decrypt);
+	mbedtls_aes_crypt_cbc(&aes, AES_DECRYPT, padlen, IV, rst, plain_decrypt);
+
 	pBuf = plain_decrypt;
 	iplain = strchr(plain_decrypt,'?');
 	length = iplain - pBuf + 1;

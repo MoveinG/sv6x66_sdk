@@ -16,7 +16,9 @@
 /****************************define*********************/
 #define USER_SERVER_IP                 "120.77.49.36"
 #define USER_SERVER_PORT               "8282"
+#define USER_SOCKET_PORT               8000
 #define BUFFER_SIZE                    256
+#define SOCKET_RECV_TIMEOUT            300
 
 
 /****************************typedef*********************/
@@ -36,6 +38,11 @@ enum {
 	ERROR_SUCCESS_NO_RSP               =  1,
 };
 
+typedef enum {
+	SOCKET_SEND_LOGIN                  = 1,
+	SOCKET_SEND_WIFICONFIG_ACK         = 2,
+	SOCKET_SEND_UART_CMD               = 3,
+}e_sockeSendType_t;
 
 
 
@@ -46,144 +53,181 @@ enum {
 
 
 
-
-
-
-
-
-
 /***********************local function ********************/
 void get_device_mac(unsigned char *mac)
 {
-	printf("\n");
+	char mac_addr[6] = {0};
     void *cfg_handle = wifi_cfg_init();
-    char mac_addr[6] = {0};
+    
     wifi_cfg_get_addr1(cfg_handle, mac_addr);
     wifi_cfg_deinit(cfg_handle);
-	memcpy(mac, mac_addr, sizeof(mac_addr));
-	//printf("%02X:%02X:%02X:%02X:%02X:%02X\n", (uint8_t)mac_addr[0], (uint8_t)mac_addr[1], (uint8_t)mac_addr[2], (uint8_t)mac_addr[3], (uint8_t)mac_addr[4], (uint8_t)mac_addr[5]);
+	memcpy(mac, mac_addr, 6);
+	OS_MsDelay(10);
 }
 
-void send_wificonfig_ack(char *buffer)
+
+int user_socket_send(int socketId, char* buffer , char type)
 {
-	unsigned char buf[30]    = {0};
-	unsigned char macaddr[6] = {0};	
+	int ret = 0;
+	unsigned char addrBuf[6]             = {0};
+	unsigned char sBuf[BUFFER_SIZE_MAX]  = {0};
+	unsigned char dBuf[BUFFER_SIZE_MAX]  = {0};
 
-	get_device_mac(macaddr);
-	sprintf(buf,"{\"ack\":\"%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\"}",macaddr[0],macaddr[1],macaddr[2],macaddr[3],macaddr[4],macaddr[5]);
-	memcpy(buffer, buf, strlen(buf));
+	memset(sBuf,0,BUFFER_SIZE_MAX);
+	memset(dBuf,0,BUFFER_SIZE_MAX);
 
+	OS_MsDelay(100);
+	//printf("[%s]:[%d]\r\n",__func__,__LINE__);
+	
+	switch(type)
+	{
+		case SOCKET_SEND_LOGIN: 
+			get_device_mac(addrBuf);
+			sprintf(sBuf,"~17%.2x:%.2x:%.2x:%.2x:%.2x:%.2x?",\
+				addrBuf[0],addrBuf[1],addrBuf[2],addrBuf[3],addrBuf[4],addrBuf[5]);
+			user_aes_encrypt(sBuf,dBuf);
+			memset(sBuf,0,BUFFER_SIZE_MAX);
+			sprintf(sBuf,"{%s}",dBuf);
+			printf("[%s]login buffer:%s\r\n",__func__,sBuf);
+		break;
+		
+		case SOCKET_SEND_WIFICONFIG_ACK: 
+			get_device_mac(addrBuf);
+			sprintf(sBuf,"{\"ack\":\"%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\"}",\
+				addrBuf[0],(addrBuf[1]),(addrBuf[2]),(addrBuf[3]),(addrBuf[4]),(addrBuf[5]));
+		break;
+		
+		case SOCKET_SEND_UART_CMD: 
+			user_aes_encrypt(buffer,dBuf);
+			sprintf(sBuf,"{%s}",dBuf);
+			memset(deviceStatus.uartCmdBuffer,0,BUFFER_SIZE_MAX);
+			printf("[%s]uart buffer:%s,len=%d\r\n",__func__,sBuf,strlen(sBuf));
+		break;
+		
+		default:
+		break;
+	}
+
+	OS_MsDelay(100);
+	ret = send(socketId, sBuf, strlen(sBuf), 0);
+	
+	return ret;
 }
 
+
+void user_socket_recv_func(char *buffer)
+{
+	char *pHead   = NULL;
+	char *pCurPos = NULL;
+	char pBuffer[BUFFER_SIZE_MAX] = {0};
+	char sBuffer[BUFFER_SIZE_MAX] = {0};
+
+	int length    = 0;
+	
+	if(*buffer != NULL)
+	{
+		if ((*buffer == '{') && (*(buffer+1) != '}'))
+		{
+			pHead = buffer;
+			pCurPos = strchr(pHead,'}');
+			length = pCurPos - pHead - 1;
+			memcpy(pBuffer,(buffer+1),length);
+			printf("[%s]buffer:%s,len=%d\r\n",__func__,pBuffer,length);
+			user_aes_decrypt(pBuffer,sBuffer);
+			//printf("send to uart buffer=%s,len=%d\r\n",sBuffer,strlen(sBuffer));
+			OS_MsDelay(100);
+			memcpy(deviceStatus.socketClientRevBuffer,sBuffer,strlen(sBuffer));
+			set_rev_server_data_flag(true);
+		}
+		memset(buffer,0,BUFFER_SIZE_MAX);
+	}
+	
+	return ;
+}
+
+
+int user_socket_client_init(void)
+{
+	int socketId = 0;
+	int timeOut  = 0;
+	int ret      = 0;
+	struct sockaddr_in s_userSocket;
+	
+	memset(&s_userSocket, 0, sizeof(s_userSocket));
+    s_userSocket.sin_family = AF_INET;
+    s_userSocket.sin_port = htons(atoi (USER_SERVER_PORT));
+    inet_aton(USER_SERVER_IP, &s_userSocket.sin_addr);
+    s_userSocket.sin_len = sizeof(s_userSocket);
+
+	socketId = socket(AF_INET, SOCK_STREAM, 0);
+    if (socketId < 0)
+    {
+        printf("Failed to create socket\n");
+		return -1;
+    }
+
+	ret = connect(socketId, (struct sockaddr *) &s_userSocket, sizeof(s_userSocket));
+    if (ret < 0)
+    {
+        printf("[%d]Failed to connect ret=%d\n",__LINE__,ret);
+        close(socketId);      
+		return -1;
+    }
+
+    timeOut = SOCKET_RECV_TIMEOUT;
+    setsockopt(socketId, SOL_SOCKET, SO_RCVTIMEO, &timeOut, sizeof(timeOut));
+
+	return socketId;
+}
 
 
 void user_tcp_client_task(void *arg)
 {
 	printf("[%d]:[%s]\r\n",__LINE__,__func__);
 		
-	char *pIp  = NULL;
-	char *pBuf = NULL;
-	char *pPos = NULL;
-    int socketId,port,ret,timeVal,len;
-    struct sockaddr_in s_sockaddr;
+	char *pHead   = NULL;
+	char *pCurPos = NULL;
+	
+    int socketId = 0;
+    
+	
 	unsigned char buffer[BUFFER_SIZE_MAX]    = {0};
 	unsigned char aesBuffer[BUFFER_SIZE_MAX] = {0};
 
-	pIp = USER_SERVER_IP;
-	port = atoi (USER_SERVER_PORT);
 	
-    memset(&s_sockaddr, 0, sizeof(s_sockaddr));
-    s_sockaddr.sin_family = AF_INET;
-    s_sockaddr.sin_port = htons(port);
-    inet_aton(pIp, &s_sockaddr.sin_addr);
-    s_sockaddr.sin_len = sizeof(s_sockaddr);
-
-	socketId = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketId < 0)
-    {
-        printf("Failed to create socket\n");
+    socketId = user_socket_client_init();
+	if (socketId < 0)
+	{
 		goto exit;
-    }
-
-	ret = connect(socketId, (struct sockaddr *) &s_sockaddr, sizeof(s_sockaddr));
-    if (ret < 0)
-    {
-        printf("Failed to connect ret=%d\n",ret);
-        close(socketId);      
-		goto exit;
-    }
+	}
 	
-#if 0
-		if (update_new_sd(socketId, -1) != 0)
-		{
-			close(socketId);
-			printf("fail to add socket\n");
-			goto exit;
-		}
-#endif
-
-    timeVal = 300;
-    setsockopt(socketId, SOL_SOCKET, SO_RCVTIMEO, &timeVal, sizeof(timeVal));
-
-	set_connect_server_status(true);
-	deviceStatus.socketClientCreateFlag = true;
-
-	memset(buffer,0,BUFFER_SIZE_MAX);
-	memset(aesBuffer,0,BUFFER_SIZE_MAX);
-	get_device_mac(buffer);
-	sprintf(aesBuffer,"~17%.2x:%.2x:%.2x:%.2x:%.2x:%.2x?",buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],buffer[5]);
-	memset(buffer,0,BUFFER_SIZE_MAX);
-	user_aes_encrypt(aesBuffer,buffer);
-	memset(aesBuffer,0,BUFFER_SIZE_MAX);
-	sprintf(aesBuffer,"{%s}",buffer);
-	printf("login Buf=%s\r\n",aesBuffer);
-	if (send(socketId, aesBuffer, strlen(aesBuffer), 0) <= 0)
+	if (user_socket_send(socketId,NULL,SOCKET_SEND_LOGIN) < 0)
 	{
 		close(socketId);
 		goto exit;
 	}
+
+	set_connect_server_status(true);
+	deviceStatus.socketClientCreateFlag = true;
 	
 	while(1)
 	{
+	#if 1
 		if (deviceStatus.uartCmdFlag == true)
 		{
 			deviceStatus.uartCmdFlag = false;
-			memset(buffer,0,BUFFER_SIZE_MAX);
-			user_aes_encrypt(deviceStatus.uartCmdBuffer,aesBuffer);
-			sprintf(buffer,"{%s}",aesBuffer);
-			printf("sendBuffer=%s,len=%d\r\n",buffer,strlen(buffer));
-			if (send(socketId, buffer, strlen(buffer), 0) <= 0)
+			if (user_socket_send(socketId,deviceStatus.uartCmdBuffer,SOCKET_SEND_UART_CMD) < 0)
 			{
-				set_rev_server_data_flag(false);
 				close(socketId);
 				goto exit;
 			}
-			memset(aesBuffer,0,BUFFER_SIZE_MAX);
-			memset(deviceStatus.uartCmdBuffer,0,BUFFER_SIZE_MAX);
 		}
 		else
 		{
 			if (recv(socketId, buffer, BUFFER_SIZE_MAX,0) > 0)
 			{
-				if(buffer[0] != 0)
-				{
-					if ((buffer[0] == '{') && (buffer[1] != '}'))
-					{
-						pPos = buffer;
-						pBuf = strchr(pPos,'}');
-						len = pBuf - pPos - 1;
-						memset(aesBuffer,0,BUFFER_SIZE_MAX);
-						memcpy(aesBuffer,&(buffer[1]),len);
-						memset(buffer,0,BUFFER_SIZE_MAX);
-						printf("recvBuffer=%s,len=%d\r\n",aesBuffer,len);
-						user_aes_decrypt(aesBuffer,buffer);
-						//printf("send to uart buffer=%s,len=%d\r\n",buffer,strlen(buffer));
-						OS_MsDelay(100);
-						memcpy(deviceStatus.socketClientRevBuffer,buffer,strlen(buffer));
-						set_rev_server_data_flag(true);
-					}
-					memset(buffer,0,BUFFER_SIZE_MAX);
-				}
+				user_socket_recv_func(buffer);
+				memset(buffer,0,BUFFER_SIZE_MAX);
 			}
 		}
 		
@@ -192,12 +236,12 @@ void user_tcp_client_task(void *arg)
 			 close(socketId);
 			 goto exit;
 		}
-		
+	#endif
         vTaskDelay(100 / portTICK_RATE_MS);
 	}
 
-
 exit:
+	OS_MsDelay(100);
 	set_connect_server_status(false);
 	set_rev_server_data_flag(false);
 	deviceStatus.socketClientCreateFlag = false;
@@ -206,31 +250,27 @@ exit:
 }
 
 
-extern void atwificbfunc(WIFI_RSP *msg);
 static void user_tcp_server_task(void *arg)
 {
 	printf("[%d]:[%s]\r\n",__LINE__,__func__);
 	
 	int sockfd, newconn, size, ret;
     struct sockaddr_in address, remotehost;
-   	char readlen;
-	unsigned char buffer[100] = {0};
+	
 	char wifiSsid[20] = {0};
 	char wifiKey[20]  = {0};
-	char buf[30] = {0};
 	
-	/* create a TCP socket */
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
     {
         printf("can not create socket\r\n");
         goto exit;
     }
+	
     ret = 1;
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &ret, sizeof(ret));
 
-    /* bind to port 8000 at any interface */
     address.sin_family = AF_INET;
-    address.sin_port = htons(8000);
+    address.sin_port = htons(USER_SOCKET_PORT);
     address.sin_addr.s_addr = INADDR_ANY;
     if (bind(sockfd, (struct sockaddr *)&address, sizeof (address)) < 0)
     {
@@ -239,12 +279,12 @@ static void user_tcp_server_task(void *arg)
         goto exit;
     }
 
-    /* listen for connections (TCP listen backlog = 1) */
     listen(sockfd, 1); 
+	
     size = sizeof(remotehost);
+	newconn = accept(sockfd, (struct sockaddr *)&remotehost, (socklen_t *)&size);
 
 	deviceStatus.socketServerCreateFlag = true;
-	newconn = accept(sockfd, (struct sockaddr *)&remotehost, (socklen_t *)&size);
     while (1)
     {
     	vTaskDelay(1000 / portTICK_RATE_MS);
@@ -258,14 +298,12 @@ static void user_tcp_server_task(void *arg)
 			OS_MsDelay(100);
 
 			get_wifi_param(wifiSsid,wifiKey);
-			
-			//set_wifi_config((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey), NULL, 0);
 			set_socket_send_ack(true);
         }
 		if (get_socket_send_ack())
 		{	
-			send_wificonfig_ack(buf);
-			send(newconn, buf, strlen(buf), 0);
+			set_socket_send_ack(false);
+			user_socket_send(newconn,NULL,SOCKET_SEND_WIFICONFIG_ACK);
 			OS_MsDelay(1000);
 			close(newconn);
 			close(sockfd);
@@ -279,13 +317,9 @@ static void user_tcp_server_task(void *arg)
 			OS_MsDelay(1000);
 			wifi_connect_active((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey),atwificbfunc);
 			goto exit;
-			//vTaskDelay(1000 / portTICK_RATE_MS);
-			//drv_wdt_init();
-        	//drv_wdt_enable(SYS_WDT, 100);
 		}
 		
     }
-
  
 exit:
 	set_wifi_config_msg(false);
