@@ -12,14 +12,14 @@
 extern const struct sa_cfg g_sa_cfg __attribute__((section(".sa_mp_data")));
 const struct sa_cfg g_sa_cfg __attribute__((section(".sa_mp_data"))) = {
     .buf_mp = {
-		10,10,10,10,10,10,10,160,158,7,9,10,7,7,7,7,7,0, //RT Config
-		11,11,10,10,10,10,10,195,195,7,9,10,7,7,7,7,7,0, //HT Config
-		10,10,10,10,10,10,10,158,158,7,9,10,7,7,7,7,7,0, //LT Config
+		10,10,9,10,9,9,8,180,180,7,9,10,7,7,7,7,7,0, //RT Config
+		11,11,9,10,9,9,8,254,254,7,9,10,7,7,7,7,7,0, //HT Config
+		9,9,8,8,8,7,7,180,180,7,9,10,9,8,7,8,7,0, //LT Config
 		4,4, //RF Gain, B Rate Gain
 		13,11,9,7, //G Rate Gain
 		13,11,9,7, //20N Rate Gain
 		9,7,6,5, //40N Rate Gain
-		35,90, //Temperature Boundary
+		40,95, //Temperature Boundary
 		0x00,0x00,
 		0x0D,0x0D,0x0A,0x08,0x4A,0x92,0x4D,0x92,0xCC,0xB6,0xCA,0xB6,//5G RT Config
 		0x0D,0x0D,0x0A,0x08,0x4A,0x92,0x4D,0x92,0xCC,0xB6,0xCA,0xB6,//5G HT Config
