@@ -80,7 +80,7 @@
 #define KEYLED_MSGLEN	10
 
 static OsTimer led_flash_timer, key_check_timer, cycle_1sec_timer;
-static bool pwr_status;
+static bool pwr_status = SWITCH_PWRON;
 static unsigned char led_status, dev_status=0, wifi_status=0, colink_status=0;
 
 static OsMsgQ keyled_msgq;
@@ -393,7 +393,7 @@ void TaskKeyLed(void *pdata)
 		goto exit3;
 
 	KeyLed_Init();
-	active_Switch(get_switch_nvram());
+	active_Switch(SWITCH_PWRON/*get_switch_nvram()*/);
 
 	OS_TimerStart(led_flash_timer);
 	OS_TimerStart(key_check_timer);
@@ -471,6 +471,7 @@ void TaskKeyLed(void *pdata)
 						led_status = update_led_status();
 						esptouch_stop();
 						enterSettingSelfAPMode();
+						maoxin_led_status(2);
 						break;
 					}
 					else
@@ -485,6 +486,7 @@ void TaskKeyLed(void *pdata)
 					esptouch_stop();
 					coLinkSetDeviceMode(DEVICE_MODE_SETTING);
 					esptouch_init();
+					maoxin_led_status(1);
 					#endif
 
 					#if defined(WT_CLOUD_EN)
@@ -507,16 +509,18 @@ void TaskKeyLed(void *pdata)
 						dev_status = DEVICE_STATION;
 						wifi_status = WIFI_DIS_CON;
 						led_status = update_led_status();
+						maoxin_led_status(3);
 						break;
 					}
 
 					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
 						break;
 
-					active_Switch(pwr_status ? 0 : 1);
-					set_switch_nvram(pwr_status);
+					//active_Switch(pwr_status ? 0 : 1);
+					//set_switch_nvram(pwr_status);
 
-					maoxin_light_switch(get_Switch_status());
+					//maoxin_light_switch(get_Switch_status());
+					Ctrl_flashmode_cb(2);
 					colinkSwitchUpdate();
 					#endif
 
@@ -602,7 +606,7 @@ void TaskKeyLed(void *pdata)
 					|| (msg_evt.MsgData == (void*)SWITCH_CLOSE && pwr_status == SWITCH_PWRON))
 				{
 					active_Switch(pwr_status ? 0 : 1);
-					set_switch_nvram(pwr_status);
+					//set_switch_nvram(pwr_status);
 
 					#if defined(CK_CLOUD_EN)
 					if(msg_evt.MsgCmd == EVENT_SW_TIMER) colinkSwitchUpdate();
@@ -619,11 +623,13 @@ void TaskKeyLed(void *pdata)
 			case EVENT_BRIGHT:
 				value = (int)msg_evt.MsgData;
 				if(value > 6 && value <= 100) maoxin_set_light(value / 6); //10-100 -> 1-16
+				else if(value <= 6) maoxin_set_light(1);
+				else maoxin_set_light(100/6);
 				break;
 
 			case EVENT_FLHMODE:
 				value = (int)msg_evt.MsgData;
-				if(value == 2 || value == 3) maoxin_light_flash(value-1);
+				if(value == 1 || value == 2) maoxin_light_flash(value);
 				break;
 			#endif
 

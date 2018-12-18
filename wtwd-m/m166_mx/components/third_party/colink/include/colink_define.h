@@ -35,8 +35,16 @@ typedef struct
 	char			model[10+1];
 } ColinkDevice;
 
-#define DEVICEID "10005807e9"
-#define APIKEY "cf761fd6-5195-4b32-92f5-e1c166c5bcd7"
+//#define DEVICEID "10005807e9"
+//#define APIKEY "cf761fd6-5195-4b32-92f5-e1c166c5bcd7"
+//#define DEVICEID "100067ae93"     //for customer mx
+//#define APIKEY "b89865f6-b59a-4eb0-8593-ce9ddc9f4e74"
+//#define DEVICEID "100067ae94"    //for customer mx
+//#define APIKEY "920aa750-12bf-4370-82bf-bdc02043326b"
+//#define DEVICEID "100067ae95"       //for test mx
+//#define APIKEY "5c92e17d-05e0-4e00-bd86-37570c670b46"
+#define DEVICEID "100067ae9a"       //for customer mx
+#define APIKEY "d40fd178-0dc9-449e-9334-a035b76cb1ec"
 
 //#define DEVICEID "10005807ea"
 //#define APIKEY "7e4041d8-67b4-4d95-b9f4-d6c18b3df5a2"

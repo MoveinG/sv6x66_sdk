@@ -275,25 +275,39 @@ static void colinkRecvUpdate(char* data)
         return;
     }
 
+    switch_p = cJSON_GetObjectItem(json_root, "bright");
+	if(switch_p)
+	{
+         os_printf("instruction bright:%d\n",switch_p->valueint);
+		 Ctrl_bright_cb(switch_p->valueint);
+	}
+
     switch_p = cJSON_GetObjectItem(json_root, "mode");
     if (switch_p)
     {
+        os_printf("mode:%d\n",switch_p->valueint);
         if(1 == switch_p->valueint)
         {
-            switch_p = cJSON_GetObjectItem(json_root, "bright");
-            if(switch_p)
-            {
-                os_printf("instruction bright:%d\n", switch_p->valueint);
-                Ctrl_bright_cb(switch_p->valueint);
-            }
+            //switch_p = cJSON_GetObjectItem(json_root, "bright");
+            //if(switch_p)
+           // {
+           //     os_printf("instruction bright:%d\n", switch_p->valueint);
+           //     Ctrl_bright_cb(switch_p->valueint);
+           // }
+           Ctrl_flashmode_cb(1);
+			
         }
-        else if(2 == switch_p->valueint || 3 == switch_p->valueint)
+//        else if(2 == switch_p->valueint || 3 == switch_p->valueint)
+//        {
+//            Ctrl_flashmode_cb(switch_p->valueint);
+//
+//            switch_p = cJSON_GetObjectItem(json_root, "speed");
+//            if(switch_p) os_printf("instruction speed:%d\n", switch_p->valueint);
+//        }
+        else if(2 == switch_p->valueint)
         {
-            Ctrl_flashmode_cb(switch_p->valueint);
-
-            switch_p = cJSON_GetObjectItem(json_root, "speed");
-            if(switch_p) os_printf("instruction speed:%d\n", switch_p->valueint);
-        }
+           Ctrl_flashmode_cb(2);
+       	}
 		else
         {
             os_printf("err net mode info...\n");

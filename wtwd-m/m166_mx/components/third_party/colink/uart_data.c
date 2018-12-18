@@ -418,6 +418,17 @@ void maoxin_light_flash(int value)
 	uart_data_send_data(command_str, UART_COMMAND_LEN);
 }
 
+void maoxin_led_status(int value)
+{
+	uint8_t command_str[UART_COMMAND_LEN];
+
+	memcpy((char*)command_str, light_common_str, UART_COMMAND_LEN);
+	command_str[2] = 5;
+	command_str[3] = (uint8_t)value;
+	uart_data_send_data(command_str, UART_COMMAND_LEN);
+}
+
+
 //cammand low 16bits, param high 16bits
 uint32_t maoxin_get_command(void)
 {
