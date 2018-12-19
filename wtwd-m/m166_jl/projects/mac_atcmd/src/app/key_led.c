@@ -12,6 +12,11 @@
 	#include "colink/include/colink_profile.h"
 	#include "colink/include/mytime.h"
 #endif
+#include "sysconf_api.h"
+
+
+#define AUTO_TEST_WIFI_SSID       "EVL_8DB0839D"
+#define AUTO_TEST_WIFI_PWD        "094FAFE8"
 
 #define DEVICE_WFLED	GPIO_13 //wifi
 #define DEVICE_PWLED	GPIO_01 //power
@@ -103,6 +108,8 @@ extern void joylink_stop(void);
 extern void wifi_auto_connect_start(void);
 
 extern void colink_dl_deviceid_start(void);
+
+int testing_ssid_cmp(void);
 
 ///////////////////////////////////////////
 static void cycle_1sec_handler(void)
@@ -411,7 +418,8 @@ void TaskKeyLed(void *pdata)
 		msg_evt.MsgData = (void*)KEY_1LONG;
 		OS_MsgQEnqueue(keyled_msgq, &msg_evt);
 	}
-	else wifi_auto_connect_start();
+	else 
+		wifi_auto_connect_start();
 	#endif
 
 	drv_wdt_init();
@@ -456,6 +464,7 @@ void TaskKeyLed(void *pdata)
 				printf("EVENT_DEV_KEY=%x\n", (int)msg_evt.MsgData);
 				if(msg_evt.MsgData == (void*)KEY_1LONG)
 				{
+				    remove_wifi_config();
 					#if defined(CK_CLOUD_EN)
 					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
 						break;
@@ -499,23 +508,35 @@ void TaskKeyLed(void *pdata)
 				if(msg_evt.MsgData == (void*)KEY_KEY1)
 				{
 					#if defined(CK_CLOUD_EN)
-					if(dev_status)
+					if(testing_ssid_cmp() == 0)
 					{
-						coLinkSetDeviceMode(save_mode);
-						exit_link_config(dev_status);
-						dev_status = DEVICE_STATION;
-						wifi_status = WIFI_DIS_CON;
-						led_status = update_led_status();
-						break;
+					    int cnts = 6;
+						while(cnts--)
+						{
+                            active_Switch(pwr_status ? 0 : 1);
+							OS_MsDelay(200);
+						}
 					}
+					else
+					{
+					    if(dev_status)
+					    {
+						    coLinkSetDeviceMode(save_mode);
+						    exit_link_config(dev_status);
+						    dev_status = DEVICE_STATION;
+						    wifi_status = WIFI_DIS_CON;
+						    led_status = update_led_status();
+						    break;
+					    }
 
-					if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
-						break;
+					    if(coLinkGetDeviceMode() == DEVICE_MODE_UPGRADE)
+						    break;
 
-					active_Switch(pwr_status ? 0 : 1);
-					set_switch_nvram(pwr_status);
+					    active_Switch(pwr_status ? 0 : 1);
+					    set_switch_nvram(pwr_status);
 
-					colinkSwitchUpdate();
+					    colinkSwitchUpdate();
+					}
 					#endif
 
 					#if defined(WT_CLOUD_EN)
@@ -641,5 +662,29 @@ exit1:
 	OS_TimerDelete(cycle_1sec_timer);
 exit0:
 	OS_TaskDelete(NULL);
+}
+extern void atwificbfunc(WIFI_RSP *msg);
+void first_auto_testing(void)
+{
+    int ret;
+
+    ret = read_wifi_config();
+	if(ret != 0)
+	{
+        //DUT_wifi_start(DUT_STA);
+        wifi_connect_active (AUTO_TEST_WIFI_SSID, strlen(AUTO_TEST_WIFI_SSID), AUTO_TEST_WIFI_PWD, strlen(AUTO_TEST_WIFI_PWD), atwificbfunc);
+	}
+}
+
+extern IEEE80211STATUS gwifistatus;
+int testing_ssid_cmp(void)
+{
+    int ret = -1;
+	
+    if((strcmp(AUTO_TEST_WIFI_SSID,gwifistatus.connAP[0].ssid) == 0) && (gwifistatus.connAP[0].ssid_len == strlen(AUTO_TEST_WIFI_SSID)))
+   	{
+        ret = 0;
+    }
+	return ret;
 }
 

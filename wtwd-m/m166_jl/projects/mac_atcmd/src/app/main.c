@@ -69,6 +69,7 @@ void tcptask(void *args)
 }
 
 #include "tools/atcmd/sysconf_api.h"
+extern void first_auto_testing(void);
 void wifi_auto_connect_task(void *pdata)
 {  
     if( get_auto_connect_flag() == 1 )
@@ -79,6 +80,8 @@ void wifi_auto_connect_task(void *pdata)
         DUT_wifi_start(DUT_STA);
         OS_MsDelay(1*1000);
         do_wifi_auto_connect();
+		OS_MsDelay(1000);
+		first_auto_testing();
     }
     
     OS_TaskDelete(NULL);
