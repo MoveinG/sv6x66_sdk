@@ -27,4 +27,4 @@ utils/src-SPI_burn/util.o
 image/
 out/
 wtwd-m/back_temp/
-
+mybuild.sh
