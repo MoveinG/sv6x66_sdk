@@ -13,6 +13,8 @@
 	#include "colink/include/mytime.h"
 #endif
 #include "sysconf_api.h"
+#include "colink_define.h"
+#include "colink_setting.h"
 
 
 #define AUTO_TEST_WIFI_SSID       "EVL_8DB0839D"
@@ -110,6 +112,8 @@ extern void wifi_auto_connect_start(void);
 extern void colink_dl_deviceid_start(void);
 
 int testing_ssid_cmp(void);
+
+extern ColinkDevice colink_dev;
 
 ///////////////////////////////////////////
 static void cycle_1sec_handler(void)
@@ -508,7 +512,7 @@ void TaskKeyLed(void *pdata)
 				if(msg_evt.MsgData == (void*)KEY_KEY1)
 				{
 					#if defined(CK_CLOUD_EN)
-					if(testing_ssid_cmp() == 0)
+					if((testing_ssid_cmp() == 0) && (get_wifi_status() == 1) && (colink_load_deviceid((char*)&colink_dev, sizeof(ColinkDevice)) == sizeof(ColinkDevice)))
 					{
 					    int cnts = 6;
 						while(cnts--)
