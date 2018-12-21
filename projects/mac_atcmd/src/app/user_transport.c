@@ -209,6 +209,15 @@ void user_transport_func(void)
 			if ((get_connect_server_status()) && (get_rev_server_data_flag()))
 			{
 				set_rev_server_data_flag(false);
+				if (deviceStatus.socketClientRevBuffer[0] == '~') {
+					app_uart_send("device loagin success\r\n",strlen("device loagin success\r\n"));
+					deviceStatus.deviceLoagin = 1;
+					memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
+					break;
+				} else if (deviceStatus.socketClientRevBuffer[0] == '^') {
+					memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
+					break;
+				}
 				app_uart_send(deviceStatus.socketClientRevBuffer,strlen(deviceStatus.socketClientRevBuffer));
 				memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
 				OS_MsDelay(100);

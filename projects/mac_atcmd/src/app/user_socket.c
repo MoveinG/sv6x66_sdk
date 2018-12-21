@@ -241,6 +241,8 @@ void user_tcp_client_task(void *arg)
 	}
 
 exit:
+	deviceStatus.deviceLoagin = 0;
+	app_uart_send("server disconnet\r\n",strlen("server disconnet\r\n"));
 	OS_MsDelay(100);
 	set_connect_server_status(false);
 	set_rev_server_data_flag(false);
