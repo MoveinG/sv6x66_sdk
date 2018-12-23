@@ -60,7 +60,11 @@ void key_led_handler(void)
 		{
 			key_status = KEY_LONG;
 			if(get_device_mode() == DUT_AP) set_device_mode(DUT_STA);
-			else set_device_mode(DUT_AP);
+			else{
+				extern void wifi_disconnect (void (*callbackfn)(WIFI_RSP*));
+				wifi_disconnect(NULL);
+				set_device_mode(DUT_AP);
+			}
 		}
 		conut++;
 	}

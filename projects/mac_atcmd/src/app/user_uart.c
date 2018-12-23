@@ -57,7 +57,7 @@ void app_uart_int(void)
 	drv_hsuart_register_isr(HSUART_RX_DATA_READY_IE, app_uart_isr);
 	if(OS_SemInit(&AppUartRxSem, 1, 0) == OS_SUCCESS)
 	{
-       OS_TaskCreate(app_uart_rx_task, "app uart rx task", 512, NULL, APP_UART_RX_TASK_PRIORITY, NULL);
+       //OS_TaskCreate(app_uart_rx_task, "app uart rx task", 512, NULL, APP_UART_RX_TASK_PRIORITY, NULL);
 	}
 	else
 	{
@@ -175,15 +175,12 @@ void app_uart_isr(void)
     
     uint32_t len;
 
-    len = drv_hsuart_read_fifo(&AppUartRx->buf[AppUartRx->recv_len], (APP_UART_BUF_MAX - AppUartRx->recv_len), HSUART_NON_BLOCKING);
+    len = drv_hsuart_read_fifo(AppUartRx->buf, APP_UART_BUF_MAX, HSUART_NON_BLOCKING);
 	if(len > 0)
 	{
-	   AppUartRx->recv_len += len;
-	   if(AppUartRx->recv_len == APP_UART_BUF_MAX)
-	   {
-          OS_SemSignal(AppUartRxSem);
-		  //printf("app uart buf full\r\n");
-	   }
+	   	AppUartRx->buf[len] = '\0';
+		printf("AppUartRx:%s\r\n",AppUartRx->buf);
+	   	app_uart_command(AppUartRx->buf,len);
 	}
 	else
 	{
@@ -193,23 +190,28 @@ void app_uart_isr(void)
 
 void app_uart_command(char *cmd,char cmdLen)
 {
-	switch (*cmd)
+	printf("len:%d\r\n",cmdLen);
+
+	switch (cmd[cmdLen-1])
 	{	
-		 case 0x21:
-		 case 0x22:
-		 case 0x23:
-		 case 0x24:
-		 case 0x25:
-		 case 0x26:
-		 case 0x27:
-		 case 0x5e:
-		 case 0x7e:
-		 	printf("uartBuf=%s\r\n",cmd);
-			deviceStatus.uartCmdFlag = true;
-		 	memcpy(deviceStatus.uartCmdBuffer,cmd,cmdLen);
+		 case '?':
+		 	if (get_device_mode() == DUT_AP) {
+				deviceStatus.sendToClientEn = 1;
+				memcpy(deviceStatus.socketServerRevBuffer ,cmd,cmdLen);
+			} else {
+		 		printf("uartBuf=%s\r\n",cmd);
+				deviceStatus.uartCmdFlag = true;
+		 		memcpy(deviceStatus.uartCmdBuffer,cmd,cmdLen);
+			}
+		 break;
+
+		 case '}':
+		 	get_wifi_param(deviceStatus.wifiSsid,deviceStatus.wifiKey);
+			set_socket_send_ack(true);
 		 break;
 		 
 		 default:
+		 	printf("ddd uartBuf=%s\r\n",cmd);
 		 break;
 	}
 }
@@ -281,6 +283,8 @@ void app_uart_rx_task(void *pdata)
             {
 			   //app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
 			   app_uart_command(AppUartRx->buf,AppUartRx->recv_len);
+			   AppUartRx->buf[AppUartRx->recv_len] = '\0';
+			   printf("AppUartRx:%s\r\n",AppUartRx->buf);
                AppUartRx->recv_len = 0;
             }
 			last_recv_len = AppUartRx->recv_len;
@@ -292,7 +296,9 @@ void app_uart_rx_task(void *pdata)
 	      //AppUartProcessing(AppUartRx->buf,AppUartRx->recv_len);
 	      //app_uart_send(AppUartRx->buf,AppUartRx->recv_len);
 		  app_uart_command(AppUartRx->buf,AppUartRx->recv_len);
-          printf("app uart(full):%d\r\n",AppUartRx->recv_len);
+		  AppUartRx->buf[AppUartRx->recv_len] = '\0';
+		  printf("AppUartRx:%s\r\n",AppUartRx->buf);
+          //printf("app uart(full):%d\r\n",AppUartRx->recv_len);
           AppUartRx->recv_len = 0;
 		  rx_full_flg = true;
 	  }

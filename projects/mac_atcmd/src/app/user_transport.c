@@ -146,7 +146,7 @@ void user_transport_init(WIFI_OPMODE mode)
 	app_uart_int();
 	memset(&deviceStatus,0,sizeof(device_status_t));
 	set_device_mode(mode);
-	app_uart_send("user app start!\r\n",strlen("user app start!\r\n"));
+	//app_uart_send("user app start!\r\n",strlen("user app start!\r\n"));
 
 	switch (mode)
 	{	
@@ -192,7 +192,8 @@ void user_transport_init(WIFI_OPMODE mode)
 
 
 
-
+extern int connetServerSocketId;
+extern int user_socket_send(int socketId, char* buffer , char type);
 void user_transport_func(void)
 {
 	switch (get_device_mode())
@@ -203,14 +204,20 @@ void user_transport_func(void)
 				OS_MsDelay(1000);
 				user_tcp_server_create();
 			}
+			if ((deviceStatus.sendToClientEn == 1) && (connetServerSocketId != -1)) {
+				deviceStatus.sendToClientEn = 0;
+				printf("0000 buffer:%s\r\n",deviceStatus.socketServerRevBuffer);
+				user_socket_send(connetServerSocketId,deviceStatus.socketServerRevBuffer,4);
+			}
 		break;
 
 		case DUT_STA:
 			if ((get_connect_server_status()) && (get_rev_server_data_flag()))
 			{
 				set_rev_server_data_flag(false);
+				printf("socketClientRevBuffer:%s\r\n",deviceStatus.socketClientRevBuffer);
 				if (deviceStatus.socketClientRevBuffer[0] == '~') {
-					app_uart_send("device loagin success\r\n",strlen("device loagin success\r\n"));
+					//app_uart_send("device loagin success\r\n",strlen("device loagin success\r\n"));
 					deviceStatus.deviceLoagin = 1;
 					memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
 					break;
@@ -220,7 +227,7 @@ void user_transport_func(void)
 				}
 				app_uart_send(deviceStatus.socketClientRevBuffer,strlen(deviceStatus.socketClientRevBuffer));
 				memset(deviceStatus.socketClientRevBuffer,0,BUFFER_SIZE_MAX);
-				OS_MsDelay(100);
+				OS_MsDelay(50);
 			}
 			if ((get_wifi_status()) && (deviceStatus.socketClientCreateFlag == false))
 			{

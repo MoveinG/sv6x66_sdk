@@ -42,6 +42,7 @@ typedef enum {
 	SOCKET_SEND_LOGIN                  = 1,
 	SOCKET_SEND_WIFICONFIG_ACK         = 2,
 	SOCKET_SEND_UART_CMD               = 3,
+	SOCKET_SENT_CLIENT                 = 4,
 }e_sockeSendType_t;
 
 
@@ -49,7 +50,7 @@ typedef enum {
 
 
 /***********************local variable ********************/
-
+int connetServerSocketId = 0;
 
 
 
@@ -98,12 +99,17 @@ int user_socket_send(int socketId, char* buffer , char type)
 		break;
 		
 		case SOCKET_SEND_UART_CMD: 
+			//printf("sendCmdBuffer:%s\r\n",buffer);
 			user_aes_encrypt(buffer,dBuf);
 			sprintf(sBuf,"{%s}",dBuf);
 			memset(deviceStatus.uartCmdBuffer,0,BUFFER_SIZE_MAX);
 			printf("[%s]uart buffer:%s,len=%d\r\n",__func__,sBuf,strlen(sBuf));
 		break;
-		
+
+		case SOCKET_SENT_CLIENT:
+			printf("1111 buffer:%s\r\n",buffer);
+			memcpy(sBuf,buffer,strlen(buffer));
+		break;
 		default:
 		break;
 	}
@@ -237,7 +243,7 @@ void user_tcp_client_task(void *arg)
 			 goto exit;
 		}
 	#endif
-        vTaskDelay(100 / portTICK_RATE_MS);
+        vTaskDelay(50 / portTICK_RATE_MS);
 	}
 
 exit:
@@ -258,10 +264,8 @@ static void user_tcp_server_task(void *arg)
 	
 	int sockfd, newconn, size, ret;
     struct sockaddr_in address, remotehost;
-	
-	char wifiSsid[20] = {0};
-	char wifiKey[20]  = {0};
-	
+BAGAIN:
+
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
     {
         printf("can not create socket\r\n");
@@ -285,30 +289,41 @@ static void user_tcp_server_task(void *arg)
 	
     size = sizeof(remotehost);
 	newconn = accept(sockfd, (struct sockaddr *)&remotehost, (socklen_t *)&size);
+	connetServerSocketId = newconn;
 
 	deviceStatus.socketServerCreateFlag = true;
     while (1)
     {
-    	vTaskDelay(1000 / portTICK_RATE_MS);
-        if (newconn >= 0)
-        {
+    	vTaskDelay(50 / portTICK_RATE_MS);
+        if (newconn >= 0) {
 			deviceStatus.socketServerRevFlag = true;
 			memset(deviceStatus.socketServerRevBuffer, 0 , BUFFER_SIZE_MAX);
-			read(newconn, deviceStatus.socketServerRevBuffer, BUFFER_SIZE_MAX);
-			printf("receive msg =%s\r\n", deviceStatus.socketServerRevBuffer);
+		
+			if (read(newconn, deviceStatus.socketServerRevBuffer, BUFFER_SIZE_MAX) > 0) {
+				printf("receive msg =%s\r\n", deviceStatus.socketServerRevBuffer);
 
-			OS_MsDelay(100);
-
-			get_wifi_param(wifiSsid,wifiKey);
-			set_socket_send_ack(true);
+				OS_MsDelay(100);
+				if (deviceStatus.socketServerRevBuffer[strlen(deviceStatus.socketServerRevBuffer) - 1] == '}') {
+					get_wifi_param(deviceStatus.wifiSsid,deviceStatus.wifiKey);
+					set_socket_send_ack(true);
+				}
+				//app_uart_command(deviceStatus.socketServerRevBuffer,strlen(deviceStatus.socketServerRevBuffer));
+				app_uart_send(deviceStatus.socketServerRevBuffer,strlen(deviceStatus.socketServerRevBuffer));
+				memset(deviceStatus.socketServerRevBuffer,0,BUFFER_SIZE_MAX);
+			}else{
+				close(newconn);
+				close(sockfd);
+				connetServerSocketId = -1;
+				goto BAGAIN;
+			}
         }
-		if (get_socket_send_ack())
-		{	
+		if (get_socket_send_ack()) {	
 			set_socket_send_ack(false);
 			user_socket_send(newconn,NULL,SOCKET_SEND_WIFICONFIG_ACK);
 			OS_MsDelay(1000);
 			close(newconn);
 			close(sockfd);
+			connetServerSocketId = -1;
 			softap_exit();
 			OS_MsDelay(1000);
 
@@ -317,13 +332,13 @@ static void user_tcp_server_task(void *arg)
 			DUT_wifi_start(DUT_STA);
 			set_device_mode(DUT_STA);
 			OS_MsDelay(1000);
-			wifi_connect_active((u8*)wifiSsid, strlen(wifiSsid), (u8*)wifiKey, strlen(wifiKey),atwificbfunc);
+			wifi_connect_active((u8*)deviceStatus.wifiSsid, strlen(deviceStatus.wifiSsid), (u8*)deviceStatus.wifiKey, strlen(deviceStatus.wifiKey),atwificbfunc);
 			goto exit;
 		}
-		
     }
  
 exit:
+	connetServerSocketId = -1;
 	set_wifi_config_msg(false);
 	deviceStatus.socketServerRevFlag = false;
 	deviceStatus.socketServerCreateFlag = false;

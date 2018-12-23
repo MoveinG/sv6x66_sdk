@@ -5,7 +5,7 @@
 
 
 #define BUFFER_SIZE_MAX				100
-
+#define SSID_LEN_MAX                32
 
 
 
@@ -26,6 +26,9 @@ typedef struct {
 	char socketServerCreateFlag;
 	char socketServerRevFlag;
 	char socketServerRevBuffer[BUFFER_SIZE_MAX];
+	char wifiSsid[SSID_LEN_MAX+1];
+	char wifiKey[SSID_LEN_MAX+1];
+	char sendToClientEn;
 }device_status_t;
 
 
