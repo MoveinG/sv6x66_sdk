@@ -248,7 +248,7 @@ void user_tcp_client_task(void *arg)
 
 exit:
 	deviceStatus.deviceLoagin = 0;
-	app_uart_send("server disconnet\r\n",strlen("server disconnet\r\n"));
+	//app_uart_send("server disconnet\r\n",strlen("server disconnet\r\n"));
 	OS_MsDelay(100);
 	set_connect_server_status(false);
 	set_rev_server_data_flag(false);
@@ -306,9 +306,9 @@ BAGAIN:
 				if (deviceStatus.socketServerRevBuffer[strlen(deviceStatus.socketServerRevBuffer) - 1] == '}') {
 					get_wifi_param(deviceStatus.wifiSsid,deviceStatus.wifiKey);
 					set_socket_send_ack(true);
+				} else {
+					app_uart_send(deviceStatus.socketServerRevBuffer,strlen(deviceStatus.socketServerRevBuffer));
 				}
-				//app_uart_command(deviceStatus.socketServerRevBuffer,strlen(deviceStatus.socketServerRevBuffer));
-				app_uart_send(deviceStatus.socketServerRevBuffer,strlen(deviceStatus.socketServerRevBuffer));
 				memset(deviceStatus.socketServerRevBuffer,0,BUFFER_SIZE_MAX);
 			}else{
 				close(newconn);
