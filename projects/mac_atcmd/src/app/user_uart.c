@@ -197,10 +197,12 @@ void app_uart_command(char *cmd,char cmdLen)
 		 case '?':
 		 	if (get_device_mode() == DUT_AP) {
 				deviceStatus.sendToClientEn = 1;
+				memset(deviceStatus.socketServerRevBuffer,0,BUFFER_SIZE_MAX);
 				memcpy(deviceStatus.socketServerRevBuffer ,cmd,cmdLen);
 			} else {
 		 		printf("uartBuf=%s\r\n",cmd);
 				deviceStatus.uartCmdFlag = true;
+				memset(deviceStatus.uartCmdBuffer,0,BUFFER_SIZE_MAX);
 		 		memcpy(deviceStatus.uartCmdBuffer,cmd,cmdLen);
 			}
 		 break;
